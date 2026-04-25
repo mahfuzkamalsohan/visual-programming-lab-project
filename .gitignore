@@ -1,0 +1,21 @@
+# Maven build output
+/target/
+
+# Eclipse metadata
+.settings/
+.project
+.classpath
+.factorypath
+
+# Compiled class files
+*.class
+
+# Log files
+*.log
+
+# External dependencies (not needed as Maven handles them)
+.recommenders/
+
+# Operating system files
+.DS_Store
+Thumbs.db
