@@ -244,6 +244,10 @@ public class FightPrototype extends GameApplication {
         // Clean up cached hacks for enemies that have died (e.g., from punches)
         ongoingHacks.keySet().removeIf(e -> !e.isActive());
 
+        if (targetEnemy != null && !targetEnemy.isActive()) {
+            endHackingMode();
+        }
+
         // Let the smart component handle the smooth acceleration math
         if (left && !right) {
             playerAnim.setMoveDir(-1);
@@ -278,6 +282,8 @@ public class FightPrototype extends GameApplication {
     }
 
     private void startHackingMode(Entity enemy) {
+        enemy.getComponentOptional(EnemyComponent.class).ifPresent(ec -> ec.setTargeted(true));
+        
         // Check if this specific enemy already has an ongoing hack puzzle saved!
         if (ongoingHacks.containsKey(enemy)) {
             hackingUI = ongoingHacks.get(enemy);
@@ -311,6 +317,7 @@ public class FightPrototype extends GameApplication {
     private void endHackingMode() {
         hideHackingUI();
         if (targetEnemy != null) {
+            targetEnemy.getComponentOptional(EnemyComponent.class).ifPresent(ec -> ec.setTargeted(false));
             // We removed the setHacked(false) reset here so the enemy stays permanently hacked!
             targetEnemy = null;
         }

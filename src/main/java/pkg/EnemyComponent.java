@@ -156,6 +156,22 @@ public class EnemyComponent extends Component {
         });
     }
 
+    public void setTargeted(boolean targeted) {
+        entity.getViewComponent().getChildren().forEach(n -> {
+            if (n instanceof javafx.scene.shape.Rectangle rect) {
+                if (targeted) {
+                    rect.setStroke(Color.web("#00E5FF")); // Cyan techy border
+                    rect.setStrokeWidth(3);
+                    rect.setEffect(new DropShadow(BlurType.THREE_PASS_BOX, Color.web("#00E5FF"), 15, 0.6, 0, 0));
+                } else {
+                    rect.setStroke(Color.TRANSPARENT);
+                    rect.setStrokeWidth(0);
+                    rect.setEffect(null);
+                }
+            }
+        });
+    }
+
     public boolean isHacked() {
         return hacked;
     }
