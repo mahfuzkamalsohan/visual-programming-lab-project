@@ -1,6 +1,7 @@
 package pkg;
 
 import com.almasb.fxgl.entity.component.Component;
+
 import javafx.scene.Group;
 import javafx.scene.input.KeyCode;
 import javafx.scene.paint.Color;
@@ -12,13 +13,13 @@ import javafx.scene.text.Text;
 
 public class QTEComponent extends Component {
 
-    private KeyCode triggerKey;
-    private double speed;
+    private final KeyCode triggerKey;
+    private final double speed;
     private double progress = 0;
-    private Arc progressBar;
+    private final Arc progressBar;
     private boolean success = false;
     private boolean pressed = false;
-    private Group view;
+    private final Group view;
 
     public QTEComponent(KeyCode key, double speed) {
         this.triggerKey = key;

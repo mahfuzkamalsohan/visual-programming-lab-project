@@ -1,0 +1,59 @@
+.game-container {
+    /* Deep dark blue/grey background to match the game */
+    -fx-background-color: linear-gradient(to bottom right, #0b1118, #131d27);
+
+    /* Sharp edges instead of rounded */
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
+
+    /* Subtle techy border around the whole minigame */
+    -fx-border-color: #00e5ff;
+    -fx-border-width: 1;
+    -fx-border-style: solid;
+    -fx-padding: 10;
+
+    /* Glow effect on the container itself */
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 229, 255, 0.2), 40, 0, 0, 0);
+}
+
+/* If you add buttons later to match the UI */
+.button {
+    -fx-background-color: transparent;
+    background-color: transparent;
+    -fx-border-color: #00E5FF;
+    border-color: #00E5FF;
+    -fx-border-width: 2;
+    border-width: 2;
+    -fx-border-radius: 8;
+    border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-text-fill: #00E5FF;
+    -fx-font-family: "Courier New", monospace;
+    font-family: "Courier New", monospace;
+    -fx-font-weight: bold;
+    font-weight: bold;
+    -fx-cursor: hand;
+    cursor: pointer;
+    padding: 10 20;
+    -fx-padding: 10 20;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 229, 255, 0.4), 10, 0, 0, 0);
+}
+
+.button:hover {
+    -fx-background-color: rgba(0, 229, 255, 0.2);
+    background-color: rgba(0, 229, 255, 0.2);
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 229, 255, 0.8), 20, 0.2, 0, 0);
+}
+
+.button:pressed {
+    -fx-background-color: rgba(0, 229, 255, 0.4);
+    background-color: rgba(0, 229, 255, 0.4);
+}
+
+/* HUD Text styling */
+.hud-text {
+    -fx-fill: #00E5FF;
+    -fx-font-family: "Courier New", monospace;
+    -fx-font-weight: bold;
+    -fx-font-size: 16px;
+}

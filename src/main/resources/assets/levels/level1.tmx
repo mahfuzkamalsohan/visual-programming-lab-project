@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down"
+    width="30" height="17" tilewidth="40" tileheight="40" infinite="0" nextlayerid="2"
+    nextobjectid="15">
+    <objectgroup id="1" name="Entities">
+        <!-- Outer Walls -->
+        <object id="1" type="platform" x="0" y="0" width="1200" height="40" />
+        <object id="2" type="platform" x="0" y="40" width="40" height="600" />
+        <object id="3" type="platform" x="1160" y="40" width="40" height="600" />
+        <object id="4" type="platform" x="0" y="640" width="1200" height="40" />
+
+        <!-- Floating Platforms -->
+        <object id="5" type="platform" x="560" y="240" width="200" height="40" />
+        <object id="6" type="platform" x="280" y="360" width="120" height="40" />
+        <object id="7" type="platform" x="600" y="440" width="200" height="40" />
+        <object id="8" type="platform" x="160" y="520" width="200" height="40" />
+        <object id="9" type="platform" x="1080" y="600" width="80" height="40" />
+
+        <!-- Player Start Position -->
+        <object id="10" type="player" x="120" y="600" width="40" height="40" />
+
+        <!-- Enemy Spawn Positions -->
+        <object id="11" type="enemy" x="720" y="400" width="40" height="40" />
+        <object id="12" type="enemy" x="240" y="480" width="40" height="40" />
+        <object id="13" type="enemy" x="1080" y="560" width="40" height="40" />
+    </objectgroup>
+</map>

@@ -1,16 +1,17 @@
 package pkg;
+import java.util.ArrayList;
+import java.util.List;
+
 import com.almasb.fxgl.app.GameApplication;
 import com.almasb.fxgl.app.GameSettings;
 import com.almasb.fxgl.dsl.FXGL;
+
 import javafx.scene.input.KeyCode;
-import javafx.scene.paint.Color;
-import java.util.ArrayList;
-import java.util.List;
 
 public class QTEGameApp extends GameApplication {
 
     // List to keep track of our button components for the win check
-    private List<QTEComponent> qteComponents = new ArrayList<>();
+    private final List<QTEComponent> qteComponents = new ArrayList<>();
 
     @Override
     protected void initSettings(GameSettings settings) {
@@ -48,6 +49,7 @@ public class QTEGameApp extends GameApplication {
 
         FXGL.entityBuilder()
                 .at(x, y)
+                .view(comp.getView())
                 .with(comp)
                 .buildAndAttach();
     }

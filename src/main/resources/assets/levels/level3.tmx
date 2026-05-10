@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down"
+    width="30" height="17" tilewidth="40" tileheight="40" infinite="0" nextlayerid="2"
+    nextobjectid="25">
+    <objectgroup id="1" name="Entities">
+        <object id="1" type="platform" x="0" y="0" width="1200" height="40" />
+        <object id="2" type="platform" x="0" y="40" width="40" height="600" />
+        <object id="3" type="platform" x="1160" y="40" width="40" height="600" />
+
+        <object id="4" type="platform" x="0" y="640" width="240" height="40" />
+        <object id="5" type="platform" x="400" y="640" width="200" height="40" />
+        <object id="6" type="platform" x="800" y="640" width="400" height="40" />
+
+        <object id="7" type="platform" x="200" y="520" width="120" height="40" />
+        <object id="8" type="platform" x="400" y="440" width="80" height="40" />
+        <object id="9" type="platform" x="600" y="360" width="80" height="40" />
+        <object id="10" type="platform" x="800" y="280" width="240" height="40" />
+        <object id="11" type="platform" x="520" y="200" width="120" height="40" />
+        <object id="12" type="platform" x="160" y="200" width="240" height="40" />
+        <object id="13" type="platform" x="920" y="480" width="160" height="40" />
+
+        <object id="14" type="player" x="80" y="600" width="40" height="40" />
+
+        <object id="15" type="enemy" x="440" y="600" width="40" height="40" />
+        <object id="16" type="enemy" x="880" y="600" width="40" height="40" />
+        <object id="17" type="enemy" x="880" y="240" width="40" height="40" />
+        <object id="18" type="enemy" x="240" y="160" width="40" height="40" />
+        <object id="19" type="enemy" x="960" y="440" width="40" height="40" />
+    </objectgroup>
+</map>
