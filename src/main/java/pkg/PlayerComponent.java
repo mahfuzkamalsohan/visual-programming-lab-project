@@ -237,4 +237,8 @@ public class PlayerComponent extends Component {
             flinchTimer = 0; 
         }
     }
+
+    public void refillDash() {
+        dashCooldown = 0;
+    }
 }

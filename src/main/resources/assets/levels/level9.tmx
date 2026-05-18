@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down"
+    width="30" height="17" tilewidth="40" tileheight="40" infinite="0" nextlayerid="2"
+    nextobjectid="43">
+    <objectgroup id="1" name="Entities">
+        <object id="1" type="platform" x="0" y="0" width="1200" height="40" />
+        <object id="2" type="platform" x="0" y="40" width="40" height="600" />
+        <object id="3" type="platform" x="1160" y="40" width="40" height="600" />
+
+        <object id="4" type="platform" x="0" y="640" width="280" height="40" />
+        <object id="5" type="platform" x="440" y="640" width="160" height="40" />
+        <object id="6" type="platform" x="760" y="640" width="440" height="40" />
+
+        <object id="7" type="platform" x="160" y="500" width="100" height="40" />
+        <object id="8" type="crumble" x="300" y="560" width="100" height="40" />
+        <object id="9" type="platform" x="480" y="420" width="100" height="40" />
+        <object id="10" type="crumble" x="620" y="480" width="100" height="40" />
+        <object id="11" type="crumble" x="760" y="400" width="100" height="40" />
+        <object id="12" type="crumble" x="900" y="320" width="100" height="40" />
+        <object id="13" type="platform" x="1030" y="520" width="120" height="40" />
+
+        <object id="14" type="player" x="80" y="600" width="40" height="40" />
+        <object id="15" type="checkpoint" x="470" y="576" width="72" height="64" />
+        <object id="16" type="dashCrystal" x="660" y="435" width="40" height="44" />
+        <object id="17" type="key" x="920" y="280" width="40" height="40" />
+        <object id="18" type="spike" x="460" y="600" width="80" height="40" />
+        <object id="19" type="spike" x="820" y="600" width="80" height="40" />
+        <object id="20" type="spike" x="1040" y="600" width="80" height="40" />
+        <object id="21" type="enemy" x="500" y="380" width="40" height="40" />
+        <object id="22" type="enemy" x="1060" y="480" width="40" height="40" />
+    </objectgroup>
+</map>
