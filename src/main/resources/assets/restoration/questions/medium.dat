@@ -1,0 +1,33 @@
+id=medium-q-001
+type=QUESTION
+prompt=Why are wetlands valuable during flood restoration?
+choices=They absorb and slow excess water|They make floods move faster|They prevent all rainfall
+answer=0
+reward=12
+penalty=8
+feedback.correct=Wetlands buffer floods and help the reserve recover.
+feedback.wrong=The gate unlocks, but the floodplain loses time.
+
+id=medium-q-002
+type=QUESTION
+prompt=Which practice reduces urban heat while improving stormwater capture?
+choices=Tree canopy and permeable surfaces|More black asphalt|Removing street vegetation
+answer=0
+feedback.correct=Shade and infiltration strengthen the restoration signal.
+feedback.wrong=Heat rises, runoff grows, and the reserve drops.
+
+id=medium-d-001
+type=DECISION
+prompt=A factory can either patch emissions now or wait for a cheaper full retrofit. What is the safer restoration decision?
+choices=Patch now and schedule the retrofit|Wait with no mitigation|Increase production to fund it faster
+answer=0
+feedback.correct=Immediate mitigation keeps the system alive long enough for deeper repair.
+feedback.wrong=Delay costs the world time even though the path continues.
+
+id=medium-d-002
+type=DECISION
+prompt=A forest edge is burning in dry wind. Which command should lead?
+choices=Evacuate people and create defensible space|Send volunteers without gear|Ignore wind conditions
+answer=0
+feedback.correct=Risk control preserves lives and recovery capacity.
+feedback.wrong=The decision gate closes behind a costly call.

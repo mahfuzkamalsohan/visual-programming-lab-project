@@ -1,0 +1,33 @@
+id=hard-q-001
+type=QUESTION
+prompt=In a stressed ecosystem, why is biodiversity a resilience advantage?
+choices=Different species can support functions under different shocks|It guarantees no species will die|It removes the need for habitat protection
+answer=0
+reward=18
+penalty=12
+feedback.correct=Functional diversity gives the world more ways to recover.
+feedback.wrong=The answer weakens resilience and drains reserve time.
+
+id=hard-q-002
+type=QUESTION
+prompt=Which metric best reveals whether a restoration plan is surviving over time?
+choices=Repeated monitoring against baseline indicators|A single launch-day photo|Total money spent without outcomes
+answer=0
+feedback.correct=Monitoring turns restoration into an accountable system.
+feedback.wrong=Without measurement, the reserve loses confidence.
+
+id=hard-d-001
+type=DECISION
+prompt=A city must choose between a flashy park and restoring the upstream watershed that feeds it. Which protects the system first?
+choices=Restore the watershed and phase the park|Build the park and defer water work|Cut monitoring to afford both
+answer=0
+feedback.correct=Upstream health stabilizes everything downstream.
+feedback.wrong=A visible win hides systemic damage, and time is lost.
+
+id=hard-d-002
+type=DECISION
+prompt=An invasive plant is spreading through a restored wetland. What should the team do?
+choices=Remove it early and replant natives|Wait until it dominates|Replace all natives with the invader
+answer=0
+feedback.correct=Early control protects the wetland before recovery collapses.
+feedback.wrong=The path remains open, but the wetland loses reserve time.

@@ -1,5 +1,0 @@
-package pkg;
-
-public enum EntityType {
-    PLAYER, ENEMY, PLATFORM, GATE, SPIKE, CHECKPOINT, KEY, DASH_CRYSTAL, PRESSURE_PLATE, LOCK
-}

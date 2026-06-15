@@ -7,11 +7,18 @@
 .classpath
 .factorypath
 
+# VS Code metadata
+.vscode/
+
 # Compiled class files
 *.class
 
 # Log files
 *.log
+/logs/
+
+# FXGL runtime state
+/system/
 
 # External dependencies (not needed as Maven handles them)
 .recommenders/

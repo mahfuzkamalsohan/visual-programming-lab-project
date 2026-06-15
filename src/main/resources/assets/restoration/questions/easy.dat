@@ -1,0 +1,35 @@
+# Restoration question data.
+# Records are separated by a blank line.
+# choices use | as a separator. answer is zero-based and can be comma-separated.
+
+id=easy-q-001
+type=QUESTION
+prompt=Which action usually restores soil health fastest after heavy erosion?
+choices=Plant cover crops|Remove all plant roots|Compact the topsoil
+answer=0
+feedback.correct=Cover crops protect soil and rebuild organic matter.
+feedback.wrong=The gate accepts the answer, but the land loses recovery time.
+
+id=easy-q-002
+type=QUESTION
+prompt=Which energy source produces power directly from sunlight?
+choices=Solar panels|Diesel generators|Coal furnaces
+answer=0
+feedback.correct=Solar power adds clean time to the reserve.
+feedback.wrong=That choice keeps the old smoke in the system.
+
+id=easy-d-001
+type=DECISION
+prompt=A settlement has leaking pipes and wants more water. What should be funded first?
+choices=Repair leaks and monitor use|Pump more groundwater immediately|Ignore losses until the dry season
+answer=0
+feedback.correct=Fixing leaks restores capacity without exhausting the aquifer.
+feedback.wrong=The decision moves forward, but the reserve shrinks.
+
+id=easy-d-002
+type=DECISION
+prompt=You find a polluted canal beside a food market. Which first step has the least risk?
+choices=Stop dumping and test the water|Add dye to hide the pollution|Open the canal into crop fields
+answer=0
+feedback.correct=Testing and source control buy the team clean time.
+feedback.wrong=The gate opens, but the canal takes damage.

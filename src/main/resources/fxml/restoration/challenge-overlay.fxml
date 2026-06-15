@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.Rectangle?>
+<?import javafx.scene.text.Text?>
+
+<StackPane fx:id="root"
+           alignment="BOTTOM_CENTER"
+           prefWidth="1280"
+           prefHeight="720"
+           xmlns="http://javafx.com/javafx/21"
+           xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="pkg.restoration.ui.challenge.ChallengeOverlayController">
+    <padding>
+        <Insets bottom="42"/>
+    </padding>
+    <children>
+        <StackPane>
+            <children>
+                <Rectangle width="790"
+                           height="230"
+                           arcWidth="12"
+                           arcHeight="12"
+                           fill="#101711ef"
+                           stroke="#d7e77f"
+                           strokeWidth="1.6"/>
+                <VBox maxWidth="740" spacing="14">
+                    <padding>
+                        <Insets top="22" right="26" bottom="22" left="26"/>
+                    </padding>
+                    <children>
+                        <Text fx:id="title"
+                              fill="#d8e77f"
+                              style="-fx-font-family: Verdana; -fx-font-size: 16px; -fx-font-weight: bold;"/>
+                        <Text fx:id="prompt"
+                              wrappingWidth="720"
+                              fill="#f7f4dc"
+                              style="-fx-font-family: Verdana; -fx-font-size: 17px; -fx-font-weight: bold;"/>
+                        <VBox fx:id="choiceBox" spacing="10"/>
+                    </children>
+                </VBox>
+            </children>
+        </StackPane>
+    </children>
+</StackPane>
