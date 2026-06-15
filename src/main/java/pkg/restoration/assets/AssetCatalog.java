@@ -20,6 +20,9 @@ public final class AssetCatalog {
     public static final String GATE_CLOSED = "restoration/gate_closed.png";
     public static final String GATE_DECISION = "restoration/gate_decision.png";
     public static final String NPC_KEEPER = "restoration/npc_keeper.png";
+    public static final String NPC_RESCUE_DOG = "restoration/npc_rescue_dog.png";
+    public static final String NPC_CANAL_DUCK = "restoration/npc_canal_duck.png";
+    public static final String NPC_ORCHARD_DEER = "restoration/npc_orchard_deer.png";
 
     private AssetCatalog() {
     }

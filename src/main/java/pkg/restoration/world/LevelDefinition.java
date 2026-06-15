@@ -19,4 +19,8 @@ public record LevelDefinition(
     public IsoPoint clamp(IsoPoint point, double margin) {
         return shape.clamp(point, margin);
     }
+
+    public List<IsoPoint> wallSlotsNear(IsoPoint anchor, int count, double minimumDistance) {
+        return shape.wallSlotsNear(anchor, count, minimumDistance);
+    }
 }

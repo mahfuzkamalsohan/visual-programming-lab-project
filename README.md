@@ -1,7 +1,7 @@
 Restoration
 ===========
 
-Restoration is a Java / JavaFX / FXGL 2D isometric survival-question game. The player moves through bounded rectangular regions, opens sealed gates by answering questions or walking through decision doors, and survives by keeping the restoration timer above zero.
+Restoration is a fullscreen Java / JavaFX / FXGL 2D isometric survival-question game. The player moves through endless generated districts inside a continuous city map, opens sealed gates by answering questions or walking through decision doors, and survives by keeping the restoration timer above zero.
 
 Stack
 -----
@@ -50,10 +50,12 @@ Project Layout
 - `src/main/resources/fxml/restoration`: FXML layouts for menu and game UI.
 - `src/main/resources/application.properties`: game tuning and Spring Boot desktop-mode configuration.
 
-District Layouts
-----------------
+World Layout
+------------
 
-Districts are defined as packed tile shapes in `LevelRepository` with `LevelShape.fromRows(...)`. Any non-space character in a row is a walkable city tile. The renderer draws only those tiles and places walls around the true perimeter, so districts can be L-shaped, tapered, maze-like, or otherwise non-rectangular without changing player movement code.
+`CityMapGenerator` builds and extends the isometric city procedurally: water, piers, roads, plazas, parks, and building blocks. `LevelRepository` lazily generates districts ahead of the current run, derives each district from the walkable tiles inside that city map, and never stops at a fixed final level. `WorldRenderer` draws the generated city before drawing district perimeters, which keeps the map visually continuous instead of showing isolated rooms over blank space.
+
+Decision doors are selected from real boundary slots on the current district shape, so choice doors stay along walls. NPC definitions carry their own asset path, allowing human guides and animal NPCs to share the same interaction component.
 
 Question DAT Format
 -------------------
@@ -80,4 +82,4 @@ javac -d target/tools src/main/java/pkg/restoration/tools/DemoAssetGenerator.jav
 java -cp target/tools pkg.restoration.tools.DemoAssetGenerator
 ```
 
-Generated textures are written to `src/main/resources/assets/textures/restoration`.
+Generated textures are written to `src/main/resources/assets/textures/restoration`, including the player sheets, gates, tiles, human keeper, rescue dog, canal duck, and orchard deer placeholders.

@@ -40,6 +40,9 @@ public final class DemoAssetGenerator {
         }
 
         writeNpc(output.resolve("npc_keeper.png"));
+        writeRescueDog(output.resolve("npc_rescue_dog.png"));
+        writeCanalDuck(output.resolve("npc_canal_duck.png"));
+        writeOrchardDeer(output.resolve("npc_orchard_deer.png"));
         writeTile(output.resolve("tile_dust.png"), new Color(116, 92, 68), new Color(71, 57, 48), new Color(159, 132, 89));
         writeTile(output.resolve("tile_recovering.png"), new Color(101, 129, 72), new Color(67, 85, 61), new Color(183, 168, 92));
         writeTile(output.resolve("tile_green.png"), new Color(94, 157, 83), new Color(51, 103, 72), new Color(191, 222, 119));
@@ -125,6 +128,111 @@ public final class DemoAssetGenerator {
         g.setFont(new Font("SansSerif", Font.BOLD, 10));
         g.setColor(new Color(238, 247, 212, 170));
         drawCentered(g, "NPC", 48, 119);
+
+        g.dispose();
+        ImageIO.write(image, "png", path.toFile());
+    }
+
+    private static void writeRescueDog(Path path) throws IOException {
+        BufferedImage image = new BufferedImage(96, 128, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = image.createGraphics();
+        configure(g);
+
+        g.setColor(new Color(0, 0, 0, 58));
+        g.fill(new Ellipse2D.Double(18, 94, 60, 14));
+        g.setColor(new Color(139, 104, 74));
+        g.fill(new RoundRectangle2D.Double(24, 58, 46, 30, 16, 16));
+        g.setColor(new Color(92, 63, 48));
+        g.fillOval(54, 42, 27, 25);
+        g.fillOval(58, 50, 28, 15);
+        g.setColor(new Color(66, 52, 43));
+        g.fillOval(57, 41, 8, 21);
+        g.fillOval(72, 43, 8, 20);
+        g.setColor(new Color(230, 238, 104));
+        g.fill(new RoundRectangle2D.Double(30, 61, 29, 17, 8, 8));
+        g.setColor(new Color(66, 111, 98));
+        g.fill(new RoundRectangle2D.Double(34, 63, 20, 12, 6, 6));
+        g.setStroke(new BasicStroke(5, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        g.setColor(new Color(92, 63, 48));
+        g.drawLine(27, 84, 23, 100);
+        g.drawLine(38, 86, 36, 103);
+        g.drawLine(58, 86, 58, 103);
+        g.drawLine(68, 84, 73, 99);
+        g.drawLine(23, 63, 12, 50);
+        g.setColor(new Color(27, 35, 31));
+        g.fillOval(67, 51, 3, 3);
+        g.fillOval(79, 57, 5, 4);
+        g.setFont(new Font("SansSerif", Font.BOLD, 10));
+        g.setColor(new Color(238, 247, 212, 170));
+        drawCentered(g, "DOG", 48, 119);
+
+        g.dispose();
+        ImageIO.write(image, "png", path.toFile());
+    }
+
+    private static void writeCanalDuck(Path path) throws IOException {
+        BufferedImage image = new BufferedImage(96, 128, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = image.createGraphics();
+        configure(g);
+
+        g.setColor(new Color(0, 0, 0, 52));
+        g.fill(new Ellipse2D.Double(22, 95, 52, 13));
+        g.setColor(new Color(51, 112, 94));
+        g.fillOval(27, 66, 42, 28);
+        g.setColor(new Color(34, 85, 72));
+        g.fillOval(52, 48, 24, 24);
+        g.setColor(new Color(244, 191, 72));
+        g.fill(new RoundRectangle2D.Double(69, 57, 18, 8, 6, 6));
+        g.setColor(new Color(230, 238, 204));
+        g.fillOval(34, 69, 22, 15);
+        g.setColor(new Color(27, 35, 31));
+        g.fillOval(65, 55, 3, 3);
+        g.setStroke(new BasicStroke(4, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        g.setColor(new Color(214, 139, 46));
+        g.drawLine(42, 91, 38, 103);
+        g.drawLine(56, 90, 59, 103);
+        g.drawLine(36, 103, 30, 106);
+        g.drawLine(60, 103, 66, 106);
+        g.setFont(new Font("SansSerif", Font.BOLD, 10));
+        g.setColor(new Color(238, 247, 212, 170));
+        drawCentered(g, "DUCK", 48, 119);
+
+        g.dispose();
+        ImageIO.write(image, "png", path.toFile());
+    }
+
+    private static void writeOrchardDeer(Path path) throws IOException {
+        BufferedImage image = new BufferedImage(96, 128, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = image.createGraphics();
+        configure(g);
+
+        g.setColor(new Color(0, 0, 0, 56));
+        g.fill(new Ellipse2D.Double(18, 95, 60, 14));
+        g.setColor(new Color(155, 105, 66));
+        g.fill(new RoundRectangle2D.Double(25, 62, 44, 28, 16, 16));
+        g.setColor(new Color(123, 80, 50));
+        g.fillOval(55, 41, 23, 27);
+        g.setColor(new Color(201, 169, 106));
+        g.fillOval(68, 54, 17, 11);
+        g.setStroke(new BasicStroke(4, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        g.setColor(new Color(96, 60, 38));
+        g.drawLine(31, 88, 27, 104);
+        g.drawLine(43, 89, 43, 104);
+        g.drawLine(58, 89, 59, 104);
+        g.drawLine(68, 87, 73, 103);
+        g.setColor(new Color(190, 149, 86));
+        g.drawLine(60, 42, 51, 25);
+        g.drawLine(72, 42, 80, 25);
+        g.drawLine(53, 29, 45, 25);
+        g.drawLine(78, 29, 86, 25);
+        g.setColor(new Color(27, 35, 31));
+        g.fillOval(66, 50, 3, 3);
+        g.setColor(new Color(231, 238, 204, 190));
+        g.fillOval(36, 68, 5, 4);
+        g.fillOval(47, 71, 5, 4);
+        g.setFont(new Font("SansSerif", Font.BOLD, 10));
+        g.setColor(new Color(238, 247, 212, 170));
+        drawCentered(g, "DEER", 48, 119);
 
         g.dispose();
         ImageIO.write(image, "png", path.toFile());

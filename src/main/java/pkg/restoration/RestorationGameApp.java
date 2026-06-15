@@ -91,6 +91,7 @@ public final class RestorationGameApp extends GameApplication {
     private ToastLayer toastLayer;
     private boolean transitionInProgress;
     private boolean gameEnded;
+    private int spawnedLevelCount;
 
     public static void main(String[] args) {
         RestorationSpringContext.setLaunchArgs(args);
@@ -108,6 +109,8 @@ public final class RestorationGameApp extends GameApplication {
         settings.setVersion(gameProperties.version());
         settings.setMainMenuEnabled(true);
         settings.setGameMenuEnabled(true);
+        settings.setFullScreenAllowed(true);
+        settings.setFullScreenFromStart(true);
         settings.setMenuKey(KeyCode.ESCAPE);
         settings.setManualResizeEnabled(false);
         settings.setSceneFactory(sceneFactory);
@@ -228,12 +231,15 @@ public final class RestorationGameApp extends GameApplication {
         getGameWorld().removeEntities(getGameWorld().getEntitiesCopy());
         gateEntities.clear();
         choiceDoorEntities.clear();
+        spawnedLevelCount = 0;
 
+        levelRepository.ensureGeneratedThrough(currentLevelIndex + LevelRepository.GENERATED_AHEAD);
         currentLevel = levelRepository.get(currentLevelIndex);
         worldRenderer = new WorldRenderer(
                 GameConstants.WORLD_CANVAS_WIDTH,
                 GameConstants.WORLD_CANVAS_HEIGHT,
-                projection
+                projection,
+                levelRepository.cityMap()
         );
         worldRenderer.render(levelRepository.all(), currentLevelIndex, timer.restorationRatio());
         entityBuilder()
@@ -242,22 +248,7 @@ public final class RestorationGameApp extends GameApplication {
                 .zIndex(-10_000)
                 .buildAndAttach();
 
-        for (int levelIndex = 0; levelIndex < levelRepository.count(); levelIndex++) {
-            LevelDefinition level = levelRepository.get(levelIndex);
-            for (GateDefinition gate : level.gates()) {
-                Entity gateEntity = spawn("restorationGate", new SpawnData()
-                        .put("gate", gate)
-                        .put("projection", projection)
-                        .put("levelIndex", levelIndex));
-                gateEntities.add(gateEntity);
-            }
-
-            int capturedLevelIndex = levelIndex;
-            level.npcs().forEach(npc -> spawn("restorationNpc", new SpawnData()
-                    .put("npc", npc)
-                    .put("projection", projection)
-                    .put("levelIndex", capturedLevelIndex)));
-        }
+        spawnLevelEntities(spawnedLevelCount, levelRepository.count());
 
         playerEntity = spawn("restorationPlayer", new SpawnData()
                 .put("projection", projection)
@@ -275,6 +266,8 @@ public final class RestorationGameApp extends GameApplication {
 
     private void enterLevel(int levelIndex, boolean firstEntry) {
         currentLevelIndex = levelIndex;
+        levelRepository.ensureGeneratedThrough(currentLevelIndex + LevelRepository.GENERATED_AHEAD);
+        spawnLevelEntities(spawnedLevelCount, levelRepository.count());
         currentLevel = levelRepository.get(levelIndex);
         transitionInProgress = false;
 
@@ -361,12 +354,12 @@ public final class RestorationGameApp extends GameApplication {
         removeChoiceDoors();
 
         int totalChoices = Math.min(gate.definition().choices(), challenge.choices().size());
-        double centerOffset = (totalChoices - 1) / 2.0;
+        List<IsoPoint> wallSlots = currentLevel.wallSlotsNear(gate.definition().position(), totalChoices, 1.85);
 
         for (int i = 0; i < totalChoices; i++) {
-            double offset = i - centerOffset;
-            IsoPoint rawDoorPosition = gate.definition().position().add(-2.0 + offset * 2.4, 1.85 + Math.abs(offset) * 0.45);
-            IsoPoint doorPosition = currentLevel.clamp(rawDoorPosition, 0.75);
+            IsoPoint doorPosition = i < wallSlots.size()
+                    ? wallSlots.get(i)
+                    : currentLevel.clamp(gate.definition().position().add(i + 1.0, 0), 0.75);
             Entity door = spawn("restorationChoiceDoor", new SpawnData()
                     .put("challenge", challenge)
                     .put("choiceIndex", i)
@@ -440,13 +433,29 @@ public final class RestorationGameApp extends GameApplication {
     }
 
     private void advanceOrWin() {
-        if (levelRepository.isFinalLevel(currentLevelIndex)) {
-            endGame(true);
-            return;
-        }
-
         currentLevelIndex++;
         enterLevel(currentLevelIndex, false);
+    }
+
+    private void spawnLevelEntities(int fromIndex, int toIndexExclusive) {
+        for (int levelIndex = fromIndex; levelIndex < toIndexExclusive; levelIndex++) {
+            LevelDefinition level = levelRepository.get(levelIndex);
+            for (GateDefinition gate : level.gates()) {
+                Entity gateEntity = spawn("restorationGate", new SpawnData()
+                        .put("gate", gate)
+                        .put("projection", projection)
+                        .put("levelIndex", levelIndex));
+                gateEntities.add(gateEntity);
+            }
+
+            int capturedLevelIndex = levelIndex;
+            level.npcs().forEach(npc -> spawn("restorationNpc", new SpawnData()
+                    .put("npc", npc)
+                    .put("projection", projection)
+                    .put("levelIndex", capturedLevelIndex)));
+        }
+
+        spawnedLevelCount = Math.max(spawnedLevelCount, toIndexExclusive);
     }
 
     private void removeChoiceDoors() {
@@ -531,7 +540,7 @@ public final class RestorationGameApp extends GameApplication {
             return;
         }
 
-        hud.setLevel(currentLevel.title(), currentLevelIndex, levelRepository.count());
+        hud.setLevel(currentLevel.title(), currentLevelIndex);
         hud.setObjective(currentLevel.subtitle());
         hud.setTime(timer.currentSeconds(), timer.maxSeconds(), timer.restorationRatio());
     }

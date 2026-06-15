@@ -38,8 +38,8 @@ public final class RestorationHudController {
         hintText.setTranslateX(appWidth / 2.0 - 260);
     }
 
-    public void setLevel(String title, int currentIndex, int total) {
-        levelText.setText("RESTORATION // " + title + "  [" + (currentIndex + 1) + "/" + total + "]");
+    public void setLevel(String title, int currentIndex) {
+        levelText.setText("RESTORATION // " + title + "  [RUN " + (currentIndex + 1) + "]");
     }
 
     public void setObjective(String objective) {

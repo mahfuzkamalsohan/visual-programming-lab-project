@@ -24,8 +24,8 @@ public final class RestorationHud {
         return root;
     }
 
-    public void setLevel(String title, int currentIndex, int total) {
-        controller.setLevel(title, currentIndex, total);
+    public void setLevel(String title, int currentIndex) {
+        controller.setLevel(title, currentIndex);
     }
 
     public void setObjective(String objective) {

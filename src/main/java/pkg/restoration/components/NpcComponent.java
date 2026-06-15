@@ -11,7 +11,6 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
-import pkg.restoration.assets.AssetCatalog;
 import pkg.restoration.world.IsoPoint;
 import pkg.restoration.world.IsoProjection;
 import pkg.restoration.world.NpcDefinition;
@@ -29,7 +28,7 @@ public final class NpcComponent extends Component {
 
     @Override
     public void onAdded() {
-        ImageView npc = new ImageView(image(AssetCatalog.NPC_KEEPER));
+        ImageView npc = new ImageView(image(definition.asset()));
         npc.setViewport(new javafx.geometry.Rectangle2D(0, 0, 96, 128));
 
         Text name = new Text(definition.name());

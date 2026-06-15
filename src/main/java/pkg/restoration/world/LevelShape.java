@@ -1,7 +1,10 @@
 package pkg.restoration.world;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 public final class LevelShape {
@@ -16,6 +19,10 @@ public final class LevelShape {
 
         this.tiles = Collections.unmodifiableSet(new LinkedHashSet<>(tiles));
         this.bounds = calculateBounds(tiles);
+    }
+
+    public static LevelShape fromTiles(Set<GridPoint> tiles) {
+        return new LevelShape(tiles);
     }
 
     public static LevelShape fromRows(int originX, int originY, String... rows) {
@@ -44,6 +51,33 @@ public final class LevelShape {
 
     public boolean hasTile(int x, int y) {
         return tiles.contains(new GridPoint(x, y));
+    }
+
+    public List<IsoPoint> wallSlotsNear(IsoPoint anchor, int count, double minimumDistance) {
+        List<IsoPoint> candidates = wallSlotCandidates();
+        candidates.sort(Comparator.comparingDouble(anchor::distance));
+
+        List<IsoPoint> selected = selectSeparated(candidates, count, minimumDistance);
+        for (double distance = minimumDistance - 0.25; selected.size() < count && distance >= 0.75; distance -= 0.25) {
+            selected = selectSeparated(candidates, count, distance);
+        }
+
+        if (selected.size() < count) {
+            for (IsoPoint candidate : candidates) {
+                if (!selected.contains(candidate)) {
+                    selected.add(candidate);
+                }
+
+                if (selected.size() == count) {
+                    break;
+                }
+            }
+        }
+
+        selected.sort(Comparator
+                .comparingDouble(IsoPoint::x)
+                .thenComparingDouble(IsoPoint::y));
+        return List.copyOf(selected.subList(0, Math.min(count, selected.size())));
     }
 
     public boolean contains(IsoPoint point, double margin) {
@@ -101,6 +135,46 @@ public final class LevelShape {
         }
 
         return best == null ? point : best;
+    }
+
+    private List<IsoPoint> wallSlotCandidates() {
+        List<IsoPoint> candidates = new ArrayList<>();
+        double wallOffset = 0.18;
+
+        for (GridPoint tile : tiles) {
+            if (!tiles.contains(tile.north())) {
+                candidates.add(new IsoPoint(tile.x() + 0.5, tile.y() + wallOffset));
+            }
+            if (!tiles.contains(tile.south())) {
+                candidates.add(new IsoPoint(tile.x() + 0.5, tile.y() + 1.0 - wallOffset));
+            }
+            if (!tiles.contains(tile.west())) {
+                candidates.add(new IsoPoint(tile.x() + wallOffset, tile.y() + 0.5));
+            }
+            if (!tiles.contains(tile.east())) {
+                candidates.add(new IsoPoint(tile.x() + 1.0 - wallOffset, tile.y() + 0.5));
+            }
+        }
+
+        return candidates;
+    }
+
+    private static List<IsoPoint> selectSeparated(List<IsoPoint> candidates, int count, double minimumDistance) {
+        List<IsoPoint> selected = new ArrayList<>();
+
+        for (IsoPoint candidate : candidates) {
+            boolean separated = selected.stream()
+                    .allMatch(existing -> existing.distance(candidate) >= minimumDistance);
+            if (separated) {
+                selected.add(candidate);
+            }
+
+            if (selected.size() == count) {
+                break;
+            }
+        }
+
+        return selected;
     }
 
     private static LevelBounds calculateBounds(Set<GridPoint> tiles) {
