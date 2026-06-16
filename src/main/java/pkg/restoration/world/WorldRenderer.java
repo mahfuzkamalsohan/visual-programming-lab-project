@@ -228,7 +228,7 @@ public final class WorldRenderer {
     }
 
     private void drawDistrictPerimeter(GraphicsContext gc, LevelDefinition level, int index, int currentLevelIndex) {
-        double alpha = index == currentLevelIndex ? 0.92 : index < currentLevelIndex ? 0.55 : 0.28;
+        double alpha = index == currentLevelIndex ? 1.0 : 0.9;
 
         for (GridPoint tile : level.shape().tiles()) {
             if (!level.shape().hasTile(tile.north().x(), tile.north().y())) {
@@ -250,6 +250,9 @@ public final class WorldRenderer {
         Point2D screen = projection.toScreen(new IsoPoint(x, y));
         gc.setGlobalAlpha(alpha);
         gc.drawImage(boundaryWall, screen.getX() - 48, screen.getY() - 72);
+        if (alpha >= 0.98) {
+            gc.drawImage(boundaryWall, screen.getX() - 48, screen.getY() - 72);
+        }
         gc.setGlobalAlpha(1.0);
     }
 

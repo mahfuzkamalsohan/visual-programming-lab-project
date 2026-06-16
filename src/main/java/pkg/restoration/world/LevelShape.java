@@ -80,6 +80,12 @@ public final class LevelShape {
         return List.copyOf(selected.subList(0, Math.min(count, selected.size())));
     }
 
+    public IsoPoint wallSlotToward(IsoPoint target) {
+        return wallSlotCandidates().stream()
+                .min(Comparator.comparingDouble(target::distance))
+                .orElse(bounds.center());
+    }
+
     public boolean contains(IsoPoint point, double margin) {
         int tileX = (int) Math.floor(point.x());
         int tileY = (int) Math.floor(point.y());

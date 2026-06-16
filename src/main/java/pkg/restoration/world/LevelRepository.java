@@ -81,19 +81,25 @@ public final class LevelRepository {
 
     private LevelDefinition generateLevel(int index) {
         CityMapGenerator.ensureDistrict(cityMap, index);
+        CityMapGenerator.ensureDistrict(cityMap, index + 1);
 
         GridPoint entry = CityMapGenerator.routeAnchor(index);
         GridPoint exit = CityMapGenerator.routeAnchor(index + 1);
         LevelShape shape = districtShape(entry, exit, index);
+        LevelShape destinationShape = districtShape(exit, CityMapGenerator.routeAnchor(index + 2), index + 1);
 
         IsoPoint spawn = shape.clamp(new IsoPoint(entry.x() + 0.6, entry.y() + 0.4), 0.55);
-        IsoPoint gatePosition = shape.clamp(new IsoPoint(exit.x() + 0.35, exit.y() + 0.55), 0.55);
+        IsoPoint destinationAnchor = new IsoPoint(exit.x() + 0.5, exit.y() + 0.5);
+        IsoPoint gatePosition = shape.wallSlotToward(destinationAnchor);
+        IsoPoint destinationPosition = destinationShape.clamp(destinationShape.wallSlotToward(gatePosition), 0.62);
         GateKind gateKind = gateKindFor(index);
 
         GateDefinition gate = new GateDefinition(
                 "district-" + index + "-gate",
                 gateKind,
                 gatePosition,
+                index + 1,
+                destinationPosition,
                 minimumDifficultyFor(index),
                 choicesFor(gateKind, index),
                 gateLabelFor(index, gateKind)
@@ -111,12 +117,14 @@ public final class LevelRepository {
     }
 
     private LevelShape districtShape(GridPoint entry, GridPoint exit, int index) {
-        int paddingX = 6 + Math.floorMod(index, 3);
-        int paddingY = 5 + Math.floorMod(index + 1, 3);
-        int minX = Math.min(entry.x(), exit.x()) - paddingX;
-        int minY = Math.min(entry.y(), exit.y()) - paddingY;
-        int maxX = Math.max(entry.x(), exit.x()) + paddingX;
-        int maxY = Math.max(entry.y(), exit.y()) + paddingY;
+        int halfWidth = 6 + Math.floorMod(index, 3);
+        int halfHeight = 5 + Math.floorMod(index + 1, 3);
+        int biasX = Integer.compare(exit.x(), entry.x());
+        int biasY = Integer.compare(exit.y(), entry.y());
+        int minX = entry.x() - halfWidth + Math.min(0, biasX * 2);
+        int maxX = entry.x() + halfWidth + Math.max(0, biasX * 2);
+        int minY = entry.y() - halfHeight + Math.min(0, biasY * 2);
+        int maxY = entry.y() + halfHeight + Math.max(0, biasY * 2);
         Set<GridPoint> tiles = new LinkedHashSet<>();
 
         for (int y = minY; y <= maxY; y++) {

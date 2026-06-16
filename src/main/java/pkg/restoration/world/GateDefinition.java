@@ -6,6 +6,8 @@ public record GateDefinition(
         String id,
         GateKind kind,
         IsoPoint position,
+        int destinationLevelIndex,
+        IsoPoint destinationPosition,
         Difficulty minimumDifficulty,
         int choices,
         String label

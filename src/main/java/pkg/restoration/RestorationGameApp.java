@@ -265,6 +265,10 @@ public final class RestorationGameApp extends GameApplication {
     }
 
     private void enterLevel(int levelIndex, boolean firstEntry) {
+        enterLevel(levelIndex, firstEntry, null);
+    }
+
+    private void enterLevel(int levelIndex, boolean firstEntry, IsoPoint arrivalPosition) {
         currentLevelIndex = levelIndex;
         levelRepository.ensureGeneratedThrough(currentLevelIndex + LevelRepository.GENERATED_AHEAD);
         spawnLevelEntities(spawnedLevelCount, levelRepository.count());
@@ -276,7 +280,10 @@ public final class RestorationGameApp extends GameApplication {
         }
 
         if (!firstEntry && playerControl != null) {
-            playerControl.teleport(currentLevel.playerSpawn());
+            IsoPoint destination = arrivalPosition == null
+                    ? currentLevel.playerSpawn()
+                    : currentLevel.clamp(arrivalPosition, 0.55);
+            playerControl.teleport(destination);
             playerControl.setControlsLocked(false);
         }
 
@@ -392,12 +399,13 @@ public final class RestorationGameApp extends GameApplication {
         timer.applyDelta(result.deltaSeconds());
         toastOutcome(result);
 
-        nearestGate(99)
-                .filter(gate -> gate.state() == GateState.AWAITING_DECISION)
-                .ifPresent(gate -> {
-                    gate.open();
-                    runOnce(gate::closeBehind, Duration.seconds(0.35));
-                });
+        Optional<GateComponent> awaitingGate = nearestGate(99)
+                .filter(gate -> gate.state() == GateState.AWAITING_DECISION);
+
+        awaitingGate.ifPresent(gate -> {
+            gate.open();
+            runOnce(gate::closeBehind, Duration.seconds(0.35));
+        });
 
         choiceDoorEntities.stream()
                 .filter(entity -> entity != chosenDoorEntity)
@@ -409,7 +417,10 @@ public final class RestorationGameApp extends GameApplication {
         playerControl.setControlsLocked(true);
         runOnce(() -> {
             removeChoiceDoors();
-            advanceOrWin();
+            awaitingGate.ifPresentOrElse(
+                    this::enterGateDestination,
+                    () -> enterLevel(currentLevelIndex + 1, false)
+            );
         }, Duration.seconds(0.55));
     }
 
@@ -429,12 +440,12 @@ public final class RestorationGameApp extends GameApplication {
         gate.closeBehind();
         toastLayer.show("Gate sealed behind you. No return route remains.", 2.3);
 
-        runOnce(this::advanceOrWin, Duration.seconds(0.65));
+        runOnce(() -> enterGateDestination(gate), Duration.seconds(0.65));
     }
 
-    private void advanceOrWin() {
-        currentLevelIndex++;
-        enterLevel(currentLevelIndex, false);
+    private void enterGateDestination(GateComponent gate) {
+        GateDefinition definition = gate.definition();
+        enterLevel(definition.destinationLevelIndex(), false, definition.destinationPosition());
     }
 
     private void spawnLevelEntities(int fromIndex, int toIndexExclusive) {
