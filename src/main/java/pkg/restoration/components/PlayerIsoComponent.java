@@ -13,6 +13,9 @@ import pkg.restoration.world.LevelDefinition;
 public final class PlayerIsoComponent extends Component {
 
     private static final double COLLISION_MARGIN = 0.5;
+    private static final double WALL_CLEARANCE = 0.34;
+    private static final double SPRITE_FOOT_OFFSET_Y = 122;
+    private static final int DEPTH_TIE_BREAKER = 5;
 
     private final IsoProjection projection;
     private final Supplier<LevelDefinition> levelSupplier;
@@ -54,7 +57,7 @@ public final class PlayerIsoComponent extends Component {
             double length = Math.sqrt(x * x + y * y);
             double dx = x / length * speedTiles * tpf;
             double dy = y / length * speedTiles * tpf;
-            isoPosition = levelSupplier.get().clamp(isoPosition.add(dx, dy), COLLISION_MARGIN);
+            isoPosition = resolveMovement(levelSupplier.get(), dx, dy);
             facing = Direction.fromVector(x, y, facing);
             syncEntityPosition();
         }
@@ -101,8 +104,27 @@ public final class PlayerIsoComponent extends Component {
         }
 
         Point2D foot = projection.toScreen(isoPosition);
-        entity.setPosition(foot.getX() - AssetCatalog.PLAYER_FRAME_WIDTH / 2.0, foot.getY() - 108);
-        entity.setZIndex((int) foot.getY() + 100);
+        entity.setPosition(foot.getX() - AssetCatalog.PLAYER_FRAME_WIDTH / 2.0, foot.getY() - SPRITE_FOOT_OFFSET_Y);
+        entity.setZIndex(RenderDepth.at(foot.getY(), DEPTH_TIE_BREAKER));
+    }
+
+    private IsoPoint resolveMovement(LevelDefinition level, double dx, double dy) {
+        IsoPoint target = isoPosition.add(dx, dy);
+        if (level.containsPlayer(target, COLLISION_MARGIN, WALL_CLEARANCE)) {
+            return target;
+        }
+
+        IsoPoint horizontal = isoPosition.add(dx, 0);
+        if (level.containsPlayer(horizontal, COLLISION_MARGIN, WALL_CLEARANCE)) {
+            return horizontal;
+        }
+
+        IsoPoint vertical = isoPosition.add(0, dy);
+        if (level.containsPlayer(vertical, COLLISION_MARGIN, WALL_CLEARANCE)) {
+            return vertical;
+        }
+
+        return isoPosition;
     }
 
     private static double movementAxis(boolean positive, boolean negative) {

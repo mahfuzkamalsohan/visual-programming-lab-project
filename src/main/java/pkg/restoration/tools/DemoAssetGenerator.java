@@ -20,9 +20,12 @@ import javax.imageio.ImageIO;
 
 public final class DemoAssetGenerator {
 
-    private static final String[] DIRECTIONS = {"n", "ne", "e", "se", "s", "sw", "w", "nw"};
+    private static final String[] IDLE_DIRECTIONS = {"w", "sw", "s", "n", "nw", "ne", "se", "e"};
+    private static final String[] WALKING_DIRECTIONS = {"w", "sw", "se", "s", "nw", "ne", "n", "e"};
     private static final int PLAYER_W = 96;
     private static final int PLAYER_H = 128;
+    private static final int WALL_W = 256;
+    private static final int WALL_H = 320;
 
     private DemoAssetGenerator() {
     }
@@ -34,35 +37,40 @@ public final class DemoAssetGenerator {
 
         Files.createDirectories(output);
 
-        for (String direction : DIRECTIONS) {
-            writePlayerSheet(output.resolve("player_idle_" + direction + ".png"), direction, false);
-            writePlayerSheet(output.resolve("player_walk_" + direction + ".png"), direction, true);
-        }
+        writePlayerAtlas(output.resolve("idle.png"), false);
+        writePlayerAtlas(output.resolve("walking.png"), true);
 
         writeNpc(output.resolve("npc_keeper.png"));
-        writeRescueDog(output.resolve("npc_rescue_dog.png"));
+        writeNpc(output.resolve("npc_boy.png"));
+        writeNpc(output.resolve("npc_girl.png"));
+        writeRescueDog(output.resolve("npc_puppy.png"));
         writeCanalDuck(output.resolve("npc_canal_duck.png"));
-        writeOrchardDeer(output.resolve("npc_orchard_deer.png"));
+        writeOrchardDeer(output.resolve("npc_dear.png"));
         writeTile(output.resolve("tile_dust.png"), new Color(116, 92, 68), new Color(71, 57, 48), new Color(159, 132, 89));
         writeTile(output.resolve("tile_recovering.png"), new Color(101, 129, 72), new Color(67, 85, 61), new Color(183, 168, 92));
         writeTile(output.resolve("tile_green.png"), new Color(94, 157, 83), new Color(51, 103, 72), new Color(191, 222, 119));
         writeTile(output.resolve("tile_path.png"), new Color(136, 122, 86), new Color(83, 72, 58), new Color(200, 177, 105));
-        writeBoundary(output.resolve("boundary_wall.png"));
+        writeBoundary(output.resolve("wall_stone.png"));
+        writeBoundary(output.resolve("wall_brick.png"));
+        writeBoundary(output.resolve("wall_wooden.png"));
         writeGate(output.resolve("gate_sealed.png"), new Color(84, 106, 114), new Color(230, 91, 76), true);
         writeGate(output.resolve("gate_open.png"), new Color(100, 142, 111), new Color(118, 226, 148), false);
         writeGate(output.resolve("gate_closed.png"), new Color(69, 73, 75), new Color(116, 92, 68), true);
         writeGate(output.resolve("gate_decision.png"), new Color(102, 95, 145), new Color(216, 226, 111), false);
     }
 
-    private static void writePlayerSheet(Path path, String direction, boolean walking) throws IOException {
-        BufferedImage image = new BufferedImage(PLAYER_W * 4, PLAYER_H, BufferedImage.TYPE_INT_ARGB);
+    private static void writePlayerAtlas(Path path, boolean walking) throws IOException {
+        String[] directions = walking ? WALKING_DIRECTIONS : IDLE_DIRECTIONS;
+        BufferedImage image = new BufferedImage(PLAYER_W * 4, PLAYER_H * directions.length, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = image.createGraphics();
         configure(g);
 
-        for (int frame = 0; frame < 4; frame++) {
-            Graphics2D frameGraphics = (Graphics2D) g.create(frame * PLAYER_W, 0, PLAYER_W, PLAYER_H);
-            drawPlayerFrame(frameGraphics, direction, walking, frame);
-            frameGraphics.dispose();
+        for (int row = 0; row < directions.length; row++) {
+            for (int frame = 0; frame < 4; frame++) {
+                Graphics2D frameGraphics = (Graphics2D) g.create(frame * PLAYER_W, row * PLAYER_H, PLAYER_W, PLAYER_H);
+                drawPlayerFrame(frameGraphics, directions[row], walking, frame);
+                frameGraphics.dispose();
+            }
         }
 
         g.dispose();
@@ -260,21 +268,21 @@ public final class DemoAssetGenerator {
     }
 
     private static void writeBoundary(Path path) throws IOException {
-        BufferedImage image = new BufferedImage(96, 96, BufferedImage.TYPE_INT_ARGB);
+        BufferedImage image = new BufferedImage(WALL_W, WALL_H, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = image.createGraphics();
         configure(g);
 
         g.setColor(new Color(0, 0, 0, 52));
-        g.fill(new Ellipse2D.Double(14, 68, 68, 14));
+        g.fill(new Ellipse2D.Double(34, 278, 188, 28));
         g.setColor(new Color(71, 73, 68));
-        g.fill(diamond(48, 67, 43, 20));
+        g.fill(diamond(128, 270, 112, 42));
         g.setColor(new Color(104, 110, 92));
-        g.fillRoundRect(20, 34, 56, 38, 8, 8);
+        g.fillRoundRect(52, 128, 152, 146, 18, 18);
         g.setColor(new Color(151, 157, 130));
-        g.fillRoundRect(24, 26, 48, 20, 8, 8);
+        g.fillRoundRect(62, 76, 132, 62, 18, 18);
         g.setColor(new Color(43, 47, 43));
-        g.setStroke(new BasicStroke(3));
-        g.drawRoundRect(20, 34, 56, 38, 8, 8);
+        g.setStroke(new BasicStroke(7));
+        g.drawRoundRect(52, 128, 152, 146, 18, 18);
 
         g.dispose();
         ImageIO.write(image, "png", path.toFile());

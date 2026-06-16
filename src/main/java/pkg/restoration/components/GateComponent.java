@@ -19,6 +19,8 @@ import pkg.restoration.world.IsoProjection;
 
 public final class GateComponent extends Component {
 
+    private static final int DEPTH_TIE_BREAKER = 7;
+
     private final GateDefinition definition;
     private final IsoProjection projection;
     private final ImageView imageView = new ImageView();
@@ -31,6 +33,10 @@ public final class GateComponent extends Component {
 
     @Override
     public void onAdded() {
+        imageView.setPreserveRatio(true);
+        imageView.setFitWidth(128);
+        imageView.setFitHeight(128);
+
         Text label = new Text(definition.label());
         label.setFill(Color.web("#f6f3df"));
         label.setFont(Font.font("Verdana", FontWeight.BOLD, 12));
@@ -89,6 +95,6 @@ public final class GateComponent extends Component {
     private void syncEntityPosition() {
         Point2D foot = projection.toScreen(definition.position());
         entity.setPosition(foot.getX() - 64, foot.getY() - 104);
-        entity.setZIndex((int) foot.getY() + 60);
+        entity.setZIndex(RenderDepth.at(foot.getY(), DEPTH_TIE_BREAKER));
     }
 }

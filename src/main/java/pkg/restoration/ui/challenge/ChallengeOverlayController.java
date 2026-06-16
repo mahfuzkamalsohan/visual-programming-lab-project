@@ -22,14 +22,16 @@ public final class ChallengeOverlayController {
 
     private static final String CHOICE_BUTTON_STYLE = """
             -fx-background-color: #26372e;
+            -fx-background-radius: 5;
             -fx-border-color: #d8e77f;
             -fx-border-width: 1;
+            -fx-border-radius: 5;
             -fx-text-fill: #f7f4dc;
             -fx-font-family: Verdana;
             -fx-font-size: 14px;
             -fx-font-weight: bold;
             -fx-alignment: center-left;
-            -fx-padding: 8 12 8 12;
+            -fx-padding: 10 14 10 14;
             """;
 
     @FXML
@@ -65,8 +67,9 @@ public final class ChallengeOverlayController {
         for (int i = 0; i < challenge.choices().size(); i++) {
             int choiceIndex = i;
             Button button = new Button((i + 1) + ". " + challenge.choices().get(i));
-            button.setMaxWidth(Double.MAX_VALUE);
-            button.setMinHeight(38);
+            button.setPrefWidth(724);
+            button.setMinHeight(42);
+            button.setWrapText(true);
             button.setStyle(CHOICE_BUTTON_STYLE);
             button.setOnAction(event -> choose(choiceIndex));
             choiceBox.getChildren().add(button);
@@ -88,7 +91,7 @@ public final class ChallengeOverlayController {
             Text choice = new Text((i + 1) + ". " + challenge.choices().get(i));
             choice.setFill(Color.web("#f8ffe8"));
             choice.setFont(Font.font("Verdana", FontWeight.BOLD, 14));
-            choice.setWrappingWidth(710);
+            choice.setWrappingWidth(724);
             choiceBox.getChildren().add(choice);
         }
 

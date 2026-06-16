@@ -19,6 +19,8 @@ import pkg.restoration.world.IsoProjection;
 
 public final class ChoiceDoorComponent extends Component {
 
+    private static final int DEPTH_TIE_BREAKER = 7;
+
     private final QuestionChallenge challenge;
     private final int choiceIndex;
     private final IsoPoint position;
@@ -70,6 +72,6 @@ public final class ChoiceDoorComponent extends Component {
     private void syncEntityPosition() {
         Point2D foot = projection.toScreen(position);
         entity.setPosition(foot.getX() - 51, foot.getY() - 88);
-        entity.setZIndex((int) foot.getY() + 80);
+        entity.setZIndex(RenderDepth.at(foot.getY(), DEPTH_TIE_BREAKER));
     }
 }

@@ -17,6 +17,8 @@ import pkg.restoration.world.NpcDefinition;
 
 public final class NpcComponent extends Component {
 
+    private static final int DEPTH_TIE_BREAKER = 5;
+
     private final NpcDefinition definition;
     private final IsoProjection projection;
     private int messageIndex;
@@ -29,7 +31,9 @@ public final class NpcComponent extends Component {
     @Override
     public void onAdded() {
         ImageView npc = new ImageView(image(definition.asset()));
-        npc.setViewport(new javafx.geometry.Rectangle2D(0, 0, 96, 128));
+        npc.setPreserveRatio(true);
+        npc.setFitWidth(96);
+        npc.setFitHeight(128);
 
         Text name = new Text(definition.name());
         name.setFill(Color.web("#eff7d4"));
@@ -55,6 +59,6 @@ public final class NpcComponent extends Component {
     private void syncEntityPosition() {
         Point2D foot = projection.toScreen(definition.position());
         entity.setPosition(foot.getX() - 48, foot.getY() - 108);
-        entity.setZIndex((int) foot.getY() + 70);
+        entity.setZIndex(RenderDepth.at(foot.getY(), DEPTH_TIE_BREAKER));
     }
 }

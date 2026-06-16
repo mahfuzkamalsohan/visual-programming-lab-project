@@ -1,6 +1,7 @@
 package pkg.restoration.world;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -46,6 +47,11 @@ public final class LevelRepository {
             "Archivist Sen",
             "Engineer Vale",
             "Keeper Oren"
+    };
+    private static final String[] HUMAN_ASSETS = {
+            AssetCatalog.NPC_KEEPER,
+            AssetCatalog.NPC_GIRL,
+            AssetCatalog.NPC_BOY
     };
 
     private final CityMap cityMap;
@@ -140,27 +146,48 @@ public final class LevelRepository {
 
     private List<NpcDefinition> npcsFor(int index, LevelShape shape, IsoPoint spawn) {
         List<NpcDefinition> npcs = new ArrayList<>();
+        List<IsoPoint> occupied = new ArrayList<>();
 
         if (index < 5 || index % 3 == 0) {
+            IsoPoint position = npcPosition(shape, spawn.add(1.7, -1.1), occupied);
+            occupied.add(position);
             npcs.add(new NpcDefinition(
                     "guide-" + index,
-                    shape.clamp(spawn.add(1.7, -1.1), 0.55),
+                    position,
                     HUMAN_NAMES[Math.floorMod(index, HUMAN_NAMES.length)],
-                    AssetCatalog.NPC_KEEPER,
+                    HUMAN_ASSETS[Math.floorMod(index, HUMAN_ASSETS.length)],
                     guideMessages(index)
             ));
         }
 
         AnimalNpc animal = animalFor(index);
+        IsoPoint animalPosition = npcPosition(shape, spawn.add(2.6 + Math.floorMod(index, 2), 1.4), occupied);
         npcs.add(new NpcDefinition(
                 animal.idPrefix() + "-" + index,
-                shape.clamp(spawn.add(2.6 + Math.floorMod(index, 2), 1.4), 0.55),
+                animalPosition,
                 animal.name(),
                 animal.asset(),
                 animal.messages()
         ));
 
         return List.copyOf(npcs);
+    }
+
+    private IsoPoint npcPosition(LevelShape shape, IsoPoint preferred, List<IsoPoint> occupied) {
+        return shape.tiles().stream()
+                .map(tile -> new IsoPoint(tile.x() + 0.5, tile.y() + 0.5))
+                .filter(point -> shape.contains(point, 0.62))
+                .filter(point -> occupied.stream().allMatch(existing -> existing.distance(point) >= 1.35))
+                .min(Comparator.comparingDouble(preferred::distance))
+                .orElseGet(() -> fallbackNpcPosition(shape, preferred));
+    }
+
+    private IsoPoint fallbackNpcPosition(LevelShape shape, IsoPoint preferred) {
+        return shape.tiles().stream()
+                .map(tile -> new IsoPoint(tile.x() + 0.5, tile.y() + 0.5))
+                .filter(point -> shape.contains(point, 0.62))
+                .min(Comparator.comparingDouble(preferred::distance))
+                .orElseGet(() -> shape.clamp(preferred, 0.62));
     }
 
     private List<String> guideMessages(int index) {

@@ -3,45 +3,35 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.scene.shape.Rectangle?>
 <?import javafx.scene.text.Text?>
 
 <StackPane fx:id="root"
-           alignment="BOTTOM_CENTER"
+           alignment="CENTER"
            prefWidth="1280"
            prefHeight="720"
            xmlns="http://javafx.com/javafx/21"
            xmlns:fx="http://javafx.com/fxml/1"
            fx:controller="pkg.restoration.ui.challenge.ChallengeOverlayController">
-    <padding>
-        <Insets bottom="42"/>
-    </padding>
     <children>
-        <StackPane>
+        <VBox maxWidth="780"
+              prefWidth="780"
+              spacing="14"
+              style="-fx-background-color: #101711f2; -fx-background-radius: 8; -fx-border-color: #d7e77f; -fx-border-width: 1.6; -fx-border-radius: 8;"
+              StackPane.alignment="CENTER">
+            <padding>
+                <Insets top="24" right="28" bottom="26" left="28"/>
+            </padding>
             <children>
-                <Rectangle width="790"
-                           height="230"
-                           arcWidth="12"
-                           arcHeight="12"
-                           fill="#101711ef"
-                           stroke="#d7e77f"
-                           strokeWidth="1.6"/>
-                <VBox maxWidth="740" spacing="14">
-                    <padding>
-                        <Insets top="22" right="26" bottom="22" left="26"/>
-                    </padding>
-                    <children>
-                        <Text fx:id="title"
-                              fill="#d8e77f"
-                              style="-fx-font-family: Verdana; -fx-font-size: 16px; -fx-font-weight: bold;"/>
-                        <Text fx:id="prompt"
-                              wrappingWidth="720"
-                              fill="#f7f4dc"
-                              style="-fx-font-family: Verdana; -fx-font-size: 17px; -fx-font-weight: bold;"/>
-                        <VBox fx:id="choiceBox" spacing="10"/>
-                    </children>
-                </VBox>
+                <Text fx:id="title"
+                      wrappingWidth="724"
+                      fill="#d8e77f"
+                      style="-fx-font-family: Verdana; -fx-font-size: 15px; -fx-font-weight: bold;"/>
+                <Text fx:id="prompt"
+                      wrappingWidth="724"
+                      fill="#f7f4dc"
+                      style="-fx-font-family: Verdana; -fx-font-size: 18px; -fx-font-weight: bold;"/>
+                <VBox fx:id="choiceBox" spacing="10"/>
             </children>
-        </StackPane>
+        </VBox>
     </children>
 </StackPane>

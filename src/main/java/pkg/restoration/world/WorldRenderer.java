@@ -25,7 +25,6 @@ public final class WorldRenderer {
     private final Image recoveringTile;
     private final Image greenTile;
     private final Image pathTile;
-    private final Image boundaryWall;
     private double lastRatio = -1;
     private int lastCurrentLevelIndex = -1;
 
@@ -37,7 +36,6 @@ public final class WorldRenderer {
         this.recoveringTile = image(AssetCatalog.TILE_RECOVERING);
         this.greenTile = image(AssetCatalog.TILE_GREEN);
         this.pathTile = image(AssetCatalog.TILE_PATH);
-        this.boundaryWall = image(AssetCatalog.BOUNDARY_WALL);
     }
 
     public Canvas canvas() {
@@ -57,7 +55,6 @@ public final class WorldRenderer {
         drawCity(gc, restorationRatio);
 
         for (int index = 0; index < levels.size(); index++) {
-            drawDistrictPerimeter(gc, levels.get(index), index, currentLevelIndex);
             drawDistrictTitle(gc, levels.get(index), index, currentLevelIndex);
         }
     }
@@ -132,9 +129,7 @@ public final class WorldRenderer {
     }
 
     private void drawPathTile(GraphicsContext gc, Point2D center) {
-        gc.drawImage(pathTile,
-                center.getX() - GameConstants.TILE_WIDTH / 2.0,
-                center.getY() - GameConstants.TILE_HEIGHT / 2.0);
+        drawIsoTile(gc, pathTile, center);
     }
 
     private void drawRoadMarking(GraphicsContext gc, Point2D center, int x, int y) {
@@ -156,9 +151,7 @@ public final class WorldRenderer {
     }
 
     private void drawParkGround(GraphicsContext gc, Point2D center, double ratio) {
-        gc.drawImage(ratio > 0.45 ? greenTile : recoveringTile,
-                center.getX() - GameConstants.TILE_WIDTH / 2.0,
-                center.getY() - GameConstants.TILE_HEIGHT / 2.0);
+        drawIsoTile(gc, ratio > 0.45 ? greenTile : recoveringTile, center);
     }
 
     private void drawParkDetail(GraphicsContext gc, Point2D center, int x, int y, double ratio) {
@@ -168,9 +161,7 @@ public final class WorldRenderer {
     }
 
     private void drawBuildingGround(GraphicsContext gc, Point2D center, double ratio) {
-        gc.drawImage(ratio > 0.5 ? recoveringTile : dustTile,
-                center.getX() - GameConstants.TILE_WIDTH / 2.0,
-                center.getY() - GameConstants.TILE_HEIGHT / 2.0);
+        drawIsoTile(gc, ratio > 0.5 ? recoveringTile : dustTile, center);
     }
 
     private void drawBuildingStructure(GraphicsContext gc, CityTileType type, Point2D center, int x, int y, double ratio) {
@@ -227,33 +218,14 @@ public final class WorldRenderer {
         gc.fillOval(center.getX() - 11, center.getY() - 31, 22, 18);
     }
 
-    private void drawDistrictPerimeter(GraphicsContext gc, LevelDefinition level, int index, int currentLevelIndex) {
-        double alpha = index == currentLevelIndex ? 1.0 : 0.9;
-
-        for (GridPoint tile : level.shape().tiles()) {
-            if (!level.shape().hasTile(tile.north().x(), tile.north().y())) {
-                drawWall(gc, tile.x() + 0.5, tile.y() + 0.05, alpha);
-            }
-            if (!level.shape().hasTile(tile.south().x(), tile.south().y())) {
-                drawWall(gc, tile.x() + 0.5, tile.y() + 0.95, alpha);
-            }
-            if (!level.shape().hasTile(tile.west().x(), tile.west().y())) {
-                drawWall(gc, tile.x() + 0.05, tile.y() + 0.5, alpha);
-            }
-            if (!level.shape().hasTile(tile.east().x(), tile.east().y())) {
-                drawWall(gc, tile.x() + 0.95, tile.y() + 0.5, alpha);
-            }
-        }
-    }
-
-    private void drawWall(GraphicsContext gc, double x, double y, double alpha) {
-        Point2D screen = projection.toScreen(new IsoPoint(x, y));
-        gc.setGlobalAlpha(alpha);
-        gc.drawImage(boundaryWall, screen.getX() - 48, screen.getY() - 72);
-        if (alpha >= 0.98) {
-            gc.drawImage(boundaryWall, screen.getX() - 48, screen.getY() - 72);
-        }
-        gc.setGlobalAlpha(1.0);
+    private void drawIsoTile(GraphicsContext gc, Image tile, Point2D center) {
+        gc.drawImage(
+                tile,
+                center.getX() - GameConstants.TILE_WIDTH / 2.0,
+                center.getY() - GameConstants.TILE_WIDTH / 2.0,
+                GameConstants.TILE_WIDTH,
+                GameConstants.TILE_WIDTH
+        );
     }
 
     private void drawDistrictTitle(GraphicsContext gc, LevelDefinition level, int index, int currentLevelIndex) {

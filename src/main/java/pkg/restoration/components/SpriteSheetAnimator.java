@@ -54,25 +54,21 @@ public final class SpriteSheetAnimator {
     private void loadCurrentSheet() {
         Image sheet = image(walking
                 ? AssetCatalog.PLAYER_WALKING_ATLAS
-                : AssetCatalog.playerIdleSheet(direction));
+                : AssetCatalog.PLAYER_IDLE_ATLAS);
         view.setImage(sheet);
         updateViewport();
     }
 
     private void updateViewport() {
-        if (walking) {
-            Image sheet = view.getImage();
-            double sourceFrameWidth = sheet.getWidth() / frameCount;
-            double sourceFrameHeight = sheet.getHeight() / AssetCatalog.PLAYER_DIRECTIONS;
-            int row = AssetCatalog.walkingAtlasRow(direction);
-            view.setViewport(new Rectangle2D(
-                    frame * sourceFrameWidth,
-                    row * sourceFrameHeight,
-                    sourceFrameWidth,
-                    sourceFrameHeight
-            ));
-        } else {
-            view.setViewport(new Rectangle2D(frame * frameWidth, 0, frameWidth, frameHeight));
-        }
+        Image sheet = view.getImage();
+        double sourceFrameWidth = sheet.getWidth() / frameCount;
+        double sourceFrameHeight = sheet.getHeight() / AssetCatalog.PLAYER_DIRECTIONS;
+        int row = AssetCatalog.playerAtlasRow(direction, walking);
+        view.setViewport(new Rectangle2D(
+                frame * sourceFrameWidth,
+                row * sourceFrameHeight,
+                sourceFrameWidth,
+                sourceFrameHeight
+        ));
     }
 }

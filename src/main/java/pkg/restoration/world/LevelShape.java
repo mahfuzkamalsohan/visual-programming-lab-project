@@ -86,6 +86,28 @@ public final class LevelShape {
                 .orElse(bounds.center());
     }
 
+    public List<WallSegment> wallSegments() {
+        List<WallSegment> segments = new ArrayList<>();
+        double wallOffset = 0.11;
+
+        for (GridPoint tile : tiles) {
+            if (!tiles.contains(tile.north())) {
+                segments.add(new WallSegment(new IsoPoint(tile.x() + 0.5, tile.y() + wallOffset), WallSide.NORTH, tile));
+            }
+            if (!tiles.contains(tile.south())) {
+                segments.add(new WallSegment(new IsoPoint(tile.x() + 0.5, tile.y() + 1.0 - wallOffset), WallSide.SOUTH, tile));
+            }
+            if (!tiles.contains(tile.west())) {
+                segments.add(new WallSegment(new IsoPoint(tile.x() + wallOffset, tile.y() + 0.5), WallSide.WEST, tile));
+            }
+            if (!tiles.contains(tile.east())) {
+                segments.add(new WallSegment(new IsoPoint(tile.x() + 1.0 - wallOffset, tile.y() + 0.5), WallSide.EAST, tile));
+            }
+        }
+
+        return List.copyOf(segments);
+    }
+
     public boolean contains(IsoPoint point, double margin) {
         int tileX = (int) Math.floor(point.x());
         int tileY = (int) Math.floor(point.y());

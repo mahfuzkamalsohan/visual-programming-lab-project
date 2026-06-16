@@ -13,9 +13,13 @@ import static com.almasb.fxgl.dsl.FXGL.runOnce;
 import static com.almasb.fxgl.dsl.FXGL.spawn;
 
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import com.almasb.fxgl.app.GameApplication;
 import com.almasb.fxgl.app.GameSettings;
@@ -51,12 +55,17 @@ import pkg.restoration.world.IsoPoint;
 import pkg.restoration.world.IsoProjection;
 import pkg.restoration.world.LevelDefinition;
 import pkg.restoration.world.LevelRepository;
+import pkg.restoration.world.WallRun;
+import pkg.restoration.world.WallSegment;
 import pkg.restoration.world.WorldRenderer;
 
 public final class RestorationGameApp extends GameApplication {
 
+    private static final int MAX_WALL_RUN_SEGMENTS = 4;
+
     private final List<Entity> gateEntities = new ArrayList<>();
     private final List<Entity> choiceDoorEntities = new ArrayList<>();
+    private final Set<String> spawnedWallKeys = new HashSet<>();
 
     @Autowired
     private LevelRepository levelRepository;
@@ -231,6 +240,7 @@ public final class RestorationGameApp extends GameApplication {
         getGameWorld().removeEntities(getGameWorld().getEntitiesCopy());
         gateEntities.clear();
         choiceDoorEntities.clear();
+        spawnedWallKeys.clear();
         spawnedLevelCount = 0;
 
         levelRepository.ensureGeneratedThrough(currentLevelIndex + LevelRepository.GENERATED_AHEAD);
@@ -451,6 +461,20 @@ public final class RestorationGameApp extends GameApplication {
     private void spawnLevelEntities(int fromIndex, int toIndexExclusive) {
         for (int levelIndex = fromIndex; levelIndex < toIndexExclusive; levelIndex++) {
             LevelDefinition level = levelRepository.get(levelIndex);
+            List<WallSegment> wallSegments = new ArrayList<>();
+            for (WallSegment wall : level.shape().wallSegments()) {
+                if (!isGateOpeningWall(level, wall) && spawnedWallKeys.add(wallKey(wall))) {
+                    wallSegments.add(wall);
+                }
+            }
+
+            for (WallRun wallRun : wallRunsFor(wallSegments)) {
+                spawn("restorationWallRun", new SpawnData()
+                        .put("wallRun", wallRun)
+                        .put("projection", projection)
+                        .put("levelIndex", levelIndex));
+            }
+
             for (GateDefinition gate : level.gates()) {
                 Entity gateEntity = spawn("restorationGate", new SpawnData()
                         .put("gate", gate)
@@ -467,6 +491,71 @@ public final class RestorationGameApp extends GameApplication {
         }
 
         spawnedLevelCount = Math.max(spawnedLevelCount, toIndexExclusive);
+    }
+
+    private boolean isGateOpeningWall(LevelDefinition level, WallSegment wall) {
+        return level.gates().stream()
+                .anyMatch(gate -> gate.position().distance(wall.position()) <= 0.42);
+    }
+
+    private List<WallRun> wallRunsFor(List<WallSegment> wallSegments) {
+        Map<String, List<WallSegment>> groups = new LinkedHashMap<>();
+        for (WallSegment wall : wallSegments) {
+            groups.computeIfAbsent(wallRunKey(wall), ignored -> new ArrayList<>()).add(wall);
+        }
+
+        List<WallRun> runs = new ArrayList<>();
+        for (List<WallSegment> group : groups.values()) {
+            group.sort(Comparator.comparingInt(this::wallOrderCoordinate));
+
+            List<WallSegment> current = new ArrayList<>();
+            for (WallSegment wall : group) {
+                if (current.isEmpty() || canContinueRun(current.get(current.size() - 1), wall, current.size())) {
+                    current.add(wall);
+                } else {
+                    runs.add(new WallRun(current.get(0).side(), current));
+                    current = new ArrayList<>();
+                    current.add(wall);
+                }
+            }
+
+            if (!current.isEmpty()) {
+                runs.add(new WallRun(current.get(0).side(), current));
+            }
+        }
+
+        return runs;
+    }
+
+    private boolean canContinueRun(WallSegment previous, WallSegment next, int currentSize) {
+        return currentSize < MAX_WALL_RUN_SEGMENTS
+                && wallOrderCoordinate(next) == wallOrderCoordinate(previous) + 1;
+    }
+
+    private String wallRunKey(WallSegment wall) {
+        return wall.side() + ":" + wallRunCoordinate(wall);
+    }
+
+    private int wallRunCoordinate(WallSegment wall) {
+        return switch (wall.side()) {
+            case NORTH, SOUTH -> wall.ownerTile().y();
+            case WEST, EAST -> wall.ownerTile().x();
+        };
+    }
+
+    private int wallOrderCoordinate(WallSegment wall) {
+        return switch (wall.side()) {
+            case NORTH, SOUTH -> wall.ownerTile().x();
+            case WEST, EAST -> wall.ownerTile().y();
+        };
+    }
+
+    private String wallKey(WallSegment wall) {
+        return Math.round(wall.position().x() * 100)
+                + ":"
+                + Math.round(wall.position().y() * 100)
+                + ":"
+                + wall.side();
     }
 
     private void removeChoiceDoors() {

@@ -1,24 +1,14 @@
 package pkg.restoration.components;
 
 public enum Direction {
-    N("n"),
-    NE("ne"),
-    E("e"),
-    SE("se"),
-    S("s"),
-    SW("sw"),
-    W("w"),
-    NW("nw");
-
-    private final String assetSuffix;
-
-    Direction(String assetSuffix) {
-        this.assetSuffix = assetSuffix;
-    }
-
-    public String assetSuffix() {
-        return assetSuffix;
-    }
+    N,
+    NE,
+    E,
+    SE,
+    S,
+    SW,
+    W,
+    NW;
 
     public static Direction fromVector(double x, double y, Direction fallback) {
         if (Math.abs(x) < 0.001 && Math.abs(y) < 0.001) {
