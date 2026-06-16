@@ -9,6 +9,8 @@ public final class AssetCatalog {
     public static final int PLAYER_FRAME_WIDTH = 96;
     public static final int PLAYER_FRAME_HEIGHT = 128;
     public static final int PLAYER_FRAMES = 4;
+    public static final int PLAYER_DIRECTIONS = 8;
+    public static final String PLAYER_WALKING_ATLAS = "restoration/walking.png";
 
     public static final String TILE_DUST = "restoration/tile_dust.png";
     public static final String TILE_RECOVERING = "restoration/tile_recovering.png";
@@ -27,8 +29,20 @@ public final class AssetCatalog {
     private AssetCatalog() {
     }
 
-    public static String playerSheet(boolean walking, Direction direction) {
-        String state = walking ? "walk" : "idle";
-        return "restoration/player_" + state + "_" + direction.assetSuffix().toLowerCase(Locale.ROOT) + ".png";
+    public static String playerIdleSheet(Direction direction) {
+        return "restoration/player_idle_" + direction.assetSuffix().toLowerCase(Locale.ROOT) + ".png";
+    }
+
+    public static int walkingAtlasRow(Direction direction) {
+        return switch (direction) {
+            case W -> 0;
+            case SW -> 1;
+            case SE -> 2;
+            case S -> 3;
+            case NW -> 4;
+            case NE -> 5;
+            case N -> 6;
+            case E -> 7;
+        };
     }
 }

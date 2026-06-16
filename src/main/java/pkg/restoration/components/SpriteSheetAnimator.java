@@ -24,6 +24,8 @@ public final class SpriteSheetAnimator {
         this.frameHeight = frameHeight;
         this.frameCount = frameCount;
         view.setSmooth(false);
+        view.setFitWidth(frameWidth);
+        view.setFitHeight(frameHeight);
         loadCurrentSheet();
     }
 
@@ -50,12 +52,27 @@ public final class SpriteSheetAnimator {
     }
 
     private void loadCurrentSheet() {
-        Image sheet = image(AssetCatalog.playerSheet(walking, direction));
+        Image sheet = image(walking
+                ? AssetCatalog.PLAYER_WALKING_ATLAS
+                : AssetCatalog.playerIdleSheet(direction));
         view.setImage(sheet);
         updateViewport();
     }
 
     private void updateViewport() {
-        view.setViewport(new Rectangle2D(frame * frameWidth, 0, frameWidth, frameHeight));
+        if (walking) {
+            Image sheet = view.getImage();
+            double sourceFrameWidth = sheet.getWidth() / frameCount;
+            double sourceFrameHeight = sheet.getHeight() / AssetCatalog.PLAYER_DIRECTIONS;
+            int row = AssetCatalog.walkingAtlasRow(direction);
+            view.setViewport(new Rectangle2D(
+                    frame * sourceFrameWidth,
+                    row * sourceFrameHeight,
+                    sourceFrameWidth,
+                    sourceFrameHeight
+            ));
+        } else {
+            view.setViewport(new Rectangle2D(frame * frameWidth, 0, frameWidth, frameHeight));
+        }
     }
 }
