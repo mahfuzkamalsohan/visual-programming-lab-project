@@ -10,6 +10,7 @@ public final class CityMapGenerator {
     private static final int WIDTH = 42;
     private static final int HEIGHT = 52;
     private static final int DISTRICT_PADDING = 9;
+    private static final int ROAD_GRID_SPACING = 8;
     private static final GridPoint[] ROUTE_ANCHORS = {
             new GridPoint(5, 31),
             new GridPoint(9, 24),
@@ -45,6 +46,9 @@ public final class CityMapGenerator {
         addPark(tiles, 11, 8, 6, 5);
         addPark(tiles, 22, -8, 7, 5);
         addPark(tiles, 7, 28, 5, 4);
+        addPark(tiles, 3, 15, 7, 4);
+        addPark(tiles, 17, -2, 6, 5);
+        addPark(tiles, 26, 2, 5, 5);
 
         addDistrictForecourts(tiles);
 
@@ -72,7 +76,8 @@ public final class CityMapGenerator {
         addPlaza(cityMap, entry.x() + 3, entry.y() - 2, 2);
 
         int parkOffset = Math.floorMod(districtIndex, 4);
-        addPark(cityMap, minX + 2 + parkOffset, minY + 3 + parkOffset, 5 + parkOffset, 4);
+        addPark(cityMap, minX + 2 + parkOffset, minY + 3 + parkOffset, 6 + parkOffset, 5);
+        addPark(cityMap, maxX - 7 - parkOffset, maxY - 6, 5 + Math.floorMod(districtIndex, 3), 4);
     }
 
     public static GridPoint routeAnchor(int index) {
@@ -101,8 +106,8 @@ public final class CityMapGenerator {
                 continue;
             }
 
-            boolean avenue = Math.floorMod(point.x() + 1, 6) == 0;
-            boolean street = Math.floorMod(point.y() + 2, 6) == 0;
+            boolean avenue = Math.floorMod(point.x() + 1, ROAD_GRID_SPACING) == 0;
+            boolean street = Math.floorMod(point.y() + 2, ROAD_GRID_SPACING) == 0;
             if (avenue || street) {
                 tiles.put(point, CityTileType.ROAD);
             }
@@ -204,8 +209,8 @@ public final class CityMapGenerator {
                     continue;
                 }
 
-                boolean avenue = Math.floorMod(tileX + 1, 6) == 0;
-                boolean street = Math.floorMod(tileY + 2, 6) == 0;
+                boolean avenue = Math.floorMod(tileX + 1, ROAD_GRID_SPACING) == 0;
+                boolean street = Math.floorMod(tileY + 2, ROAD_GRID_SPACING) == 0;
                 if (avenue || street) {
                     cityMap.put(tileX, tileY, CityTileType.ROAD);
                 }

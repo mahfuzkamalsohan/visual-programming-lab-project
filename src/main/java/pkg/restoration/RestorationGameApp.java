@@ -62,7 +62,6 @@ import pkg.restoration.world.WorldRenderer;
 public final class RestorationGameApp extends GameApplication {
 
     private static final int MAX_WALL_RUN_SEGMENTS = 1;
-    private static final double WALL_GATE_OPENING_RADIUS = 0.58;
 
     private final List<Entity> gateEntities = new ArrayList<>();
     private final List<Entity> choiceDoorEntities = new ArrayList<>();
@@ -487,8 +486,8 @@ public final class RestorationGameApp extends GameApplication {
 
         Set<String> wallKeys = new HashSet<>();
         List<WallSegment> wallSegments = new ArrayList<>();
-        for (WallSegment wall : currentLevel.shape().wallSegments()) {
-            if (!isGateOpeningWall(currentLevel, wall) && wallKeys.add(wallKey(wall))) {
+        for (WallSegment wall : currentLevel.gateWallSegments()) {
+            if (wallKeys.add(wallKey(wall))) {
                 wallSegments.add(wall);
             }
         }
@@ -500,11 +499,6 @@ public final class RestorationGameApp extends GameApplication {
                     .put("levelIndex", currentLevelIndex));
             wallEntities.add(wallEntity);
         }
-    }
-
-    private boolean isGateOpeningWall(LevelDefinition level, WallSegment wall) {
-        return level.gates().stream()
-                .anyMatch(gate -> gate.position().distance(wall.position()) <= WALL_GATE_OPENING_RADIUS);
     }
 
     private List<WallRun> wallRunsFor(List<WallSegment> wallSegments) {

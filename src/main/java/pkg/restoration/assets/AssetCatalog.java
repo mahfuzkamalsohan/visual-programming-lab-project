@@ -28,6 +28,16 @@ public final class AssetCatalog {
     public static final String NPC_RESCUE_DOG = "restoration/npc_puppy.png";
     public static final String NPC_CANAL_DUCK = "restoration/npc_canal_duck.png";
     public static final String NPC_ORCHARD_DEER = "restoration/npc_dear.png";
+    public static final String BUILDING_1 = "restoration/building_1.png";
+    public static final String BUILDING_2 = "restoration/building_2.png";
+    public static final String BUILDING_3 = "restoration/building_3.png";
+    public static final String BUILDING_4 = "restoration/building_4.png";
+    public static final String TREE = "restoration/tree.png";
+    public static final String FRUIT_TREE = "restoration/fruit_tree.png";
+    public static final String LONG_TREE = "restoration/long_tree.png";
+    public static final String BUSH = "restoration/bush.png";
+    public static final String HERB = "restoration/herb.png";
+    public static final String SIGNBOARD_POINTING_SE = "restoration/signboard_pointing_se.png";
 
     private AssetCatalog() {
     }

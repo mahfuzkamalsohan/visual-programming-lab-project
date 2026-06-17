@@ -149,6 +149,7 @@ public final class LevelRepository {
     private List<NpcDefinition> npcsFor(int index, LevelShape shape, IsoPoint spawn) {
         List<NpcDefinition> npcs = new ArrayList<>();
         List<IsoPoint> occupied = new ArrayList<>();
+        occupied.add(spawn);
 
         if (index < 5 || index % 3 == 0) {
             IsoPoint position = npcPosition(shape, spawn.add(1.7, -1.1), occupied);
