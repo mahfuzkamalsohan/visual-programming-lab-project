@@ -61,11 +61,12 @@ import pkg.restoration.world.WorldRenderer;
 
 public final class RestorationGameApp extends GameApplication {
 
-    private static final int MAX_WALL_RUN_SEGMENTS = 4;
+    private static final int MAX_WALL_RUN_SEGMENTS = 1;
+    private static final double WALL_GATE_OPENING_RADIUS = 0.58;
 
     private final List<Entity> gateEntities = new ArrayList<>();
     private final List<Entity> choiceDoorEntities = new ArrayList<>();
-    private final Set<String> spawnedWallKeys = new HashSet<>();
+    private final List<Entity> wallEntities = new ArrayList<>();
 
     @Autowired
     private LevelRepository levelRepository;
@@ -240,7 +241,7 @@ public final class RestorationGameApp extends GameApplication {
         getGameWorld().removeEntities(getGameWorld().getEntitiesCopy());
         gateEntities.clear();
         choiceDoorEntities.clear();
-        spawnedWallKeys.clear();
+        wallEntities.clear();
         spawnedLevelCount = 0;
 
         levelRepository.ensureGeneratedThrough(currentLevelIndex + LevelRepository.GENERATED_AHEAD);
@@ -284,6 +285,7 @@ public final class RestorationGameApp extends GameApplication {
         spawnLevelEntities(spawnedLevelCount, levelRepository.count());
         currentLevel = levelRepository.get(levelIndex);
         transitionInProgress = false;
+        refreshCurrentLevelWalls();
 
         if (challengeOverlay != null) {
             challengeOverlay.hide();
@@ -461,20 +463,6 @@ public final class RestorationGameApp extends GameApplication {
     private void spawnLevelEntities(int fromIndex, int toIndexExclusive) {
         for (int levelIndex = fromIndex; levelIndex < toIndexExclusive; levelIndex++) {
             LevelDefinition level = levelRepository.get(levelIndex);
-            List<WallSegment> wallSegments = new ArrayList<>();
-            for (WallSegment wall : level.shape().wallSegments()) {
-                if (!isGateOpeningWall(level, wall) && spawnedWallKeys.add(wallKey(wall))) {
-                    wallSegments.add(wall);
-                }
-            }
-
-            for (WallRun wallRun : wallRunsFor(wallSegments)) {
-                spawn("restorationWallRun", new SpawnData()
-                        .put("wallRun", wallRun)
-                        .put("projection", projection)
-                        .put("levelIndex", levelIndex));
-            }
-
             for (GateDefinition gate : level.gates()) {
                 Entity gateEntity = spawn("restorationGate", new SpawnData()
                         .put("gate", gate)
@@ -493,9 +481,30 @@ public final class RestorationGameApp extends GameApplication {
         spawnedLevelCount = Math.max(spawnedLevelCount, toIndexExclusive);
     }
 
+    private void refreshCurrentLevelWalls() {
+        getGameWorld().removeEntities(wallEntities);
+        wallEntities.clear();
+
+        Set<String> wallKeys = new HashSet<>();
+        List<WallSegment> wallSegments = new ArrayList<>();
+        for (WallSegment wall : currentLevel.shape().wallSegments()) {
+            if (!isGateOpeningWall(currentLevel, wall) && wallKeys.add(wallKey(wall))) {
+                wallSegments.add(wall);
+            }
+        }
+
+        for (WallRun wallRun : wallRunsFor(wallSegments)) {
+            Entity wallEntity = spawn("restorationWallRun", new SpawnData()
+                    .put("wallRun", wallRun)
+                    .put("projection", projection)
+                    .put("levelIndex", currentLevelIndex));
+            wallEntities.add(wallEntity);
+        }
+    }
+
     private boolean isGateOpeningWall(LevelDefinition level, WallSegment wall) {
         return level.gates().stream()
-                .anyMatch(gate -> gate.position().distance(wall.position()) <= 0.42);
+                .anyMatch(gate -> gate.position().distance(wall.position()) <= WALL_GATE_OPENING_RADIUS);
     }
 
     private List<WallRun> wallRunsFor(List<WallSegment> wallSegments) {

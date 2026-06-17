@@ -9,6 +9,8 @@ import java.util.Set;
 
 public final class LevelShape {
 
+    private static final double WALL_EDGE_OFFSET = 0.0;
+
     private final Set<GridPoint> tiles;
     private final LevelBounds bounds;
 
@@ -88,7 +90,7 @@ public final class LevelShape {
 
     public List<WallSegment> wallSegments() {
         List<WallSegment> segments = new ArrayList<>();
-        double wallOffset = 0.11;
+        double wallOffset = WALL_EDGE_OFFSET;
 
         for (GridPoint tile : tiles) {
             if (!tiles.contains(tile.north())) {

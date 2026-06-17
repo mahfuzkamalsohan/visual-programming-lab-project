@@ -12,6 +12,9 @@ public record LevelDefinition(
         List<NpcDefinition> npcs
 ) {
 
+    private static final double WALL_GATE_OPENING_RADIUS = 0.58;
+    private static final double WALL_SPAN_PADDING = 0.16;
+
     public LevelBounds bounds() {
         return shape.bounds();
     }
@@ -30,11 +33,34 @@ public record LevelDefinition(
         }
 
         return shape.wallSegments().stream()
-                .filter(wall -> gates.stream().noneMatch(gate -> gate.position().distance(wall.position()) <= 0.42))
-                .noneMatch(wall -> wall.position().distance(point) < wallClearance);
+                .filter(wall -> gates.stream().noneMatch(gate -> gate.position().distance(wall.position()) <= WALL_GATE_OPENING_RADIUS))
+                .noneMatch(wall -> blocksPlayer(point, wall, wallClearance));
     }
 
     public List<IsoPoint> wallSlotsNear(IsoPoint anchor, int count, double minimumDistance) {
         return shape.wallSlotsNear(anchor, count, minimumDistance);
+    }
+
+    private static boolean blocksPlayer(IsoPoint point, WallSegment wall, double clearance) {
+        GridPoint tile = wall.ownerTile();
+
+        return switch (wall.side()) {
+            case NORTH, SOUTH -> {
+                double minX = tile.x() - WALL_SPAN_PADDING;
+                double maxX = tile.x() + 1.0 + WALL_SPAN_PADDING;
+                yield isWithin(point.x(), minX, maxX)
+                        && Math.abs(point.y() - wall.position().y()) < clearance;
+            }
+            case WEST, EAST -> {
+                double minY = tile.y() - WALL_SPAN_PADDING;
+                double maxY = tile.y() + 1.0 + WALL_SPAN_PADDING;
+                yield isWithin(point.y(), minY, maxY)
+                        && Math.abs(point.x() - wall.position().x()) < clearance;
+            }
+        };
+    }
+
+    private static boolean isWithin(double value, double min, double max) {
+        return value >= min && value <= max;
     }
 }

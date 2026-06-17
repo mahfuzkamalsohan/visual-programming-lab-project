@@ -12,8 +12,8 @@ import pkg.restoration.world.LevelDefinition;
 
 public final class PlayerIsoComponent extends Component {
 
-    private static final double COLLISION_MARGIN = 0.5;
-    private static final double WALL_CLEARANCE = 0.34;
+    private static final double COLLISION_MARGIN = 0.38;
+    private static final double WALL_CLEARANCE = 0.42;
     private static final double SPRITE_FOOT_OFFSET_Y = 122;
     private static final int DEPTH_TIE_BREAKER = 5;
 

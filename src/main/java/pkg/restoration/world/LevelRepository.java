@@ -53,6 +53,8 @@ public final class LevelRepository {
             AssetCatalog.NPC_GIRL,
             AssetCatalog.NPC_BOY
     };
+    private static final double NPC_WALL_CLEARANCE = 0.85;
+    private static final double WALL_SPAN_PADDING = 0.18;
 
     private final CityMap cityMap;
     private final List<LevelDefinition> levels = new ArrayList<>();
@@ -177,12 +179,48 @@ public final class LevelRepository {
         return shape.tiles().stream()
                 .map(tile -> new IsoPoint(tile.x() + 0.5, tile.y() + 0.5))
                 .filter(point -> shape.contains(point, 0.62))
+                .filter(point -> isAwayFromWalls(shape, point))
                 .filter(point -> occupied.stream().allMatch(existing -> existing.distance(point) >= 1.35))
                 .min(Comparator.comparingDouble(preferred::distance))
                 .orElseGet(() -> fallbackNpcPosition(shape, preferred));
     }
 
+    private boolean isAwayFromWalls(LevelShape shape, IsoPoint point) {
+        return shape.wallSegments().stream()
+                .noneMatch(wall -> isNearWallPlane(point, wall));
+    }
+
+    private boolean isNearWallPlane(IsoPoint point, WallSegment wall) {
+        GridPoint tile = wall.ownerTile();
+
+        return switch (wall.side()) {
+            case NORTH, SOUTH -> {
+                double minX = tile.x() - WALL_SPAN_PADDING;
+                double maxX = tile.x() + 1.0 + WALL_SPAN_PADDING;
+                yield point.x() >= minX
+                        && point.x() <= maxX
+                        && Math.abs(point.y() - wall.position().y()) < NPC_WALL_CLEARANCE;
+            }
+            case WEST, EAST -> {
+                double minY = tile.y() - WALL_SPAN_PADDING;
+                double maxY = tile.y() + 1.0 + WALL_SPAN_PADDING;
+                yield point.y() >= minY
+                        && point.y() <= maxY
+                        && Math.abs(point.x() - wall.position().x()) < NPC_WALL_CLEARANCE;
+            }
+        };
+    }
+
     private IsoPoint fallbackNpcPosition(LevelShape shape, IsoPoint preferred) {
+        return shape.tiles().stream()
+                .map(tile -> new IsoPoint(tile.x() + 0.5, tile.y() + 0.5))
+                .filter(point -> shape.contains(point, 0.62))
+                .filter(point -> isAwayFromWalls(shape, point))
+                .min(Comparator.comparingDouble(preferred::distance))
+                .orElseGet(() -> fallbackAnyNpcPosition(shape, preferred));
+    }
+
+    private IsoPoint fallbackAnyNpcPosition(LevelShape shape, IsoPoint preferred) {
         return shape.tiles().stream()
                 .map(tile -> new IsoPoint(tile.x() + 0.5, tile.y() + 0.5))
                 .filter(point -> shape.contains(point, 0.62))

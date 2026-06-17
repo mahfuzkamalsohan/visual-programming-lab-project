@@ -17,7 +17,7 @@ public final class WallRunComponent extends Component {
 
     private static final double WALL_HEIGHT = 42;
     private static final double CANVAS_PADDING = 8;
-    private static final double DEPTH_OFFSET = 14;
+    private static final double END_OVERLAP = 5;
     private static final double TEXTURE_TILE_SIZE = 58;
     private static final int DEPTH_TIE_BREAKER = 6;
 
@@ -40,6 +40,9 @@ public final class WallRunComponent extends Component {
     private RenderedWall renderWall() {
         Point2D start = projection.toScreen(run.start());
         Point2D end = projection.toScreen(run.end());
+        Point2D direction = end.subtract(start).normalize();
+        start = start.subtract(direction.multiply(END_OVERLAP));
+        end = end.add(direction.multiply(END_OVERLAP));
 
         double minX = Math.min(start.getX(), end.getX()) - CANVAS_PADDING;
         double maxX = Math.max(start.getX(), end.getX()) + CANVAS_PADDING;
@@ -66,7 +69,7 @@ public final class WallRunComponent extends Component {
         gc.setStroke(Color.web("#f0bd79", 0.58));
         gc.strokeLine(x1, y1 - WALL_HEIGHT, x2, y2 - WALL_HEIGHT);
 
-        return new RenderedWall(canvas, minX, minY, Math.max(start.getY(), end.getY()) + DEPTH_OFFSET);
+        return new RenderedWall(canvas, minX, minY, Math.max(start.getY(), end.getY()));
     }
 
     private void drawTexturedFace(GraphicsContext gc, Canvas canvas, double[] faceX, double[] faceY) {
@@ -88,9 +91,6 @@ public final class WallRunComponent extends Component {
         }
 
         gc.restore();
-        gc.setStroke(Color.web("#3b2718", 0.55));
-        gc.setLineWidth(1.2);
-        gc.strokePolygon(faceX, faceY, faceX.length);
     }
 
     private record RenderedWall(Canvas canvas, double x, double y, double depthY) {

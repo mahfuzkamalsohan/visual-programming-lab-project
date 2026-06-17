@@ -61,8 +61,8 @@ public final class SpriteSheetAnimator {
 
     private void updateViewport() {
         Image sheet = view.getImage();
-        double sourceFrameWidth = sheet.getWidth() / frameCount;
-        double sourceFrameHeight = sheet.getHeight() / AssetCatalog.PLAYER_DIRECTIONS;
+        double sourceFrameWidth = Math.floor(sheet.getWidth() / frameCount);
+        double sourceFrameHeight = Math.floor(sheet.getHeight() / AssetCatalog.PLAYER_DIRECTIONS);
         int row = AssetCatalog.playerAtlasRow(direction, walking);
         view.setViewport(new Rectangle2D(
                 frame * sourceFrameWidth,
