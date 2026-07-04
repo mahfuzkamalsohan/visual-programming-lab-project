@@ -46,6 +46,19 @@ public final class CityMap {
         return tileAt(x, y).walkable();
     }
 
+    public boolean containsOpenFootprint(IsoPoint point, double margin) {
+        return isOpenTile(point.x(), point.y())
+                && isOpenTile(point.x() - margin, point.y() - margin)
+                && isOpenTile(point.x() + margin, point.y() - margin)
+                && isOpenTile(point.x() - margin, point.y() + margin)
+                && isOpenTile(point.x() + margin, point.y() + margin);
+    }
+
+    public boolean isOpenTile(int x, int y) {
+        CityTileType type = tileAt(x, y);
+        return type.walkable() && !CityDecor.at(type, x, y).blocksMovement();
+    }
+
     public Set<GridPoint> tilePositions() {
         return Collections.unmodifiableSet(tiles.keySet());
     }
@@ -60,5 +73,9 @@ public final class CityMap {
         minY = Math.min(minY, y);
         maxX = Math.max(maxX, x + 1);
         maxY = Math.max(maxY, y + 1);
+    }
+
+    private boolean isOpenTile(double x, double y) {
+        return isOpenTile((int) Math.floor(x), (int) Math.floor(y));
     }
 }

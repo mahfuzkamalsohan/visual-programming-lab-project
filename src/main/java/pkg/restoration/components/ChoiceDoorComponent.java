@@ -69,6 +69,10 @@ public final class ChoiceDoorComponent extends Component {
         return position.distance(playerPosition) <= radius;
     }
 
+    public IsoPoint position() {
+        return position;
+    }
+
     private void syncEntityPosition() {
         Point2D foot = projection.toScreen(position);
         entity.setPosition(foot.getX() - 51, foot.getY() - 88);

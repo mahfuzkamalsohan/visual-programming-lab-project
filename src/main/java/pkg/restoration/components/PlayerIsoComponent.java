@@ -1,6 +1,6 @@
 package pkg.restoration.components;
 
-import java.util.function.Supplier;
+import java.util.function.Predicate;
 
 import com.almasb.fxgl.entity.component.Component;
 
@@ -8,17 +8,15 @@ import javafx.geometry.Point2D;
 import pkg.restoration.assets.AssetCatalog;
 import pkg.restoration.world.IsoPoint;
 import pkg.restoration.world.IsoProjection;
-import pkg.restoration.world.LevelDefinition;
 
 public final class PlayerIsoComponent extends Component {
 
     private static final double COLLISION_MARGIN = 0.38;
-    private static final double WALL_CLEARANCE = 0.42;
     private static final double SPRITE_FOOT_OFFSET_Y = 122;
     private static final int DEPTH_TIE_BREAKER = 5;
 
     private final IsoProjection projection;
-    private final Supplier<LevelDefinition> levelSupplier;
+    private final Predicate<IsoPoint> movementValidator;
     private final double speedTiles;
     private final SpriteSheetAnimator animator = new SpriteSheetAnimator(
             AssetCatalog.PLAYER_FRAME_WIDTH,
@@ -34,9 +32,9 @@ public final class PlayerIsoComponent extends Component {
     private boolean movingRight;
     private boolean controlsLocked;
 
-    public PlayerIsoComponent(IsoProjection projection, Supplier<LevelDefinition> levelSupplier, IsoPoint spawnPosition, double speedTiles) {
+    public PlayerIsoComponent(IsoProjection projection, Predicate<IsoPoint> movementValidator, IsoPoint spawnPosition, double speedTiles) {
         this.projection = projection;
-        this.levelSupplier = levelSupplier;
+        this.movementValidator = movementValidator;
         this.isoPosition = spawnPosition;
         this.speedTiles = speedTiles;
     }
@@ -57,7 +55,7 @@ public final class PlayerIsoComponent extends Component {
             double length = Math.sqrt(x * x + y * y);
             double dx = x / length * speedTiles * tpf;
             double dy = y / length * speedTiles * tpf;
-            isoPosition = resolveMovement(levelSupplier.get(), dx, dy);
+            isoPosition = resolveMovement(dx, dy);
             facing = Direction.fromVector(x, y, facing);
             syncEntityPosition();
         }
@@ -108,23 +106,31 @@ public final class PlayerIsoComponent extends Component {
         entity.setZIndex(RenderDepth.at(foot.getY(), DEPTH_TIE_BREAKER));
     }
 
-    private IsoPoint resolveMovement(LevelDefinition level, double dx, double dy) {
+    private IsoPoint resolveMovement(double dx, double dy) {
         IsoPoint target = isoPosition.add(dx, dy);
-        if (level.containsPlayer(target, COLLISION_MARGIN, WALL_CLEARANCE)) {
+        if (canOccupy(target)) {
             return target;
         }
 
         IsoPoint horizontal = isoPosition.add(dx, 0);
-        if (level.containsPlayer(horizontal, COLLISION_MARGIN, WALL_CLEARANCE)) {
+        if (canOccupy(horizontal)) {
             return horizontal;
         }
 
         IsoPoint vertical = isoPosition.add(0, dy);
-        if (level.containsPlayer(vertical, COLLISION_MARGIN, WALL_CLEARANCE)) {
+        if (canOccupy(vertical)) {
             return vertical;
         }
 
         return isoPosition;
+    }
+
+    private boolean canOccupy(IsoPoint position) {
+        return movementValidator == null || movementValidator.test(position);
+    }
+
+    public static double collisionMargin() {
+        return COLLISION_MARGIN;
     }
 
     private static double movementAxis(boolean positive, boolean negative) {

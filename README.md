@@ -7,7 +7,7 @@ Stack
 -----
 
 - Java 21
-- Maven
+- Gradle
 - JavaFX 21.0.6, including FXML
 - FXGL 17.3 for the game loop, entities, input, and scene system
 - Spring Boot 4.1.0 as a non-web application context for services, configuration, scene factory wiring, and FXML controllers
@@ -21,10 +21,10 @@ The default entry point is:
 pkg.restoration.RestorationGameApp
 ```
 
-The Maven JavaFX plugin is also configured to launch that class:
+The Gradle application plugin is configured to launch that class:
 
 ```bash
-mvn javafx:run
+./gradlew run
 ```
 
 Controls
@@ -78,8 +78,11 @@ Regenerate Demo PNG Assets
 --------------------------
 
 ```bash
-javac -d target/tools src/main/java/pkg/restoration/tools/DemoAssetGenerator.java
-java -cp target/tools pkg.restoration.tools.DemoAssetGenerator
+./gradlew generateDemoAssets
 ```
 
-Generated textures are written to `src/main/resources/assets/textures/restoration`, including the player sheets, gates, tiles, human keeper, rescue dog, canal duck, and orchard deer placeholders.
+By default this only fills missing textures in `src/main/resources/assets/textures/restoration`, so stronger hand-made or generated art is not overwritten. To intentionally replace every deterministic placeholder asset:
+
+```bash
+./gradlew generateDemoAssets -PoverwriteAssets
+```

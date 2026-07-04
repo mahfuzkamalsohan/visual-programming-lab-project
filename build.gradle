@@ -1,0 +1,57 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'org.openjfx.javafxplugin' version '0.1.0'
+}
+
+group = 'pkg'
+version = '1.0-SNAPSHOT'
+description = '2D isometric JavaFX restoration game'
+
+def javafxVersion = '21.0.6'
+def fxglVersion = '17.3'
+def springBootVersion = '4.1.0'
+
+repositories {
+    mavenCentral()
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+javafx {
+    version = javafxVersion
+    modules = ['javafx.controls', 'javafx.fxml', 'javafx.media']
+}
+
+application {
+    mainClass = 'pkg.restoration.RestorationGameApp'
+}
+
+dependencies {
+    implementation platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}")
+    annotationProcessor platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}")
+
+    implementation "com.github.almasb:fxgl:${fxglVersion}"
+    implementation 'org.springframework.boot:spring-boot-starter'
+
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 21
+}
+
+tasks.register('generateDemoAssets', JavaExec) {
+    group = 'assets'
+    description = 'Writes any missing deterministic placeholder PNG assets.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'pkg.restoration.tools.DemoAssetGenerator'
+    if (providers.gradleProperty('overwriteAssets').isPresent()) {
+        args '--overwrite'
+    }
+}

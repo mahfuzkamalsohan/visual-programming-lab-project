@@ -13,7 +13,6 @@ import pkg.restoration.components.ChoiceDoorComponent;
 import pkg.restoration.components.GateComponent;
 import pkg.restoration.components.NpcComponent;
 import pkg.restoration.components.PlayerIsoComponent;
-import pkg.restoration.components.WallRunComponent;
 import pkg.restoration.spring.RestorationGameProperties;
 
 @Component
@@ -31,7 +30,7 @@ public final class RestorationEntityFactory implements EntityFactory {
                 .type(RestorationEntityType.PLAYER)
                 .with(new PlayerIsoComponent(
                         data.get("projection"),
-                        data.get("levelSupplier"),
+                        data.get("movementValidator"),
                         data.get("spawn"),
                         gameProperties.playerSpeedTiles()
                 ))
@@ -43,15 +42,6 @@ public final class RestorationEntityFactory implements EntityFactory {
         return entityBuilder(data)
                 .type(RestorationEntityType.GATE)
                 .with(new GateComponent(data.get("gate"), data.get("projection")))
-                .with("levelIndex", data.get("levelIndex"))
-                .build();
-    }
-
-    @Spawns("restorationWallRun")
-    public Entity newWallRun(SpawnData data) {
-        return entityBuilder(data)
-                .type(RestorationEntityType.WALL)
-                .with(new WallRunComponent(data.get("wallRun"), data.get("projection")))
                 .with("levelIndex", data.get("levelIndex"))
                 .build();
     }

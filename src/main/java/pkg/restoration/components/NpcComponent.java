@@ -64,6 +64,10 @@ public final class NpcComponent extends Component {
         return definition.position().distance(playerPosition) <= radius;
     }
 
+    public IsoPoint position() {
+        return definition.position();
+    }
+
     private void syncEntityPosition() {
         Point2D foot = projection.toScreen(definition.position());
         NpcRenderProfile profile = renderProfile();

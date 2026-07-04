@@ -13,13 +13,9 @@ import static com.almasb.fxgl.dsl.FXGL.runOnce;
 import static com.almasb.fxgl.dsl.FXGL.spawn;
 
 import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 import com.almasb.fxgl.app.GameApplication;
 import com.almasb.fxgl.app.GameSettings;
@@ -55,17 +51,16 @@ import pkg.restoration.world.IsoPoint;
 import pkg.restoration.world.IsoProjection;
 import pkg.restoration.world.LevelDefinition;
 import pkg.restoration.world.LevelRepository;
-import pkg.restoration.world.WallRun;
-import pkg.restoration.world.WallSegment;
 import pkg.restoration.world.WorldRenderer;
 
 public final class RestorationGameApp extends GameApplication {
 
-    private static final int MAX_WALL_RUN_SEGMENTS = 1;
+    private static final double NPC_BLOCK_RADIUS = 0.58;
+    private static final double GATE_BLOCK_RADIUS = 0.52;
+    private static final double CHOICE_DOOR_BLOCK_RADIUS = 0.36;
 
     private final List<Entity> gateEntities = new ArrayList<>();
     private final List<Entity> choiceDoorEntities = new ArrayList<>();
-    private final List<Entity> wallEntities = new ArrayList<>();
 
     @Autowired
     private LevelRepository levelRepository;
@@ -212,6 +207,7 @@ public final class RestorationGameApp extends GameApplication {
         if (worldRenderer != null) {
             worldRenderer.render(levelRepository.all(), currentLevelIndex, timer.restorationRatio());
         }
+        updateCurrentLevelFromPlayerPosition();
         updateHud();
         updateContextHint();
         checkDecisionDoorChoice();
@@ -240,7 +236,6 @@ public final class RestorationGameApp extends GameApplication {
         getGameWorld().removeEntities(getGameWorld().getEntitiesCopy());
         gateEntities.clear();
         choiceDoorEntities.clear();
-        wallEntities.clear();
         spawnedLevelCount = 0;
 
         levelRepository.ensureGeneratedThrough(currentLevelIndex + LevelRepository.GENERATED_AHEAD);
@@ -262,7 +257,7 @@ public final class RestorationGameApp extends GameApplication {
 
         playerEntity = spawn("restorationPlayer", new SpawnData()
                 .put("projection", projection)
-                .put("levelSupplier", (java.util.function.Supplier<LevelDefinition>) () -> currentLevel)
+                .put("movementValidator", (java.util.function.Predicate<IsoPoint>) this::canPlayerOccupy)
                 .put("spawn", currentLevel.playerSpawn()));
         playerControl = playerEntity.getComponent(PlayerIsoComponent.class);
 
@@ -284,7 +279,6 @@ public final class RestorationGameApp extends GameApplication {
         spawnLevelEntities(spawnedLevelCount, levelRepository.count());
         currentLevel = levelRepository.get(levelIndex);
         transitionInProgress = false;
-        refreshCurrentLevelWalls();
 
         if (challengeOverlay != null) {
             challengeOverlay.hide();
@@ -372,12 +366,15 @@ public final class RestorationGameApp extends GameApplication {
         removeChoiceDoors();
 
         int totalChoices = Math.min(gate.definition().choices(), challenge.choices().size());
-        List<IsoPoint> wallSlots = currentLevel.wallSlotsNear(gate.definition().position(), totalChoices, 1.85);
+        List<IsoPoint> wallSlots = currentLevel.wallSlotsNear(gate.definition().position(), totalChoices * 3, 1.2).stream()
+                .filter(point -> levelRepository.cityMap().containsOpenFootprint(point, 0.32))
+                .limit(totalChoices)
+                .toList();
 
         for (int i = 0; i < totalChoices; i++) {
             IsoPoint doorPosition = i < wallSlots.size()
                     ? wallSlots.get(i)
-                    : currentLevel.clamp(gate.definition().position().add(i + 1.0, 0), 0.75);
+                    : openPointNear(gate.definition().position().add(i + 1.0, 0), 0.75);
             Entity door = spawn("restorationChoiceDoor", new SpawnData()
                     .put("challenge", challenge)
                     .put("choiceIndex", i)
@@ -480,90 +477,90 @@ public final class RestorationGameApp extends GameApplication {
         spawnedLevelCount = Math.max(spawnedLevelCount, toIndexExclusive);
     }
 
-    private void refreshCurrentLevelWalls() {
-        getGameWorld().removeEntities(wallEntities);
-        wallEntities.clear();
-
-        Set<String> wallKeys = new HashSet<>();
-        List<WallSegment> wallSegments = new ArrayList<>();
-        for (WallSegment wall : currentLevel.gateWallSegments()) {
-            if (wallKeys.add(wallKey(wall))) {
-                wallSegments.add(wall);
-            }
-        }
-
-        for (WallRun wallRun : wallRunsFor(wallSegments)) {
-            Entity wallEntity = spawn("restorationWallRun", new SpawnData()
-                    .put("wallRun", wallRun)
-                    .put("projection", projection)
-                    .put("levelIndex", currentLevelIndex));
-            wallEntities.add(wallEntity);
-        }
-    }
-
-    private List<WallRun> wallRunsFor(List<WallSegment> wallSegments) {
-        Map<String, List<WallSegment>> groups = new LinkedHashMap<>();
-        for (WallSegment wall : wallSegments) {
-            groups.computeIfAbsent(wallRunKey(wall), ignored -> new ArrayList<>()).add(wall);
-        }
-
-        List<WallRun> runs = new ArrayList<>();
-        for (List<WallSegment> group : groups.values()) {
-            group.sort(Comparator.comparingInt(this::wallOrderCoordinate));
-
-            List<WallSegment> current = new ArrayList<>();
-            for (WallSegment wall : group) {
-                if (current.isEmpty() || canContinueRun(current.get(current.size() - 1), wall, current.size())) {
-                    current.add(wall);
-                } else {
-                    runs.add(new WallRun(current.get(0).side(), current));
-                    current = new ArrayList<>();
-                    current.add(wall);
-                }
-            }
-
-            if (!current.isEmpty()) {
-                runs.add(new WallRun(current.get(0).side(), current));
-            }
-        }
-
-        return runs;
-    }
-
-    private boolean canContinueRun(WallSegment previous, WallSegment next, int currentSize) {
-        return currentSize < MAX_WALL_RUN_SEGMENTS
-                && wallOrderCoordinate(next) == wallOrderCoordinate(previous) + 1;
-    }
-
-    private String wallRunKey(WallSegment wall) {
-        return wall.side() + ":" + wallRunCoordinate(wall);
-    }
-
-    private int wallRunCoordinate(WallSegment wall) {
-        return switch (wall.side()) {
-            case NORTH, SOUTH -> wall.ownerTile().y();
-            case WEST, EAST -> wall.ownerTile().x();
-        };
-    }
-
-    private int wallOrderCoordinate(WallSegment wall) {
-        return switch (wall.side()) {
-            case NORTH, SOUTH -> wall.ownerTile().x();
-            case WEST, EAST -> wall.ownerTile().y();
-        };
-    }
-
-    private String wallKey(WallSegment wall) {
-        return Math.round(wall.position().x() * 100)
-                + ":"
-                + Math.round(wall.position().y() * 100)
-                + ":"
-                + wall.side();
-    }
-
     private void removeChoiceDoors() {
         getGameWorld().removeEntities(choiceDoorEntities);
         choiceDoorEntities.clear();
+    }
+
+    private boolean canPlayerOccupy(IsoPoint position) {
+        if (levelRepository == null || !levelRepository.cityMap().containsOpenFootprint(position, PlayerIsoComponent.collisionMargin())) {
+            return false;
+        }
+
+        return !isBlockedByNpc(position)
+                && !isBlockedByGate(position)
+                && !isBlockedByChoiceDoor(position);
+    }
+
+    private boolean isBlockedByNpc(IsoPoint position) {
+        return getGameWorld().getEntitiesByComponent(NpcComponent.class).stream()
+                .map(entity -> entity.getComponent(NpcComponent.class))
+                .anyMatch(npc -> npc.position().distance(position) < NPC_BLOCK_RADIUS);
+    }
+
+    private boolean isBlockedByGate(IsoPoint position) {
+        return gateEntities.stream()
+                .filter(Entity::isActive)
+                .map(entity -> entity.getComponent(GateComponent.class))
+                .filter(gate -> gate.state() != GateState.OPEN)
+                .anyMatch(gate -> gate.definition().position().distance(position) < GATE_BLOCK_RADIUS);
+    }
+
+    private boolean isBlockedByChoiceDoor(IsoPoint position) {
+        return choiceDoorEntities.stream()
+                .filter(Entity::isActive)
+                .map(entity -> entity.getComponent(ChoiceDoorComponent.class))
+                .anyMatch(door -> door.position().distance(position) < CHOICE_DOOR_BLOCK_RADIUS);
+    }
+
+    private void updateCurrentLevelFromPlayerPosition() {
+        if (transitionInProgress || playerControl == null || levelRepository == null) {
+            return;
+        }
+
+        int levelIndex = levelIndexAt(playerControl.isoPosition());
+        if (levelIndex < 0 || levelIndex == currentLevelIndex) {
+            return;
+        }
+
+        currentLevelIndex = levelIndex;
+        levelRepository.ensureGeneratedThrough(currentLevelIndex + LevelRepository.GENERATED_AHEAD);
+        spawnLevelEntities(spawnedLevelCount, levelRepository.count());
+        currentLevel = levelRepository.get(currentLevelIndex);
+
+        if (toastLayer != null) {
+            toastLayer.show(currentLevel.title() + " // " + currentLevel.subtitle(), 2.6);
+        }
+    }
+
+    private int levelIndexAt(IsoPoint position) {
+        int bestIndex = -1;
+        double bestDistance = Double.MAX_VALUE;
+        List<LevelDefinition> levels = levelRepository.all();
+
+        for (int i = 0; i < levels.size(); i++) {
+            LevelDefinition level = levels.get(i);
+            if (!level.contains(position, 0.1)) {
+                continue;
+            }
+
+            double distance = level.bounds().center().distance(position);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                bestIndex = i;
+            }
+        }
+
+        return bestIndex;
+    }
+
+    private IsoPoint openPointNear(IsoPoint preferred, double margin) {
+        return currentLevel.shape().tiles().stream()
+                .map(tile -> new IsoPoint(tile.x() + 0.5, tile.y() + 0.5))
+                .filter(point -> currentLevel.contains(point, margin))
+                .filter(point -> levelRepository.cityMap().containsOpenFootprint(point, margin))
+                .min(java.util.Comparator.comparingDouble(preferred::distance))
+                .orElseGet(() -> currentLevel.clamp(preferred, margin));
     }
 
     private Optional<GateComponent> nearestGate(double radius) {

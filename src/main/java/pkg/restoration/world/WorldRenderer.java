@@ -177,8 +177,8 @@ public final class WorldRenderer {
 
     private void drawRoadDetail(GraphicsContext gc, Point2D center, int x, int y, double ratio, boolean routePath) {
         drawRoadMarking(gc, center, x, y, routePath);
-        if (!routePath && ratio > 0.35 && Math.floorMod(tileHash(x, y), 11) == 0) {
-            drawPlantSprite(gc, plantSprites[Math.floorMod(tileHash(x + 3, y - 2), plantSprites.length)], center, 42, 0.72 + ratio * 0.24);
+        if (!routePath && CityDecor.at(CityTileType.ROAD, x, y) == CityDecor.ROAD_PLANT) {
+            drawPlantSprite(gc, plantSprites[Math.floorMod(CityDecor.tileHash(x + 3, y - 2), plantSprites.length)], center, 42, 0.42 + ratio * 0.42);
         }
     }
 
@@ -203,11 +203,12 @@ public final class WorldRenderer {
             return;
         }
 
-        int hash = tileHash(x, y);
-        if (ratio > 0.4 && Math.floorMod(hash, 17) == 0) {
-            drawSprite(gc, signboardSprite, center.getX(), center.getY() + 13, 54, 54, 0.5, 0.82, 0.92);
-        } else if (ratio > 0.35 && Math.floorMod(hash, 7) == 0) {
-            drawPlantSprite(gc, plantSprites[Math.floorMod(hash, plantSprites.length)], center, 38, 0.72 + ratio * 0.24);
+        CityDecor decor = CityDecor.at(CityTileType.PLAZA, x, y);
+        if (decor == CityDecor.PLAZA_SIGN) {
+            drawSprite(gc, signboardSprite, center.getX(), center.getY() + 13, 54, 54, 0.5, 0.82, 0.46 + ratio * 0.46);
+        } else if (decor == CityDecor.PLAZA_PLANT) {
+            int hash = CityDecor.tileHash(x, y);
+            drawPlantSprite(gc, plantSprites[Math.floorMod(hash, plantSprites.length)], center, 38, 0.42 + ratio * 0.42);
         }
     }
 
@@ -224,17 +225,19 @@ public final class WorldRenderer {
             return;
         }
 
-        int hash = tileHash(x, y);
-        if (ratio < 0.22 && Math.floorMod(hash, 4) != 0) {
-            return;
-        }
-
-        if (Math.floorMod(hash, 5) == 0) {
-            drawPlantSprite(gc, plantSprites[Math.floorMod(hash, plantSprites.length)], center, 46, 0.64 + ratio * 0.28);
-        } else if (Math.floorMod(hash, 3) != 0) {
-            Image tree = treeSprites[Math.floorMod(hash, treeSprites.length)];
-            double size = tree == treeSprites[2] ? 124 : 104;
-            drawTreeSprite(gc, tree, center, size, 0.56 + ratio * 0.38);
+        int hash = CityDecor.tileHash(x, y);
+        CityDecor decor = CityDecor.at(CityTileType.PARK, x, y);
+        if (decor == CityDecor.PARK_PLANT) {
+            drawPlantSprite(gc, plantSprites[Math.floorMod(hash, plantSprites.length)], center, 46, 0.52 + ratio * 0.36);
+        } else if (decor == CityDecor.PARK_TREE || decor == CityDecor.PARK_FRUIT_TREE || decor == CityDecor.PARK_LONG_TREE) {
+            int treeIndex = switch (decor) {
+                case PARK_FRUIT_TREE -> 1;
+                case PARK_LONG_TREE -> 2;
+                default -> 0;
+            };
+            Image tree = treeSprites[treeIndex];
+            double size = treeIndex == 2 ? 124 : 104;
+            drawTreeSprite(gc, tree, center, size, 0.48 + ratio * 0.42);
         }
     }
 
@@ -243,14 +246,14 @@ public final class WorldRenderer {
     }
 
     private void drawBuildingStructure(GraphicsContext gc, CityTileType type, Point2D center, int x, int y, double ratio) {
-        int hash = tileHash(x, y);
+        int hash = CityDecor.tileHash(x, y);
         Image building = buildingSprites[Math.floorMod(hash, buildingSprites.length)];
         double size = type == CityTileType.BUILDING_HIGH ? 178 + Math.floorMod(hash, 3) * 8 : 146 + Math.floorMod(hash, 2) * 8;
         drawSprite(gc, building, center.getX(), center.getY() + 30, size, size, 0.5, 0.84, 0.86 + ratio * 0.12);
     }
 
     private void drawRestoringGround(GraphicsContext gc, Point2D center, int x, int y, double ratio, double dustBias) {
-        double adjusted = ratio + (tileNoise(x, y) - 0.5) * 0.12 - dustBias;
+        double adjusted = ratio + (CityDecor.tileNoise(x, y) - 0.5) * 0.12 - dustBias;
         if (adjusted < 0.48) {
             drawIsoTile(gc, dustTile, center);
         } else if (adjusted < 0.82) {
@@ -398,11 +401,4 @@ public final class WorldRenderer {
         return new GridPoint((int) Math.floor(point.x()), (int) Math.floor(point.y()));
     }
 
-    private static int tileHash(int x, int y) {
-        return Math.floorMod(x * 734287 + y * 912271, 10_000);
-    }
-
-    private static double tileNoise(int x, int y) {
-        return tileHash(x, y) / 9_999.0;
-    }
 }

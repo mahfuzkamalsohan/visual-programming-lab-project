@@ -96,10 +96,14 @@ public final class LevelRepository {
         LevelShape shape = districtShape(entry, exit, index);
         LevelShape destinationShape = districtShape(exit, CityMapGenerator.routeAnchor(index + 2), index + 1);
 
-        IsoPoint spawn = shape.clamp(new IsoPoint(entry.x() + 0.6, entry.y() + 0.4), 0.55);
+        IsoPoint spawn = openPointNear(shape, new IsoPoint(entry.x() + 0.6, entry.y() + 0.4), 0.55);
         IsoPoint destinationAnchor = new IsoPoint(exit.x() + 0.5, exit.y() + 0.5);
-        IsoPoint gatePosition = shape.wallSlotToward(destinationAnchor);
-        IsoPoint destinationPosition = destinationShape.clamp(destinationShape.wallSlotToward(gatePosition), 0.62);
+        IsoPoint gatePosition = openWallSlotToward(shape, destinationAnchor);
+        IsoPoint destinationPosition = openPointNear(
+                destinationShape,
+                openWallSlotToward(destinationShape, gatePosition),
+                0.62
+        );
         GateKind gateKind = gateKindFor(index);
 
         GateDefinition gate = new GateDefinition(
@@ -180,10 +184,27 @@ public final class LevelRepository {
         return shape.tiles().stream()
                 .map(tile -> new IsoPoint(tile.x() + 0.5, tile.y() + 0.5))
                 .filter(point -> shape.contains(point, 0.62))
+                .filter(this::isOpenNpcTile)
                 .filter(point -> isAwayFromWalls(shape, point))
                 .filter(point -> occupied.stream().allMatch(existing -> existing.distance(point) >= 1.35))
                 .min(Comparator.comparingDouble(preferred::distance))
                 .orElseGet(() -> fallbackNpcPosition(shape, preferred));
+    }
+
+    private IsoPoint openWallSlotToward(LevelShape shape, IsoPoint target) {
+        return shape.wallSlotsNear(target, 14, 0.75).stream()
+                .filter(point -> cityMap.containsOpenFootprint(point, 0.32))
+                .min(Comparator.comparingDouble(target::distance))
+                .orElseGet(() -> shape.wallSlotToward(target));
+    }
+
+    private IsoPoint openPointNear(LevelShape shape, IsoPoint preferred, double margin) {
+        return shape.tiles().stream()
+                .map(tile -> new IsoPoint(tile.x() + 0.5, tile.y() + 0.5))
+                .filter(point -> shape.contains(point, margin))
+                .filter(point -> cityMap.containsOpenFootprint(point, margin))
+                .min(Comparator.comparingDouble(preferred::distance))
+                .orElseGet(() -> shape.clamp(preferred, margin));
     }
 
     private boolean isAwayFromWalls(LevelShape shape, IsoPoint point) {
@@ -216,6 +237,7 @@ public final class LevelRepository {
         return shape.tiles().stream()
                 .map(tile -> new IsoPoint(tile.x() + 0.5, tile.y() + 0.5))
                 .filter(point -> shape.contains(point, 0.62))
+                .filter(this::isOpenNpcTile)
                 .filter(point -> isAwayFromWalls(shape, point))
                 .min(Comparator.comparingDouble(preferred::distance))
                 .orElseGet(() -> fallbackAnyNpcPosition(shape, preferred));
@@ -225,8 +247,13 @@ public final class LevelRepository {
         return shape.tiles().stream()
                 .map(tile -> new IsoPoint(tile.x() + 0.5, tile.y() + 0.5))
                 .filter(point -> shape.contains(point, 0.62))
+                .filter(this::isOpenNpcTile)
                 .min(Comparator.comparingDouble(preferred::distance))
                 .orElseGet(() -> shape.clamp(preferred, 0.62));
+    }
+
+    private boolean isOpenNpcTile(IsoPoint point) {
+        return cityMap.containsOpenFootprint(point, 0.42);
     }
 
     private List<String> guideMessages(int index) {

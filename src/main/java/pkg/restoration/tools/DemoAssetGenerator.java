@@ -24,39 +24,58 @@ public final class DemoAssetGenerator {
     private static final String[] WALKING_DIRECTIONS = {"w", "sw", "se", "s", "nw", "ne", "n", "e"};
     private static final int PLAYER_W = 96;
     private static final int PLAYER_H = 128;
-    private static final int WALL_W = 256;
-    private static final int WALL_H = 320;
 
     private DemoAssetGenerator() {
     }
 
     public static void main(String[] args) throws IOException {
-        Path output = args.length == 0
-                ? Paths.get("src/main/resources/assets/textures/restoration")
-                : Paths.get(args[0]);
+        boolean overwrite = false;
+        Path output = Paths.get("src/main/resources/assets/textures/restoration");
+        for (String arg : args) {
+            if ("--overwrite".equals(arg)) {
+                overwrite = true;
+            } else {
+                output = Paths.get(arg);
+            }
+        }
 
         Files.createDirectories(output);
 
-        writePlayerAtlas(output.resolve("idle.png"), false);
-        writePlayerAtlas(output.resolve("walking.png"), true);
+        writeAsset(output.resolve("idle.png"), overwrite, path -> writePlayerAtlas(path, false));
+        writeAsset(output.resolve("walking.png"), overwrite, path -> writePlayerAtlas(path, true));
 
-        writeNpc(output.resolve("npc_keeper.png"));
-        writeNpc(output.resolve("npc_boy.png"));
-        writeNpc(output.resolve("npc_girl.png"));
-        writeRescueDog(output.resolve("npc_puppy.png"));
-        writeCanalDuck(output.resolve("npc_canal_duck.png"));
-        writeOrchardDeer(output.resolve("npc_dear.png"));
-        writeTile(output.resolve("tile_dust.png"), new Color(116, 92, 68), new Color(71, 57, 48), new Color(159, 132, 89));
-        writeTile(output.resolve("tile_recovering.png"), new Color(101, 129, 72), new Color(67, 85, 61), new Color(183, 168, 92));
-        writeTile(output.resolve("tile_green.png"), new Color(94, 157, 83), new Color(51, 103, 72), new Color(191, 222, 119));
-        writeTile(output.resolve("tile_path.png"), new Color(136, 122, 86), new Color(83, 72, 58), new Color(200, 177, 105));
-        writeBoundary(output.resolve("wall_stone.png"));
-        writeBoundary(output.resolve("wall_brick.png"));
-        writeBoundary(output.resolve("wall_wooden.png"));
-        writeGate(output.resolve("gate_sealed.png"), new Color(84, 106, 114), new Color(230, 91, 76), true);
-        writeGate(output.resolve("gate_open.png"), new Color(100, 142, 111), new Color(118, 226, 148), false);
-        writeGate(output.resolve("gate_closed.png"), new Color(69, 73, 75), new Color(116, 92, 68), true);
-        writeGate(output.resolve("gate_decision.png"), new Color(102, 95, 145), new Color(216, 226, 111), false);
+        writeAsset(output.resolve("npc_keeper.png"), overwrite, DemoAssetGenerator::writeNpc);
+        writeAsset(output.resolve("npc_boy.png"), overwrite, DemoAssetGenerator::writeNpc);
+        writeAsset(output.resolve("npc_girl.png"), overwrite, DemoAssetGenerator::writeNpc);
+        writeAsset(output.resolve("npc_puppy.png"), overwrite, DemoAssetGenerator::writeRescueDog);
+        writeAsset(output.resolve("npc_canal_duck.png"), overwrite, DemoAssetGenerator::writeCanalDuck);
+        writeAsset(output.resolve("npc_dear.png"), overwrite, DemoAssetGenerator::writeOrchardDeer);
+        writeAsset(output.resolve("tile_dust.png"), overwrite, path -> writeTile(path, new Color(116, 92, 68), new Color(71, 57, 48), new Color(159, 132, 89)));
+        writeAsset(output.resolve("tile_recovering.png"), overwrite, path -> writeTile(path, new Color(101, 129, 72), new Color(67, 85, 61), new Color(183, 168, 92)));
+        writeAsset(output.resolve("tile_green.png"), overwrite, path -> writeTile(path, new Color(94, 157, 83), new Color(51, 103, 72), new Color(191, 222, 119)));
+        writeAsset(output.resolve("tile_path.png"), overwrite, path -> writeTile(path, new Color(136, 122, 86), new Color(83, 72, 58), new Color(200, 177, 105)));
+        writeAsset(output.resolve("building_1.png"), overwrite, path -> writeBuilding(path, new Color(139, 63, 43), new Color(59, 67, 69), 4));
+        writeAsset(output.resolve("building_2.png"), overwrite, path -> writeBuilding(path, new Color(108, 91, 73), new Color(58, 77, 83), 3));
+        writeAsset(output.resolve("building_3.png"), overwrite, path -> writeBuilding(path, new Color(90, 116, 93), new Color(55, 71, 64), 4));
+        writeAsset(output.resolve("building_4.png"), overwrite, path -> writeBuilding(path, new Color(119, 88, 128), new Color(70, 64, 86), 5));
+        writeAsset(output.resolve("tree.png"), overwrite, path -> writeTree(path, new Color(62, 128, 73), false, false));
+        writeAsset(output.resolve("fruit_tree.png"), overwrite, path -> writeTree(path, new Color(77, 144, 72), false, true));
+        writeAsset(output.resolve("long_tree.png"), overwrite, path -> writeTree(path, new Color(52, 116, 78), true, false));
+        writeAsset(output.resolve("bush.png"), overwrite, path -> writePlant(path, new Color(69, 139, 79), false));
+        writeAsset(output.resolve("herb.png"), overwrite, path -> writePlant(path, new Color(104, 166, 86), true));
+        writeAsset(output.resolve("signboard_pointing_se.png"), overwrite, DemoAssetGenerator::writeSignboard);
+        writeAsset(output.resolve("gate_sealed.png"), overwrite, path -> writeGate(path, new Color(84, 106, 114), new Color(230, 91, 76), true));
+        writeAsset(output.resolve("gate_open.png"), overwrite, path -> writeGate(path, new Color(100, 142, 111), new Color(118, 226, 148), false));
+        writeAsset(output.resolve("gate_closed.png"), overwrite, path -> writeGate(path, new Color(69, 73, 75), new Color(116, 92, 68), true));
+        writeAsset(output.resolve("gate_decision.png"), overwrite, path -> writeGate(path, new Color(102, 95, 145), new Color(216, 226, 111), false));
+    }
+
+    private static void writeAsset(Path path, boolean overwrite, AssetWriter writer) throws IOException {
+        if (!overwrite && Files.exists(path)) {
+            return;
+        }
+
+        writer.write(path);
     }
 
     private static void writePlayerAtlas(Path path, boolean walking) throws IOException {
@@ -267,22 +286,149 @@ public final class DemoAssetGenerator {
         ImageIO.write(image, "png", path.toFile());
     }
 
-    private static void writeBoundary(Path path) throws IOException {
-        BufferedImage image = new BufferedImage(WALL_W, WALL_H, BufferedImage.TYPE_INT_ARGB);
+    private static void writeBuilding(Path path, Color facade, Color roof, int floors) throws IOException {
+        BufferedImage image = new BufferedImage(500, 500, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = image.createGraphics();
+        configure(g);
+
+        g.setColor(new Color(0, 0, 0, 58));
+        g.fillOval(116, 384, 260, 54);
+
+        Polygon leftFace = new Polygon(
+                new int[] {128, 250, 250, 128},
+                new int[] {160, 220, 390, 328},
+                4
+        );
+        Polygon rightFace = new Polygon(
+                new int[] {250, 372, 372, 250},
+                new int[] {220, 160, 328, 390},
+                4
+        );
+        Polygon top = new Polygon(
+                new int[] {128, 250, 372, 250},
+                new int[] {160, 98, 160, 220},
+                4
+        );
+
+        g.setColor(facade.darker());
+        g.fill(leftFace);
+        g.setColor(facade);
+        g.fill(rightFace);
+        g.setColor(roof);
+        g.fill(top);
+        g.setStroke(new BasicStroke(5, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        g.setColor(new Color(41, 37, 32, 170));
+        g.draw(leftFace);
+        g.draw(rightFace);
+        g.draw(top);
+
+        g.setColor(new Color(224, 202, 151));
+        g.setStroke(new BasicStroke(4));
+        for (int floor = 0; floor < floors; floor++) {
+            int y = 190 + floor * 38;
+            drawWindow(g, 166, y, true);
+            drawWindow(g, 214, y + 21, true);
+            drawWindow(g, 286, y + 20, false);
+            drawWindow(g, 334, y - 2, false);
+        }
+
+        g.setColor(new Color(68, 58, 47));
+        g.fillRect(228, 342, 44, 74);
+        g.setColor(new Color(190, 163, 113));
+        g.fillRect(236, 350, 28, 58);
+
+        g.dispose();
+        ImageIO.write(image, "png", path.toFile());
+    }
+
+    private static void drawWindow(Graphics2D g, int x, int y, boolean leftFace) {
+        Polygon window = leftFace
+                ? new Polygon(new int[] {x, x + 28, x + 28, x}, new int[] {y, y + 14, y + 42, y + 28}, 4)
+                : new Polygon(new int[] {x, x + 28, x + 28, x}, new int[] {y + 14, y, y + 28, y + 42}, 4);
+        g.setColor(new Color(48, 91, 105));
+        g.fill(window);
+        g.setColor(new Color(167, 215, 215, 130));
+        g.draw(window);
+    }
+
+    private static void writeTree(Path path, Color canopy, boolean tall, boolean fruit) throws IOException {
+        BufferedImage image = new BufferedImage(500, 500, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = image.createGraphics();
         configure(g);
 
         g.setColor(new Color(0, 0, 0, 52));
-        g.fill(new Ellipse2D.Double(34, 278, 188, 28));
-        g.setColor(new Color(71, 73, 68));
-        g.fill(diamond(128, 270, 112, 42));
-        g.setColor(new Color(104, 110, 92));
-        g.fillRoundRect(52, 128, 152, 146, 18, 18);
-        g.setColor(new Color(151, 157, 130));
-        g.fillRoundRect(62, 76, 132, 62, 18, 18);
-        g.setColor(new Color(43, 47, 43));
-        g.setStroke(new BasicStroke(7));
-        g.drawRoundRect(52, 128, 152, 146, 18, 18);
+        g.fillOval(156, 386, 186, 42);
+        g.setColor(new Color(104, 76, 45));
+        g.fillRoundRect(226, tall ? 212 : 250, 48, tall ? 186 : 146, 22, 22);
+
+        int top = tall ? 72 : 120;
+        for (int i = 0; i < 7; i++) {
+            int cx = 180 + Math.floorMod(i * 43, 132);
+            int cy = top + Math.floorMod(i * 31, 132);
+            int size = tall ? 122 - Math.floorMod(i * 7, 26) : 112 - Math.floorMod(i * 5, 22);
+            g.setColor(canopy.darker());
+            g.fillOval(cx - size / 2 + 8, cy - size / 2 + 10, size, size);
+            g.setColor(canopy);
+            g.fillOval(cx - size / 2, cy - size / 2, size, size);
+        }
+
+        if (fruit) {
+            g.setColor(new Color(219, 116, 76));
+            for (int i = 0; i < 9; i++) {
+                g.fillOval(176 + Math.floorMod(i * 37, 140), 142 + Math.floorMod(i * 29, 108), 15, 15);
+            }
+        }
+
+        g.dispose();
+        ImageIO.write(image, "png", path.toFile());
+    }
+
+    private static void writePlant(Path path, Color leaf, boolean herb) throws IOException {
+        BufferedImage image = new BufferedImage(500, 500, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = image.createGraphics();
+        configure(g);
+
+        g.setColor(new Color(0, 0, 0, 44));
+        g.fillOval(154, 366, 194, 42);
+        g.setColor(leaf.darker());
+        for (int i = 0; i < 9; i++) {
+            int x = 188 + i * 15;
+            int height = herb ? 78 + Math.floorMod(i * 17, 44) : 42 + Math.floorMod(i * 13, 34);
+            g.fillOval(x, 350 - height, herb ? 24 : 42, height);
+        }
+        g.setColor(leaf);
+        for (int i = 0; i < 7; i++) {
+            int x = 196 + i * 18;
+            int height = herb ? 66 + Math.floorMod(i * 19, 42) : 38 + Math.floorMod(i * 11, 28);
+            g.fillOval(x, 358 - height, herb ? 20 : 38, height);
+        }
+
+        g.dispose();
+        ImageIO.write(image, "png", path.toFile());
+    }
+
+    private static void writeSignboard(Path path) throws IOException {
+        BufferedImage image = new BufferedImage(500, 500, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = image.createGraphics();
+        configure(g);
+
+        g.setColor(new Color(0, 0, 0, 50));
+        g.fillOval(174, 376, 154, 36);
+        g.setColor(new Color(93, 66, 40));
+        g.fillRoundRect(238, 176, 26, 216, 12, 12);
+        g.setColor(new Color(143, 95, 49));
+        Polygon arrow = new Polygon(
+                new int[] {166, 302, 302, 356, 302, 302, 166},
+                new int[] {198, 198, 176, 230, 284, 260, 260},
+                7
+        );
+        g.fill(arrow);
+        g.setColor(new Color(72, 50, 31));
+        g.setStroke(new BasicStroke(8, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        g.draw(arrow);
+        g.setColor(new Color(221, 203, 126));
+        g.setFont(new Font("SansSerif", Font.BOLD, 42));
+        g.drawString("GO", 206, 244);
 
         g.dispose();
         ImageIO.write(image, "png", path.toFile());
@@ -358,5 +504,10 @@ public final class DemoAssetGenerator {
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
         g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+    }
+
+    @FunctionalInterface
+    private interface AssetWriter {
+        void write(Path path) throws IOException;
     }
 }

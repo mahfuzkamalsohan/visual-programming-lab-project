@@ -15,9 +15,6 @@ public final class AssetCatalog {
     public static final String TILE_RECOVERING = "restoration/tile_recovering.png";
     public static final String TILE_GREEN = "restoration/tile_green.png";
     public static final String TILE_PATH = "restoration/tile_path.png";
-    public static final String WALL_BRICK = "restoration/wall_brick.png";
-    public static final String WALL_STONE = "restoration/wall_stone.png";
-    public static final String WALL_WOODEN = "restoration/wall_wooden.png";
     public static final String GATE_SEALED = "restoration/gate_sealed.png";
     public static final String GATE_OPEN = "restoration/gate_open.png";
     public static final String GATE_CLOSED = "restoration/gate_closed.png";
