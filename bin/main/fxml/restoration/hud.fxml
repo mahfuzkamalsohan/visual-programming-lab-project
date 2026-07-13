@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.ProgressBar?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.shape.Rectangle?>
+<?import javafx.scene.text.Text?>
+
+<Pane fx:id="root"
+      prefWidth="1280"
+      prefHeight="720"
+      xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="pkg.restoration.ui.hud.RestorationHudController">
+    <children>
+        <Pane layoutX="24" layoutY="22" prefWidth="640" prefHeight="118">
+            <children>
+                <Rectangle width="450"
+                           height="96"
+                           arcWidth="10"
+                           arcHeight="10"
+                           fill="#111916d1"
+                           stroke="#d6e27db8"
+                           strokeWidth="1.3"/>
+                <Text fx:id="levelText"
+                      layoutX="28"
+                      layoutY="22"
+                      fill="#eff6dc"
+                      style="-fx-font-family: Verdana; -fx-font-size: 16px; -fx-font-weight: bold;"/>
+                <Text fx:id="timeText"
+                      layoutX="28"
+                      layoutY="38"
+                      fill="#eff6dc"
+                      style="-fx-font-family: Verdana; -fx-font-size: 18px; -fx-font-weight: bold;"/>
+                <ProgressBar fx:id="timeBar"
+                             layoutX="28"
+                             layoutY="52"
+                             prefWidth="390"
+                             prefHeight="24"
+                             progress="1"/>
+                <Text fx:id="objectiveText"
+                      layoutX="28"
+                      layoutY="92"
+                      wrappingWidth="600"
+                      fill="#eff6dc"
+                      style="-fx-font-family: Verdana; -fx-font-size: 14px;"/>
+            </children>
+        </Pane>
+        <Text fx:id="hintText"
+              layoutY="680"
+              wrappingWidth="520"
+              fill="#f8f0b5"
+              style="-fx-font-family: Verdana; -fx-font-size: 13px; -fx-font-weight: bold;"/>
+    </children>
+</Pane>

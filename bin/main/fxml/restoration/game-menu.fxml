@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.Rectangle?>
+<?import javafx.scene.text.Text?>
+
+<StackPane fx:id="root"
+           xmlns="http://javafx.com/javafx/21"
+           xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="pkg.restoration.ui.menu.RestorationGameMenuController">
+    <children>
+        <Rectangle fx:id="veil" width="1280" height="720" fill="#07100cc7"/>
+        <VBox alignment="CENTER" spacing="16">
+            <children>
+                <Text text="PAUSED"
+                      fill="#eff7d4"
+                      style="-fx-font-family: Verdana; -fx-font-size: 48px; -fx-font-weight: bold;"/>
+                <Button fx:id="resumeButton"
+                        text="Resume"
+                        minWidth="230"
+                        minHeight="40"
+                        style="-fx-background-color: #22352c; -fx-border-color: #d8e77f; -fx-border-width: 1.5; -fx-text-fill: #f7f4dc; -fx-font-family: Verdana; -fx-font-size: 15px; -fx-font-weight: bold;"/>
+                <Button fx:id="restartButton"
+                        text="Restart Run"
+                        minWidth="230"
+                        minHeight="40"
+                        style="-fx-background-color: #22352c; -fx-border-color: #d8e77f; -fx-border-width: 1.5; -fx-text-fill: #f7f4dc; -fx-font-family: Verdana; -fx-font-size: 15px; -fx-font-weight: bold;"/>
+                <Button fx:id="mainMenuButton"
+                        text="Main Menu"
+                        minWidth="230"
+                        minHeight="40"
+                        style="-fx-background-color: #22352c; -fx-border-color: #d8e77f; -fx-border-width: 1.5; -fx-text-fill: #f7f4dc; -fx-font-family: Verdana; -fx-font-size: 15px; -fx-font-weight: bold;"/>
+                <Button fx:id="exitButton"
+                        text="Exit"
+                        minWidth="230"
+                        minHeight="40"
+                        style="-fx-background-color: #22352c; -fx-border-color: #d8e77f; -fx-border-width: 1.5; -fx-text-fill: #f7f4dc; -fx-font-family: Verdana; -fx-font-size: 15px; -fx-font-weight: bold;"/>
+            </children>
+        </VBox>
+    </children>
+</StackPane>

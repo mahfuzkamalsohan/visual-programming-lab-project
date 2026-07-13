@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.shape.Rectangle?>
+<?import javafx.scene.text.Text?>
+
+<StackPane fx:id="root"
+           translateY="124"
+           xmlns="http://javafx.com/javafx/21"
+           xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="pkg.restoration.ui.toast.ToastLayerController">
+    <children>
+        <Rectangle width="720"
+                   height="72"
+                   arcWidth="10"
+                   arcHeight="10"
+                   fill="#121915e6"
+                   stroke="#f0c96abf"/>
+        <Text fx:id="message"
+              wrappingWidth="670"
+              fill="#fff8d6"
+              style="-fx-font-family: Verdana; -fx-font-size: 15px; -fx-font-weight: bold;"/>
+    </children>
+</StackPane>

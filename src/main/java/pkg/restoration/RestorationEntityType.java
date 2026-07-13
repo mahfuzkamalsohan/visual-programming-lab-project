@@ -5,5 +5,6 @@ public enum RestorationEntityType {
     GATE,
     CHOICE_DOOR,
     NPC,
-    WORLD_VIEW
+    WORLD_VIEW,
+    WALL
 }

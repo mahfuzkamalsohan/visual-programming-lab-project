@@ -14,21 +14,18 @@ import javafx.scene.text.Text;
 import pkg.restoration.assets.AssetCatalog;
 import pkg.restoration.world.GateDefinition;
 import pkg.restoration.world.GateState;
-import pkg.restoration.world.IsoPoint;
-import pkg.restoration.world.IsoProjection;
 
 public final class GateComponent extends Component {
 
     private static final int DEPTH_TIE_BREAKER = 7;
 
     private final GateDefinition definition;
-    private final IsoProjection projection;
     private final ImageView imageView = new ImageView();
     private GateState state = GateState.SEALED;
 
-    public GateComponent(GateDefinition definition, IsoProjection projection) {
+    // FIX: Single-argument constructor matching your factory pattern
+    public GateComponent(GateDefinition definition) {
         this.definition = definition;
-        this.projection = projection;
     }
 
     @Override
@@ -46,8 +43,10 @@ public final class GateComponent extends Component {
 
         Group view = new Group(imageView, label);
         entity.getViewComponent().addChild(view);
+        
         updateSprite();
-        syncEntityPosition();
+        // Rely on Tiled for basic positioning, but recalculate sorting layers
+        syncEntityZIndex();
     }
 
     public GateDefinition definition() {
@@ -58,8 +57,10 @@ public final class GateComponent extends Component {
         return state;
     }
 
-    public boolean isNear(IsoPoint playerPosition, double radius) {
-        return definition.position().distance(playerPosition) <= radius;
+    // FIX: Accept a standard Point2D for proximity checks
+    public boolean isNear(Point2D playerPosition, double radius) {
+        if (entity == null) return false;
+        return entity.getPosition().distance(playerPosition) <= radius;
     }
 
     public void awaitDecision() {
@@ -92,9 +93,11 @@ public final class GateComponent extends Component {
         imageView.setImage(image(asset));
     }
 
-    private void syncEntityPosition() {
-        Point2D foot = projection.toScreen(definition.position());
-        entity.setPosition(foot.getX() - 64, foot.getY() - 104);
-        entity.setZIndex(RenderDepth.at(foot.getY(), DEPTH_TIE_BREAKER));
+    private void syncEntityZIndex() {
+        if (entity == null) return;
+        
+        // Maps the base y-coordinate line directly for flat engine depth rendering
+        double footY = entity.getY() + 104;
+        entity.setZIndex(RenderDepth.at(footY, DEPTH_TIE_BREAKER));
     }
 }

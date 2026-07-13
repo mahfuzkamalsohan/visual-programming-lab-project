@@ -6,25 +6,21 @@ import com.almasb.fxgl.entity.component.Component;
 
 import javafx.geometry.Point2D;
 import pkg.restoration.assets.AssetCatalog;
-import pkg.restoration.world.IsoPoint;
-import pkg.restoration.world.IsoProjection;
 
 public final class PlayerIsoComponent extends Component {
 
-    private static final double COLLISION_MARGIN = 0.38;
+    private static final double COLLISION_MARGIN = 16.0; // Converted from metric tile units to pixel bounds
     private static final double SPRITE_FOOT_OFFSET_Y = 122;
     private static final int DEPTH_TIE_BREAKER = 5;
 
-    private final IsoProjection projection;
-    private final Predicate<IsoPoint> movementValidator;
-    private final double speedTiles;
+    private Predicate<Point2D> movementValidator;
+    private final double speedPixels; // Renamed from speedTiles
     private final SpriteSheetAnimator animator = new SpriteSheetAnimator(
             AssetCatalog.PLAYER_FRAME_WIDTH,
             AssetCatalog.PLAYER_FRAME_HEIGHT,
             AssetCatalog.PLAYER_FRAMES
     );
 
-    private IsoPoint isoPosition;
     private Direction facing = Direction.SE;
     private boolean movingUp;
     private boolean movingDown;
@@ -32,17 +28,23 @@ public final class PlayerIsoComponent extends Component {
     private boolean movingRight;
     private boolean controlsLocked;
 
-    public PlayerIsoComponent(IsoProjection projection, Predicate<IsoPoint> movementValidator, IsoPoint spawnPosition, double speedTiles) {
-        this.projection = projection;
-        this.movementValidator = movementValidator;
-        this.isoPosition = spawnPosition;
-        this.speedTiles = speedTiles;
+    // Default constructor for automatic Tiled factory instantiation
+    public PlayerIsoComponent() {
+        this.speedPixels = 220.0; // Standard baseline pixel units per second
+    }
+
+    public PlayerIsoComponent(double speedPixels) {
+        this.speedPixels = speedPixels;
+    }
+
+    public void setMovementValidator(Predicate<Point2D> validator) {
+        this.movementValidator = validator;
     }
 
     @Override
     public void onAdded() {
         entity.getViewComponent().addChild(animator.view());
-        syncEntityPosition();
+        syncEntityZIndex();
     }
 
     @Override
@@ -53,23 +55,29 @@ public final class PlayerIsoComponent extends Component {
 
         if (isMoving) {
             double length = Math.sqrt(x * x + y * y);
-            double dx = x / length * speedTiles * tpf;
-            double dy = y / length * speedTiles * tpf;
-            isoPosition = resolveMovement(dx, dy);
+            double dx = x / length * speedPixels * tpf;
+            double dy = y / length * speedPixels * tpf;
+            
+            resolveAndApplyMovement(dx, dy);
             facing = Direction.fromVector(x, y, facing);
-            syncEntityPosition();
         }
 
         animator.update(tpf, isMoving, facing);
+        syncEntityZIndex();
     }
 
-    public void teleport(IsoPoint position) {
-        isoPosition = position;
-        syncEntityPosition();
+    public void teleport(Point2D position) {
+        if (entity != null) {
+            entity.setPosition(position.getX() - AssetCatalog.PLAYER_FRAME_WIDTH / 2.0, position.getY() - SPRITE_FOOT_OFFSET_Y);
+        }
     }
 
-    public IsoPoint isoPosition() {
-        return isoPosition;
+    public Point2D isoPosition() {
+        if (entity == null) {
+            return Point2D.ZERO;
+        }
+        // Returns the visual logical center anchor point at the character's feet
+        return entity.getPosition().add(AssetCatalog.PLAYER_FRAME_WIDTH / 2.0, SPRITE_FOOT_OFFSET_Y);
     }
 
     public void setMovingUp(boolean movingUp) {
@@ -96,36 +104,39 @@ public final class PlayerIsoComponent extends Component {
         return controlsLocked;
     }
 
-    private void syncEntityPosition() {
+    private void syncEntityZIndex() {
         if (entity == null) {
             return;
         }
-
-        Point2D foot = projection.toScreen(isoPosition);
-        entity.setPosition(foot.getX() - AssetCatalog.PLAYER_FRAME_WIDTH / 2.0, foot.getY() - SPRITE_FOOT_OFFSET_Y);
-        entity.setZIndex(RenderDepth.at(foot.getY(), DEPTH_TIE_BREAKER));
+        double footY = entity.getY() + SPRITE_FOOT_OFFSET_Y;
+        entity.setZIndex(RenderDepth.at(footY, DEPTH_TIE_BREAKER));
     }
 
-    private IsoPoint resolveMovement(double dx, double dy) {
-        IsoPoint target = isoPosition.add(dx, dy);
-        if (canOccupy(target)) {
-            return target;
+    private void resolveAndApplyMovement(double dx, double dy) {
+        Point2D currentPos = entity.getPosition();
+
+        // 1. Evaluate full target step diagonal vector
+        Point2D target = currentPos.add(dx, dy);
+        if (canOccupy(target.add(AssetCatalog.PLAYER_FRAME_WIDTH / 2.0, SPRITE_FOOT_OFFSET_Y))) {
+            entity.setPosition(target);
+            return;
         }
 
-        IsoPoint horizontal = isoPosition.add(dx, 0);
-        if (canOccupy(horizontal)) {
-            return horizontal;
+        // 2. Sliding physics fallback: Check purely horizontal movement vector slice
+        Point2D horizontal = currentPos.add(dx, 0);
+        if (canOccupy(horizontal.add(AssetCatalog.PLAYER_FRAME_WIDTH / 2.0, SPRITE_FOOT_OFFSET_Y))) {
+            entity.setPosition(horizontal);
+            return;
         }
 
-        IsoPoint vertical = isoPosition.add(0, dy);
-        if (canOccupy(vertical)) {
-            return vertical;
+        // 3. Sliding physics fallback: Check purely vertical movement vector slice
+        Point2D vertical = currentPos.add(0, dy);
+        if (canOccupy(vertical.add(AssetCatalog.PLAYER_FRAME_WIDTH / 2.0, SPRITE_FOOT_OFFSET_Y))) {
+            entity.setPosition(vertical);
         }
-
-        return isoPosition;
     }
 
-    private boolean canOccupy(IsoPoint position) {
+    private boolean canOccupy(Point2D position) {
         return movementValidator == null || movementValidator.test(position);
     }
 

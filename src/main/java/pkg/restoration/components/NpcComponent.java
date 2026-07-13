@@ -12,8 +12,6 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import pkg.restoration.assets.AssetCatalog;
-import pkg.restoration.world.IsoPoint;
-import pkg.restoration.world.IsoProjection;
 import pkg.restoration.world.NpcDefinition;
 
 public final class NpcComponent extends Component {
@@ -27,12 +25,10 @@ public final class NpcComponent extends Component {
     private static final int DEPTH_TIE_BREAKER = 5;
 
     private final NpcDefinition definition;
-    private final IsoProjection projection;
     private int messageIndex;
 
-    public NpcComponent(NpcDefinition definition, IsoProjection projection) {
+    public NpcComponent(NpcDefinition definition) {
         this.definition = definition;
-        this.projection = projection;
     }
 
     @Override
@@ -51,7 +47,9 @@ public final class NpcComponent extends Component {
         name.setTranslateY(profile.height() + 14);
 
         entity.getViewComponent().addChild(new Group(npc, name));
-        syncEntityPosition();
+        
+        // Let Tiled handle the X,Y coordinates, but update the rendering Z-index depth
+        syncEntityZIndex();
     }
 
     public String nextMessage() {
@@ -60,19 +58,18 @@ public final class NpcComponent extends Component {
         return definition.name() + ": " + message;
     }
 
-    public boolean isNear(IsoPoint playerPosition, double radius) {
-        return definition.position().distance(playerPosition) <= radius;
+    public boolean isNear(Point2D playerPosition, double radius) {
+        if (entity == null) return false;
+        return entity.getPosition().distance(playerPosition) <= radius;
     }
 
-    public IsoPoint position() {
-        return definition.position();
-    }
-
-    private void syncEntityPosition() {
-        Point2D foot = projection.toScreen(definition.position());
+    private void syncEntityZIndex() {
+        if (entity == null) return;
         NpcRenderProfile profile = renderProfile();
-        entity.setPosition(foot.getX() - profile.width() / 2.0, foot.getY() - profile.footOffsetY());
-        entity.setZIndex(RenderDepth.at(foot.getY(), DEPTH_TIE_BREAKER));
+        
+        // Dynamically calculates the foot line based on the Tiled placement
+        double footY = entity.getY() + profile.footOffsetY();
+        entity.setZIndex(RenderDepth.at(footY, DEPTH_TIE_BREAKER));
     }
 
     private NpcRenderProfile renderProfile() {

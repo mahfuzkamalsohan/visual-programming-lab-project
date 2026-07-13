@@ -1,7 +1,6 @@
 package pkg.restoration;
 
 import static com.almasb.fxgl.dsl.FXGL.addUINode;
-import static com.almasb.fxgl.dsl.FXGL.entityBuilder;
 import static com.almasb.fxgl.dsl.FXGL.getAppHeight;
 import static com.almasb.fxgl.dsl.FXGL.getAppWidth;
 import static com.almasb.fxgl.dsl.FXGL.getDialogService;
@@ -11,6 +10,7 @@ import static com.almasb.fxgl.dsl.FXGL.getGameWorld;
 import static com.almasb.fxgl.dsl.FXGL.getInput;
 import static com.almasb.fxgl.dsl.FXGL.runOnce;
 import static com.almasb.fxgl.dsl.FXGL.spawn;
+import static com.almasb.fxgl.dsl.FXGL.setLevelFromMap;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +25,7 @@ import com.almasb.fxgl.input.UserAction;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
+import javafx.geometry.Point2D;
 import javafx.scene.input.KeyCode;
 import javafx.scene.paint.Color;
 import javafx.util.Duration;
@@ -47,23 +48,15 @@ import pkg.restoration.ui.fxml.FxmlViewLoader;
 import pkg.restoration.world.GateDefinition;
 import pkg.restoration.world.GateKind;
 import pkg.restoration.world.GateState;
-import pkg.restoration.world.IsoPoint;
-import pkg.restoration.world.IsoProjection;
-import pkg.restoration.world.LevelDefinition;
-import pkg.restoration.world.LevelRepository;
-import pkg.restoration.world.WorldRenderer;
 
 public final class RestorationGameApp extends GameApplication {
 
-    private static final double NPC_BLOCK_RADIUS = 0.58;
-    private static final double GATE_BLOCK_RADIUS = 0.52;
-    private static final double CHOICE_DOOR_BLOCK_RADIUS = 0.36;
+    private static final double NPC_BLOCK_RADIUS = 30.0; 
+    private static final double GATE_BLOCK_RADIUS = 28.0;
+    private static final double CHOICE_DOOR_BLOCK_RADIUS = 20.0;
 
     private final List<Entity> gateEntities = new ArrayList<>();
     private final List<Entity> choiceDoorEntities = new ArrayList<>();
-
-    @Autowired
-    private LevelRepository levelRepository;
 
     @Autowired
     private DifficultyCurve difficultyCurve;
@@ -84,9 +77,6 @@ public final class RestorationGameApp extends GameApplication {
     private FxmlViewLoader fxmlViewLoader;
 
     private RestorationTimer timer;
-    private IsoProjection projection;
-    private WorldRenderer worldRenderer;
-    private LevelDefinition currentLevel;
     private int currentLevelIndex;
     private Entity playerEntity;
     private PlayerIsoComponent playerControl;
@@ -95,7 +85,6 @@ public final class RestorationGameApp extends GameApplication {
     private ToastLayer toastLayer;
     private boolean transitionInProgress;
     private boolean gameEnded;
-    private int spawnedLevelCount;
 
     public static void main(String[] args) {
         RestorationSpringContext.setLaunchArgs(args);
@@ -172,17 +161,11 @@ public final class RestorationGameApp extends GameApplication {
         getGameWorld().addEntityFactory(entityFactory);
 
         timer = new RestorationTimer(gameProperties.startTimeSeconds(), gameProperties.maxTimeSeconds());
-        projection = new IsoProjection(
-                GameConstants.WORLD_ORIGIN_X,
-                GameConstants.WORLD_ORIGIN_Y,
-                GameConstants.TILE_WIDTH,
-                GameConstants.TILE_HEIGHT
-        );
         currentLevelIndex = 0;
         gameEnded = false;
         transitionInProgress = false;
 
-        buildWorld();
+        loadTiledLevel(currentLevelIndex);
     }
 
     @Override
@@ -199,15 +182,11 @@ public final class RestorationGameApp extends GameApplication {
 
     @Override
     protected void onUpdate(double tpf) {
-        if (gameEnded || timer == null || currentLevel == null) {
+        if (gameEnded || timer == null) {
             return;
         }
 
         timer.tick(tpf);
-        if (worldRenderer != null) {
-            worldRenderer.render(levelRepository.all(), currentLevelIndex, timer.restorationRatio());
-        }
-        updateCurrentLevelFromPlayerPosition();
         updateHud();
         updateContextHint();
         checkDecisionDoorChoice();
@@ -232,92 +211,56 @@ public final class RestorationGameApp extends GameApplication {
         }, keyCode);
     }
 
-    private void buildWorld() {
-        getGameWorld().removeEntities(getGameWorld().getEntitiesCopy());
+    private void loadTiledLevel(int levelIndex) {
+        transitionInProgress = true;
         gateEntities.clear();
         choiceDoorEntities.clear();
-        spawnedLevelCount = 0;
-
-        levelRepository.ensureGeneratedThrough(currentLevelIndex + LevelRepository.GENERATED_AHEAD);
-        currentLevel = levelRepository.get(currentLevelIndex);
-        worldRenderer = new WorldRenderer(
-                GameConstants.WORLD_CANVAS_WIDTH,
-                GameConstants.WORLD_CANVAS_HEIGHT,
-                projection,
-                levelRepository.cityMap()
-        );
-        worldRenderer.render(levelRepository.all(), currentLevelIndex, timer.restorationRatio());
-        entityBuilder()
-                .type(RestorationEntityType.WORLD_VIEW)
-                .view(worldRenderer.canvas())
-                .zIndex(-10_000)
-                .buildAndAttach();
-
-        spawnLevelEntities(spawnedLevelCount, levelRepository.count());
-
-        playerEntity = spawn("restorationPlayer", new SpawnData()
-                .put("projection", projection)
-                .put("movementValidator", (java.util.function.Predicate<IsoPoint>) this::canPlayerOccupy)
-                .put("spawn", currentLevel.playerSpawn()));
-        playerControl = playerEntity.getComponent(PlayerIsoComponent.class);
-
-        var viewport = getGameScene().getViewport();
-        viewport.setBounds(0, 0, GameConstants.WORLD_CANVAS_WIDTH, GameConstants.WORLD_CANVAS_HEIGHT);
-        viewport.setLazy(true);
-        viewport.bindToEntity(playerEntity, getAppWidth() / 2.0, getAppHeight() / 2.0);
-
-        enterLevel(0, true);
-    }
-
-    private void enterLevel(int levelIndex, boolean firstEntry) {
-        enterLevel(levelIndex, firstEntry, null);
-    }
-
-    private void enterLevel(int levelIndex, boolean firstEntry, IsoPoint arrivalPosition) {
-        currentLevelIndex = levelIndex;
-        levelRepository.ensureGeneratedThrough(currentLevelIndex + LevelRepository.GENERATED_AHEAD);
-        spawnLevelEntities(spawnedLevelCount, levelRepository.count());
-        currentLevel = levelRepository.get(levelIndex);
-        transitionInProgress = false;
 
         if (challengeOverlay != null) {
             challengeOverlay.hide();
         }
 
-        if (!firstEntry && playerControl != null) {
-            IsoPoint destination = arrivalPosition == null
-                    ? currentLevel.playerSpawn()
-                    : currentLevel.clamp(arrivalPosition, 0.55);
-            playerControl.teleport(destination);
-            playerControl.setControlsLocked(false);
-        }
+        // FIX: Execute the void method directly without assigning it to a Level variable
+        setLevelFromMap("tmx/level_" + levelIndex + ".tmx");
 
-        if (worldRenderer != null) {
-            worldRenderer.render(levelRepository.all(), currentLevelIndex, timer.restorationRatio());
-        }
+        // Cache gates loaded from Tiled layer objects via the factory
+        gateEntities.addAll(getGameWorld().getEntitiesByType(RestorationEntityType.GATE));
 
+        // Locate player singleton instantiated from Tiled Object Layer
+        playerEntity = getGameWorld().getSingleton(RestorationEntityType.PLAYER);
+        playerControl = playerEntity.getComponent(PlayerIsoComponent.class);
+        
+        playerControl.setMovementValidator(this::canPlayerOccupy);
+
+        // FIX: Bind the viewport to follow the player without querying missing map dimensions
+        var viewport = getGameScene().getViewport();
+        viewport.setLazy(true);
+        viewport.bindToEntity(playerEntity, getAppWidth() / 2.0, getAppHeight() / 2.0);
+
+        currentLevelIndex = levelIndex;
+        transitionInProgress = false;
         updateHud();
+
         if (toastLayer != null) {
-            toastLayer.show(currentLevel.title() + " // " + currentLevel.subtitle(), 3.2);
+            toastLayer.show("Entering Sector " + levelIndex, 3.2);
         }
     }
-
     private void interact() {
         if (gameEnded || transitionInProgress || challengeOverlay == null || playerControl == null) {
             return;
         }
 
-        if (challengeOverlay != null && challengeOverlay.isQuestionOpen()) {
+        if (challengeOverlay.isQuestionOpen()) {
             return;
         }
 
-        Optional<NpcComponent> npc = nearestNpc(1.15);
+        Optional<NpcComponent> npc = nearestNpc(60.0);
         if (npc.isPresent()) {
             toastLayer.show(npc.get().nextMessage(), 4.2);
             return;
         }
 
-        nearestGate(1.25)
+        nearestGate(70.0)
                 .filter(gate -> gate.state() == GateState.SEALED)
                 .ifPresent(this::startGateChallenge);
     }
@@ -339,7 +282,7 @@ public final class RestorationGameApp extends GameApplication {
             gate.awaitDecision();
             spawnDecisionDoors(gate, challenge);
             challengeOverlay.showDecisionBriefing(challenge);
-            toastLayer.show("Decision doors are live. Walk through the door that matches your choice.", 3.8);
+            toastLayer.show("Decision doors are live. Walk through the right path.", 3.8);
             runOnce(() -> {
                 if (!challengeOverlay.isQuestionOpen()) {
                     challengeOverlay.hide();
@@ -364,22 +307,17 @@ public final class RestorationGameApp extends GameApplication {
 
     private void spawnDecisionDoors(GateComponent gate, QuestionChallenge challenge) {
         removeChoiceDoors();
+        Point2D gatePos = gate.getEntity().getPosition();
 
         int totalChoices = Math.min(gate.definition().choices(), challenge.choices().size());
-        List<IsoPoint> wallSlots = currentLevel.wallSlotsNear(gate.definition().position(), totalChoices * 3, 1.2).stream()
-                .filter(point -> levelRepository.cityMap().containsOpenFootprint(point, 0.32))
-                .limit(totalChoices)
-                .toList();
-
         for (int i = 0; i < totalChoices; i++) {
-            IsoPoint doorPosition = i < wallSlots.size()
-                    ? wallSlots.get(i)
-                    : openPointNear(gate.definition().position().add(i + 1.0, 0), 0.75);
+            // Generates layout offsets relative to the Tiled Gate position coordinate
+            Point2D doorPosition = gatePos.add((i - (totalChoices / 2.0)) * 80.0, 60.0);
+            
             Entity door = spawn("restorationChoiceDoor", new SpawnData()
                     .put("challenge", challenge)
                     .put("choiceIndex", i)
-                    .put("position", doorPosition)
-                    .put("projection", projection));
+                    .put("position", doorPosition));
             choiceDoorEntities.add(door);
         }
     }
@@ -395,7 +333,7 @@ public final class RestorationGameApp extends GameApplication {
             }
 
             ChoiceDoorComponent door = doorEntity.getComponent(ChoiceDoorComponent.class);
-            if (door.isNear(playerControl.isoPosition(), 0.62)) {
+            if (door.getEntity().getPosition().distance(playerEntity.getPosition()) < 40.0) {
                 resolveDecisionDoor(doorEntity, door);
                 break;
             }
@@ -407,7 +345,7 @@ public final class RestorationGameApp extends GameApplication {
         timer.applyDelta(result.deltaSeconds());
         toastOutcome(result);
 
-        Optional<GateComponent> awaitingGate = nearestGate(99)
+        Optional<GateComponent> awaitingGate = nearestGate(9999)
                 .filter(gate -> gate.state() == GateState.AWAITING_DECISION);
 
         awaitingGate.ifPresent(gate -> {
@@ -425,10 +363,7 @@ public final class RestorationGameApp extends GameApplication {
         playerControl.setControlsLocked(true);
         runOnce(() -> {
             removeChoiceDoors();
-            awaitingGate.ifPresentOrElse(
-                    this::enterGateDestination,
-                    () -> enterLevel(currentLevelIndex + 1, false)
-            );
+            loadTiledLevel(currentLevelIndex + 1);
         }, Duration.seconds(0.55));
     }
 
@@ -437,7 +372,7 @@ public final class RestorationGameApp extends GameApplication {
             return;
         }
 
-        nearestGate(0.72)
+        nearestGate(45.0)
                 .filter(gate -> gate.state() == GateState.OPEN)
                 .ifPresent(this::transitionThroughGate);
     }
@@ -446,35 +381,9 @@ public final class RestorationGameApp extends GameApplication {
         transitionInProgress = true;
         playerControl.setControlsLocked(true);
         gate.closeBehind();
-        toastLayer.show("Gate sealed behind you. No return route remains.", 2.3);
+        toastLayer.show("Gate sealed. Progressing ahead...", 2.3);
 
-        runOnce(() -> enterGateDestination(gate), Duration.seconds(0.65));
-    }
-
-    private void enterGateDestination(GateComponent gate) {
-        GateDefinition definition = gate.definition();
-        enterLevel(definition.destinationLevelIndex(), false, definition.destinationPosition());
-    }
-
-    private void spawnLevelEntities(int fromIndex, int toIndexExclusive) {
-        for (int levelIndex = fromIndex; levelIndex < toIndexExclusive; levelIndex++) {
-            LevelDefinition level = levelRepository.get(levelIndex);
-            for (GateDefinition gate : level.gates()) {
-                Entity gateEntity = spawn("restorationGate", new SpawnData()
-                        .put("gate", gate)
-                        .put("projection", projection)
-                        .put("levelIndex", levelIndex));
-                gateEntities.add(gateEntity);
-            }
-
-            int capturedLevelIndex = levelIndex;
-            level.npcs().forEach(npc -> spawn("restorationNpc", new SpawnData()
-                    .put("npc", npc)
-                    .put("projection", projection)
-                    .put("levelIndex", capturedLevelIndex)));
-        }
-
-        spawnedLevelCount = Math.max(spawnedLevelCount, toIndexExclusive);
+        runOnce(() -> loadTiledLevel(currentLevelIndex + 1), Duration.seconds(0.65));
     }
 
     private void removeChoiceDoors() {
@@ -482,144 +391,82 @@ public final class RestorationGameApp extends GameApplication {
         choiceDoorEntities.clear();
     }
 
-    private boolean canPlayerOccupy(IsoPoint position) {
-        if (levelRepository == null || !levelRepository.cityMap().containsOpenFootprint(position, PlayerIsoComponent.collisionMargin())) {
-            return false;
-        }
+    private boolean canPlayerOccupy(Point2D position) {
+        // Checks static wall object tiles populated by Tiled map layer types
+        boolean hitsWall = getGameWorld().getEntitiesAt(position).stream()
+                .anyMatch(e -> e.isType(RestorationEntityType.WALL));
+                
+        if (hitsWall) return false;
 
         return !isBlockedByNpc(position)
                 && !isBlockedByGate(position)
                 && !isBlockedByChoiceDoor(position);
     }
 
-    private boolean isBlockedByNpc(IsoPoint position) {
+    private boolean isBlockedByNpc(Point2D position) {
         return getGameWorld().getEntitiesByComponent(NpcComponent.class).stream()
                 .map(entity -> entity.getComponent(NpcComponent.class))
-                .anyMatch(npc -> npc.position().distance(position) < NPC_BLOCK_RADIUS);
+                .anyMatch(npc -> npc.getEntity().getPosition().distance(position) < NPC_BLOCK_RADIUS);
     }
 
-    private boolean isBlockedByGate(IsoPoint position) {
+    private boolean isBlockedByGate(Point2D position) {
         return gateEntities.stream()
                 .filter(Entity::isActive)
                 .map(entity -> entity.getComponent(GateComponent.class))
                 .filter(gate -> gate.state() != GateState.OPEN)
-                .anyMatch(gate -> gate.definition().position().distance(position) < GATE_BLOCK_RADIUS);
+                .anyMatch(gate -> gate.getEntity().getPosition().distance(position) < GATE_BLOCK_RADIUS);
     }
 
-    private boolean isBlockedByChoiceDoor(IsoPoint position) {
+    private boolean isBlockedByChoiceDoor(Point2D position) {
         return choiceDoorEntities.stream()
                 .filter(Entity::isActive)
                 .map(entity -> entity.getComponent(ChoiceDoorComponent.class))
-                .anyMatch(door -> door.position().distance(position) < CHOICE_DOOR_BLOCK_RADIUS);
-    }
-
-    private void updateCurrentLevelFromPlayerPosition() {
-        if (transitionInProgress || playerControl == null || levelRepository == null) {
-            return;
-        }
-
-        int levelIndex = levelIndexAt(playerControl.isoPosition());
-        if (levelIndex < 0 || levelIndex == currentLevelIndex) {
-            return;
-        }
-
-        currentLevelIndex = levelIndex;
-        levelRepository.ensureGeneratedThrough(currentLevelIndex + LevelRepository.GENERATED_AHEAD);
-        spawnLevelEntities(spawnedLevelCount, levelRepository.count());
-        currentLevel = levelRepository.get(currentLevelIndex);
-
-        if (toastLayer != null) {
-            toastLayer.show(currentLevel.title() + " // " + currentLevel.subtitle(), 2.6);
-        }
-    }
-
-    private int levelIndexAt(IsoPoint position) {
-        int bestIndex = -1;
-        double bestDistance = Double.MAX_VALUE;
-        List<LevelDefinition> levels = levelRepository.all();
-
-        for (int i = 0; i < levels.size(); i++) {
-            LevelDefinition level = levels.get(i);
-            if (!level.contains(position, 0.1)) {
-                continue;
-            }
-
-            double distance = level.bounds().center().distance(position);
-            if (distance < bestDistance) {
-                bestDistance = distance;
-                bestIndex = i;
-            }
-        }
-
-        return bestIndex;
-    }
-
-    private IsoPoint openPointNear(IsoPoint preferred, double margin) {
-        return currentLevel.shape().tiles().stream()
-                .map(tile -> new IsoPoint(tile.x() + 0.5, tile.y() + 0.5))
-                .filter(point -> currentLevel.contains(point, margin))
-                .filter(point -> levelRepository.cityMap().containsOpenFootprint(point, margin))
-                .min(java.util.Comparator.comparingDouble(preferred::distance))
-                .orElseGet(() -> currentLevel.clamp(preferred, margin));
+                .anyMatch(door -> door.getEntity().getPosition().distance(position) < CHOICE_DOOR_BLOCK_RADIUS);
     }
 
     private Optional<GateComponent> nearestGate(double radius) {
-        if (playerControl == null) {
-            return Optional.empty();
-        }
+        if (playerEntity == null) return Optional.empty();
 
         GateComponent nearest = null;
         double nearestDistance = Double.MAX_VALUE;
-        IsoPoint playerPosition = playerControl.isoPosition();
+        Point2D playerPos = playerEntity.getPosition();
 
         for (Entity gateEntity : gateEntities) {
-            if (!gateEntity.isActive()) {
-                continue;
-            }
-
-            if (gateEntity.getInt("levelIndex") != currentLevelIndex) {
-                continue;
-            }
+            if (!gateEntity.isActive()) continue;
 
             GateComponent gate = gateEntity.getComponent(GateComponent.class);
-            double distance = gate.definition().position().distance(playerPosition);
+            double distance = gate.getEntity().getPosition().distance(playerPos);
             if (distance <= radius && distance < nearestDistance) {
                 nearest = gate;
                 nearestDistance = distance;
             }
         }
-
         return Optional.ofNullable(nearest);
     }
 
     private Optional<NpcComponent> nearestNpc(double radius) {
-        if (playerControl == null) {
-            return Optional.empty();
-        }
+        if (playerEntity == null) return Optional.empty();
 
         return getGameWorld().getEntitiesByComponent(NpcComponent.class).stream()
-                .filter(entity -> entity.getInt("levelIndex") == currentLevelIndex)
                 .map(entity -> entity.getComponent(NpcComponent.class))
-                .filter(npc -> npc.isNear(playerControl.isoPosition(), radius))
+                .filter(npc -> npc.getEntity().getPosition().distance(playerEntity.getPosition()) <= radius)
                 .findFirst();
     }
 
     private void updateContextHint() {
-        if (hud == null || playerControl == null) {
-            return;
-        }
+        if (hud == null || playerControl == null) return;
 
         if (challengeOverlay != null && challengeOverlay.isQuestionOpen()) {
             hud.setHint("Choose with 1, 2, or 3. The timer keeps draining.");
             return;
         }
 
-        if (nearestNpc(1.15).isPresent()) {
+        if (nearestNpc(60.0).isPresent()) {
             hud.setHint("Press E to talk.");
             return;
         }
 
-        Optional<GateComponent> nearestGate = nearestGate(1.25);
+        Optional<GateComponent> nearestGate = nearestGate(70.0);
         if (nearestGate.isPresent()) {
             GateComponent gate = nearestGate.get();
             String hint = switch (gate.state()) {
@@ -636,12 +483,10 @@ public final class RestorationGameApp extends GameApplication {
     }
 
     private void updateHud() {
-        if (hud == null || timer == null || currentLevel == null) {
-            return;
-        }
+        if (hud == null || timer == null) return;
 
-        hud.setLevel(currentLevel.title(), currentLevelIndex);
-        hud.setObjective(currentLevel.subtitle());
+        hud.setLevel("Sector " + currentLevelIndex, currentLevelIndex);
+        hud.setObjective("Find the exit node.");
         hud.setTime(timer.currentSeconds(), timer.maxSeconds(), timer.restorationRatio());
     }
 
@@ -657,21 +502,15 @@ public final class RestorationGameApp extends GameApplication {
     }
 
     private void endGame(boolean victory) {
-        if (gameEnded) {
-            return;
-        }
+        if (gameEnded) return;
 
         gameEnded = true;
         transitionInProgress = true;
-        if (playerControl != null) {
-            playerControl.setControlsLocked(true);
-        }
-        if (challengeOverlay != null) {
-            challengeOverlay.hide();
-        }
+        if (playerControl != null) playerControl.setControlsLocked(true);
+        if (challengeOverlay != null) challengeOverlay.hide();
 
         String message = victory
-                ? "RESTORATION STABILIZED\nThe canopy holds, and the sealed path is complete."
+                ? "RESTORATION STABILIZED\nThe canopy holds, and the path is complete."
                 : "RESTORATION FAILED\nThe time reserve is empty.";
 
         getDialogService().showMessageBox(message, () -> getGameController().gotoMainMenu());
