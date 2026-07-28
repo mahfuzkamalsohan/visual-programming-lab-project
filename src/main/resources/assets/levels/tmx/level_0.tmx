@@ -28,7 +28,7 @@
 </data>
  </layer>
  <objectgroup id="2" name="Spawn Layer">
-  <object id="1" name="player_start" class="restorationPlayer" x="240" y="160" width="16" height="16"/>
+  <object id="1" name="player_start" class="restorationPlayer" x="240.0" y="160.0" width="16.0" height="16.0"/>
  </objectgroup>
  <objectgroup id="3" name="Collisions">
   <object id="2" class="wall" x="129.667" y="317.0" width="194.667" height="26.6667"/>
