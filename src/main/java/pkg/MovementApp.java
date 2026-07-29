@@ -39,6 +39,9 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 
+import com.almasb.fxgl.entity.level.Level;
+
+import pkg.restoration.systems.DynamicMapManager;
 import pkg.restoration.systems.RestorationTimer;
 
 public class MovementApp extends GameApplication {
@@ -49,6 +52,7 @@ public class MovementApp extends GameApplication {
     private Entity playerEntity;
     private PlayerComponent playerComponent;
     private RestorationTimer timer;
+    private DynamicMapManager mapManager;
 
     private Text timerText;
 
@@ -165,6 +169,14 @@ public class MovementApp extends GameApplication {
                     if (playerComponent != null)
                         playerComponent.setRight(false);
                 });
+
+        bindKey("Add Time", KeyCode.E,
+                () -> {
+                    if (timer != null) {
+                        timer.applyDelta(30.0);
+                    }
+                },
+                () -> {});
     }
 
     private void bindKey(String name, KeyCode code, Runnable onPress, Runnable onRelease) {
@@ -187,20 +199,27 @@ public class MovementApp extends GameApplication {
         timer = new RestorationTimer(INITIAL_TIME, MAX_TIME);
 
         FXGL.getGameWorld().addEntityFactory(new GameEntityFactory());
-        FXGL.setLevelFromMap("tmx/level_0.tmx");
+        Level level = FXGL.setLevelFromMap("tmx/level_0.tmx");
+
+        mapManager = new DynamicMapManager("tmx/level_0.tmx");
+        if (level != null) {
+            mapManager.setInitialTileEntities(level.getEntities());
+        }
 
         List<Entity> players = FXGL.getGameWorld().getEntitiesByComponent(PlayerComponent.class);
-        if (!players.isEmpty()) {
+        if (players.isEmpty()) {
+            playerEntity = FXGL.spawn("restorationPlayer", 240, 160);
+        } else {
             playerEntity = players.get(0);
-            playerComponent = playerEntity.getComponent(PlayerComponent.class);
-
-            var viewport = FXGL.getGameScene().getViewport();
-            viewport.setLazy(true);
-            viewport.setZoom(2.0);
-            viewport.bindToEntity(playerEntity,
-                    FXGL.getAppWidth() / 2.0,
-                    FXGL.getAppHeight() / 2.0);
         }
+        playerComponent = playerEntity.getComponent(PlayerComponent.class);
+
+        var viewport = FXGL.getGameScene().getViewport();
+        viewport.setLazy(true);
+        viewport.setZoom(2.0);
+        viewport.bindToEntity(playerEntity,
+                FXGL.getAppWidth() / 2.0,
+                FXGL.getAppHeight() / 2.0);
     }
 
     @Override
@@ -219,6 +238,9 @@ public class MovementApp extends GameApplication {
         if (timer == null)
             return;
         timer.tick(tpf);
+        if (mapManager != null) {
+            mapManager.update(timer.restorationRatio());
+        }
         refreshTimerLabel();
     }
 
@@ -246,6 +268,11 @@ public class MovementApp extends GameApplication {
                     .with(new CollidableComponent(true))
                     .with(new PlayerComponent())
                     .build();
+        }
+
+        @Spawns("")
+        public Entity spawnEmpty(SpawnData data) {
+            return FXGL.entityBuilder(data).build();
         }
 
         @Spawns("wall")
