@@ -33,6 +33,15 @@ public class PlayerComponent extends Component {
     private Map<Direction, AnimationChannel> idleAnimations;
 
     private Direction currentDirection = Direction.NORTH;
+    private int playerIndex = 1;
+
+    public PlayerComponent() {
+        this(1);
+    }
+
+    public PlayerComponent(int playerIndex) {
+        this.playerIndex = playerIndex;
+    }
 
     @Override
     public void onAdded() {
@@ -41,13 +50,15 @@ public class PlayerComponent extends Component {
 
         Image spriteSheet = FXGL.image("characters.png");
 
+        int startRow = (playerIndex == 2) ? 5 : 9;
+
         for (Direction dir : Direction.values()) {
             int col = dir.index;
 
-            // Crop the 3 vertical frames for this column direction
-            Image stepA = cropFrame(spriteSheet, col, 5, FRAME_WIDTH, FRAME_HEIGHT); // Row 0
-            Image idle = cropFrame(spriteSheet, col, 6, FRAME_WIDTH, FRAME_HEIGHT); // Row 1
-            Image stepB = cropFrame(spriteSheet, col, 7, FRAME_WIDTH, FRAME_HEIGHT); // Row 2
+            // Crop the 3 vertical frames for this character row set
+            Image stepA = cropFrame(spriteSheet, col, startRow, FRAME_WIDTH, FRAME_HEIGHT);
+            Image idle  = cropFrame(spriteSheet, col, startRow + 1, FRAME_WIDTH, FRAME_HEIGHT);
+            Image stepB = cropFrame(spriteSheet, col, startRow + 2, FRAME_WIDTH, FRAME_HEIGHT);
 
             // Walk animation cycles through: Step A -> Idle -> Step B -> Idle
             AnimationChannel walkChannel = new AnimationChannel(
@@ -154,6 +165,12 @@ public class PlayerComponent extends Component {
                 return true;
             }
         }
+        List<Entity> players = FXGL.getGameWorld().getEntitiesByType(EntityType.PLAYER);
+        for (Entity otherPlayer : players) {
+            if (otherPlayer != entity && entity.isColliding(otherPlayer)) {
+                return true;
+            }
+        }
         return false;
     }
 
@@ -189,5 +206,27 @@ public class PlayerComponent extends Component {
 
     public void setRight(boolean v) {
         this.right = v;
+    }
+
+    public Direction getCurrentDirection() {
+        return currentDirection;
+    }
+
+    public void setCurrentDirection(Direction dir) {
+        this.currentDirection = dir;
+    }
+
+    public boolean isMoving() {
+        return up || down || left || right;
+    }
+
+    public void setRemoteState(Direction dir, boolean isMoving) {
+        this.currentDirection = dir;
+        if (texture != null) {
+            AnimationChannel channel = isMoving ? walkAnimations.get(dir) : idleAnimations.get(dir);
+            if (channel != null && texture.getAnimationChannel() != channel) {
+                texture.loopAnimationChannel(channel);
+            }
+        }
     }
 }
