@@ -13,6 +13,7 @@ import com.almasb.fxgl.entity.Spawns;
 import com.almasb.fxgl.entity.components.CollidableComponent;
 import com.almasb.fxgl.input.UserAction;
 import com.almasb.fxgl.physics.BoundingShape;
+import com.almasb.fxgl.physics.CollisionHandler;
 import com.almasb.fxgl.physics.HitBox;
 import com.almasb.fxgl.entity.level.Level;
 import com.almasb.fxgl.app.scene.Viewport;
@@ -61,6 +62,12 @@ public class MovementApp extends GameApplication {
 
     private Text timerText;
     private Text modeStatusText;
+    private Text trashCounterText;
+    private Text levelNoticeText;
+    private Text interactPromptText;
+
+    private final int TOTAL_TRASH = 8;
+    private int collectedTrash = 0;
 
     private boolean clientUp, clientDown, clientLeft, clientRight;
 
@@ -112,12 +119,8 @@ public class MovementApp extends GameApplication {
                 () -> handleMovement(2, Direction.EAST, true),
                 () -> handleMovement(2, Direction.EAST, false));
 
-        bindKey("Add Time", KeyCode.E,
-                () -> {
-                    if (timer != null && selectedGameMode != GameMode.LAN_JOIN) {
-                        timer.applyDelta(30.0);
-                    }
-                },
+        bindKey("Collect Trash", KeyCode.E,
+                this::tryCollectTrash,
                 () -> {
                 });
     }
@@ -209,8 +212,53 @@ public class MovementApp extends GameApplication {
             playerComponent2 = playerEntity2.getComponent(PlayerComponent.class);
         }
 
+        spawnRandomTrash();
         setupViewports();
         setupNetworking();
+    }
+
+    private void spawnRandomTrash() {
+        collectedTrash = 0;
+        double[][] spawnPositions = {
+            {200, 180},
+            {320, 240},
+            {450, 180},
+            {150, 300},
+            {520, 280},
+            {280, 350},
+            {400, 320},
+            {600, 220}
+        };
+
+        for (int i = 0; i < TOTAL_TRASH; i++) {
+            double x = (i < spawnPositions.length) ? spawnPositions[i][0] : 150 + Math.random() * 450;
+            double y = (i < spawnPositions.length) ? spawnPositions[i][1] : 150 + Math.random() * 200;
+            Entity trash = FXGL.spawn("trash", new SpawnData(x, y));
+            trash.setRotation(FXGL.random(0, 360));
+        }
+    }
+
+    @Override
+    protected void initPhysics() {
+        // Trash is collected actively by pressing E
+    }
+
+    private void tryCollectTrash() {
+        List<Entity> trashes = FXGL.getGameWorld().getEntitiesByType(EntityType.TRASH);
+        for (Entity trash : trashes) {
+            boolean p1Colliding = playerEntity != null && playerEntity.isColliding(trash);
+            boolean p2Colliding = playerEntity2 != null && playerEntity2.isColliding(trash);
+            if (p1Colliding || p2Colliding) {
+                trash.removeFromWorld();
+                collectedTrash++;
+                if (timer != null) {
+                    timer.applyDelta(10.0);
+                }
+                updateTrashCounter();
+                checkLevelCompletion();
+                break;
+            }
+        }
     }
 
     private void setupViewports() {
@@ -320,7 +368,46 @@ public class MovementApp extends GameApplication {
             modeStatusText.setText("Single Player Mode");
         }
 
+        trashCounterText = new Text();
+        trashCounterText.setFont(Font.font("Verdana", FontWeight.BOLD, 18));
+        trashCounterText.setFill(Color.web("#80ff80"));
+        trashCounterText.setX(20);
+        trashCounterText.setY(FXGL.getAppHeight() - 30);
+        FXGL.addUINode(trashCounterText);
+        updateTrashCounter();
+
+        interactPromptText = new Text("Press [E] to Collect Trash (+10s)");
+        interactPromptText.setFont(Font.font("Verdana", FontWeight.BOLD, 16));
+        interactPromptText.setFill(Color.web("#ffd700"));
+        interactPromptText.setX(FXGL.getAppWidth() / 2.0 - 140);
+        interactPromptText.setY(FXGL.getAppHeight() - 40);
+        interactPromptText.setVisible(false);
+        FXGL.addUINode(interactPromptText);
+
         refreshTimerLabel();
+    }
+
+    private void updateTrashCounter() {
+        if (trashCounterText != null) {
+            trashCounterText.setText(String.format("Trash Collected: %d / %d", collectedTrash, TOTAL_TRASH));
+        }
+    }
+
+    private void checkLevelCompletion() {
+        if (collectedTrash >= TOTAL_TRASH) {
+            if (levelNoticeText == null) {
+                levelNoticeText = new Text("LEVEL 1 CLEARED! AREA RESTORED");
+                levelNoticeText.setFont(Font.font("Georgia", FontWeight.BOLD, 32));
+                levelNoticeText.setFill(Color.web("#ffd700"));
+                levelNoticeText.setX(FXGL.getAppWidth() / 2.0 - 270);
+                levelNoticeText.setY(100);
+                FXGL.addUINode(levelNoticeText);
+            }
+            if (trashCounterText != null) {
+                trashCounterText.setText(String.format("Trash Collected: %d / %d (COMPLETE!)", collectedTrash, TOTAL_TRASH));
+                trashCounterText.setFill(Color.web("#ffd700"));
+            }
+        }
     }
 
     @Override
@@ -349,6 +436,19 @@ public class MovementApp extends GameApplication {
                     playerComponent2.isMoving(),
                     timer.currentSeconds());
             netManager.sendGameState(packet);
+        }
+
+        boolean nearTrash = false;
+        List<Entity> trashes = FXGL.getGameWorld().getEntitiesByType(EntityType.TRASH);
+        for (Entity trash : trashes) {
+            if ((playerEntity != null && playerEntity.isColliding(trash)) ||
+                (playerEntity2 != null && playerEntity2.isColliding(trash))) {
+                nearTrash = true;
+                break;
+            }
+        }
+        if (interactPromptText != null) {
+            interactPromptText.setVisible(nearTrash);
         }
 
         refreshTimerLabel();
@@ -400,6 +500,15 @@ public class MovementApp extends GameApplication {
                     .type(EntityType.WALL)
                     .view(vis)
                     .bbox(new HitBox(BoundingShape.box(w, h)))
+                    .with(new CollidableComponent(true))
+                    .build();
+        }
+
+        @Spawns("trash")
+        public Entity spawnTrash(SpawnData data) {
+            return FXGL.entityBuilder(data)
+                    .type(EntityType.TRASH)
+                    .viewWithBBox("trash.png")
                     .with(new CollidableComponent(true))
                     .build();
         }
