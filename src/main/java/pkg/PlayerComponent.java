@@ -11,8 +11,6 @@ import javafx.scene.image.PixelReader;
 import javafx.scene.image.WritableImage;
 import javafx.util.Duration;
 
-import pkg.MovementApp.Direction;
-import pkg.MovementApp.EntityType;
 
 import java.util.EnumMap;
 import java.util.List;

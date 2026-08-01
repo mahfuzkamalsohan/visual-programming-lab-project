@@ -27,7 +27,7 @@ javafx {
 }
 
 application {
-    mainClass = 'pkg.Launcher'
+    mainClass = 'pkg.MovementApp'
 }
 
 dependencies {
