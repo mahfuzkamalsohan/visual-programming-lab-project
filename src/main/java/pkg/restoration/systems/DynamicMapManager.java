@@ -102,7 +102,7 @@ public class DynamicMapManager {
             // - Stage 3 (ID 19) -> Stage 2 (ID 18) when timer <= 25%
             // - Stage 2 (ID 18) -> Stage 1 (ID 17) when timer <= 10%
 
-            if (originalGid == 35 || originalGid == 36) {
+            if (originalGid == 35 || originalGid == 36 || originalGid == 37 || originalGid == 38) {
                 if (ratio <= 0.10) {
                     gid = 17;
                 } else if (ratio <= 0.50) {

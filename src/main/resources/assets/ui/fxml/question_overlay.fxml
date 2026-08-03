@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox stylesheets="@../css/pixel_style.css" styleClass="pixel-panel" spacing="7.0" maxWidth="380.0" xmlns="http://javafx.com/fxml/1" xmlns:fx="http://javafx.com/fxml/1">
+    <padding>
+        <Insets top="12.0" right="12.0" bottom="12.0" left="12.0" />
+    </padding>
+    <children>
+        <Label text="[?] ENVIRONMENTAL QUESTION" styleClass="pixel-subtitle" />
+        <Label fx:id="questionPromptLabel" wrapText="true" maxWidth="360.0" styleClass="pixel-question-text" />
+        <Label fx:id="feedbackLabel" text="Press 1, 2, or 3 to answer" wrapText="true" maxWidth="360.0" styleClass="pixel-label-yellow" />
+    </children>
+</VBox>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox stylesheets="@../css/pixel_style.css" spacing="6.0" xmlns="http://javafx.com/fxml/1" xmlns:fx="http://javafx.com/fxml/1">
+    <padding>
+        <Insets top="10.0" right="10.0" bottom="10.0" left="10.0" />
+    </padding>
+    <children>
+        <HBox spacing="12.0" styleClass="pixel-hud-box">
+            <children>
+                <Label fx:id="timerLabel" text="TIME: 120s" styleClass="pixel-label-yellow" />
+                <Label fx:id="modeStatusLabel" text="MODE: SINGLE PLAYER" styleClass="pixel-label-green" />
+            </children>
+        </HBox>
+    </children>
+</VBox>

@@ -39,4 +39,12 @@ public final class RestorationTimer {
     public boolean isEmpty() {
         return currentSeconds <= 0.0;
     }
+
+    public boolean isExpired() {
+        return currentSeconds <= 0.0;
+    }
+
+    public void setCurrentSeconds(double seconds) {
+        this.currentSeconds = Math.max(0, Math.min(maxSeconds, seconds));
+    }
 }

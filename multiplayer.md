@@ -1,6 +1,6 @@
 # Multiplayer & Co-Op Implementation Documentation
 
-This document outlines the architecture, data structures, network protocol, camera tracking, and synchronization flow for the multiplayer and co-operative (Co-Op) modes in **Restoration**.
+This document outlines the architecture, data structures, network protocol, thread safety, camera tracking, and synchronization flow for the multiplayer and co-operative (Co-Op) modes in **Restoration**.
 
 ---
 
@@ -12,12 +12,12 @@ Co-Op modes allow two players to explore, interact, and manage the restoration t
 | :--- | :--- | :--- |
 | **Single Player** | `SINGLE_PLAYER` | Solo gameplay with WASD or Arrow Keys controlling Player 1. |
 | **Local Shared-Screen Co-Op** | `LOCAL_COOP_SPLITSCREEN` | Two players on a single keyboard (P1: WASD, P2: Arrow Keys) using dynamic midpoint camera tracking. |
-| **LAN Host** | `LAN_HOST` | Host server on port 55555. Runs authoritative game physics, updates P1 locally, processes P2 network input, and broadcasts game state to client. |
-| **LAN Join** | `LAN_JOIN` | Network client connecting to host IP. Captures P2 keyboard inputs, transmits input packets to host, and renders host-authoritative game state updates. |
+| **LAN Host** | `LAN_HOST` | Host server on port 55555. Runs authoritative game physics, updates P1 locally, processes P2 network input, ticks restoration timer, and broadcasts game state to client. |
+| **LAN Join** | `LAN_JOIN` | Network client connecting to host IP. Captures P2 keyboard inputs, transmits input packets continuously to host, and renders host-authoritative game state and timer updates. |
 
 ---
 
-## 2. System Architecture
+## 2. System Architecture & Multithreading
 
 Multiplayer functionality is divided across core game management, entity component logic, and socket networking:
 
@@ -37,9 +37,18 @@ Multiplayer functionality is divided across core game management, entity compone
 +-----------------------------+                     +-----------------------------+
 ```
 
+### Multithreading & Thread Safety Architecture
+- **Daemon Network Threads**:
+  - `LAN-Host-Thread`: Listens for incoming client socket connections on port `55555` and reads serialized `InputPacket` instances.
+  - `LAN-Client-Thread`: Connects to `hostIp:55555` and reads serialized `GameStatePacket` instances.
+- **JavaFX Thread Dispatching**:
+  - Direct UI or game world mutations from worker network threads are dispatched safely to the JavaFX Application Thread using `Platform.runLater(...)`.
+  - Host updates Player 2 movement controls on the JavaFX thread upon receiving `InputPacket`.
+  - Client updates Player 1 & Player 2 entity positions, direction indices, animation states, and `timer.setCurrentSeconds(state.remainingTime)` on the JavaFX thread upon receiving `GameStatePacket`.
+
 ### Main Files Involved
-- [MovementApp.java](src/main/java/pkg/MovementApp.java): Handles game lifecycle, input binding, viewport tracking, and network loop hooks.
-- [NetworkManager.java](src/main/java/pkg/net/NetworkManager.java): TCP networking thread execution, socket I/O, and packet serialization.
+- [MovementApp.java](src/main/java/pkg/MovementApp.java): Handles game lifecycle, input binding, viewport tracking, network setup (`setupNetworking()`), timer sync, and lifecycle cleanup (`onCleanUp()`).
+- [NetworkManager.java](src/main/java/pkg/net/NetworkManager.java): Multithreaded TCP networking execution, socket I/O, and packet serialization.
 - [GameStatePacket.java](src/main/java/pkg/net/GameStatePacket.java): Network payload for host-to-client state replication.
 - [InputPacket.java](src/main/java/pkg/net/InputPacket.java): Network payload for client-to-host key input transmission.
 - [PlayerComponent.java](src/main/java/pkg/PlayerComponent.java): Manages movement, collision detection, and remote state updates.
@@ -55,12 +64,12 @@ Input handling adapts based on the active `GameMode`:
 - **Player 2**: `UP`, `DOWN`, `LEFT`, `RIGHT` arrow keys control Player 2 entity movement.
 
 ### LAN Co-Op (Host vs. Client)
-- **Host (Player 1)**: `WASD` / Arrow keys move Player 1 locally. The host evaluates physics and collision for both players.
-- **Client (Player 2)**: Directional inputs (WASD or Arrow keys) update boolean flags (`clientUp`, `clientDown`, `clientLeft`, `clientRight`). Any change sends an [InputPacket](src/main/java/pkg/net/InputPacket.java) to the host via TCP socket.
+- **Host (Player 1)**: `WASD` / Arrow keys move Player 1 locally. The host evaluates physics, collisions, timer ticks, and restoration map transitions authoritatively for both players.
+- **Client (Player 2)**: Directional inputs (WASD or Arrow keys) update boolean movement flags (`clientUp`, `clientDown`, `clientLeft`, `clientRight`). Movement events and frame updates continuously send an [InputPacket](src/main/java/pkg/net/InputPacket.java) to the host via TCP socket.
 
 ---
 
-## 4. Networking Protocol & Synchronization
+## 4. Networking Protocol & Synchronization Flow
 
 LAN multiplayer operates under a **Host-Authoritative Pipeline** over TCP sockets (default port `55555`).
 
@@ -73,9 +82,9 @@ LAN multiplayer operates under a **Host-Authoritative Pipeline** over TCP socket
            | ---------- InputPacket (Up, Down, Left, Right) ---> | [Receives Input]
            |                                                     | [Updates Player 2 State]
            |                                                     | [Runs Physics & Collision]
-           | <--- GameStatePacket (Positions, Dirs, Time) ------ | [Broadcasts State]
+           | <--- GameStatePacket (Positions, Dirs, Time) ------ | [Broadcasts State & Time]
            v                                                     v
-  [Applies Remote State]                                 [Renders Local Scene]
+  [Applies Remote State & Time]                          [Renders Local Scene]
 ```
 
 ### Packet Definitions
@@ -100,9 +109,23 @@ LAN multiplayer operates under a **Host-Authoritative Pipeline** over TCP socket
    public double remainingTime;
    ```
 
-### Thread Model & Thread Safety
-- **Network Threads**: Socket I/O is handled on dedicated daemon threads (`LAN-Host-Thread` and `LAN-Client-Thread`) in [NetworkManager.java](src/main/java/pkg/net/NetworkManager.java).
-- **FXGL UI Synchronization**: Received packets are executed on JavaFX Application Thread using `FXGL.runOnce(..., Duration.ZERO)` to ensure thread-safe updates to game entities and UI nodes.
+### State & Timer Synchronization Flow
+1. **Network Initialization**:
+   - `setupNetworking()` is invoked in `initGame()`. Host creates `ServerSocket` on port `55555`; client connects via `Socket(hostIp, port)`.
+2. **Host Authority**:
+   - Host ticks `RestorationTimer` each frame.
+   - Host constructs `GameStatePacket` containing `p1` & `p2` coordinates, direction indices, movement states, and `timer.currentSeconds()`.
+   - Host broadcasts `GameStatePacket` over `ObjectOutputStream`.
+3. **Client Replication**:
+   - Client receives `GameStatePacket` on `LAN-Client-Thread`.
+   - Client dispatches `Platform.runLater(() -> applyRemoteGameState(state))` to update `p1` and `p2` positions and syncs local timer:
+     ```java
+     if (timer != null) {
+         timer.setCurrentSeconds(packet.remainingTime);
+     }
+     ```
+4. **Socket Cleanup**:
+   - Calling `onCleanUp()` stops background threads and closes `ObjectInputStream`, `ObjectOutputStream`, `Socket`, and `ServerSocket` cleanly.
 
 ---
 

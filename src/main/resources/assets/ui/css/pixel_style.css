@@ -1,0 +1,181 @@
+/* Green Pixel Art Theme CSS */
+
+.root {
+    -fx-font-family: "Monospaced", "Courier New", "Verdana", monospace;
+}
+
+/* Pixel Card / Panel Container */
+.pixel-panel {
+    -fx-background-color: rgba(11, 23, 14, 0.96);
+    -fx-border-color: #39ff14 #144517 #144517 #39ff14;
+    -fx-border-width: 4px;
+    -fx-border-style: solid;
+    -fx-background-radius: 0px;
+    -fx-border-radius: 0px;
+    -fx-padding: 14px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.85), 8, 0, 4, 4);
+}
+
+.pixel-panel-header {
+    -fx-background-color: #172e1c;
+    -fx-border-color: #39ff14;
+    -fx-border-width: 0 0 2px 0;
+    -fx-padding: 6px 10px;
+}
+
+/* Retro Buttons - Green Pixel Theme */
+.pixel-button {
+    -fx-background-color: #142918;
+    -fx-border-color: #39ff14 #0c4d18 #0c4d18 #39ff14;
+    -fx-border-width: 3px;
+    -fx-border-style: solid;
+    -fx-text-fill: #f8f9fa;
+    -fx-font-family: "Monospaced", "Courier New", monospace;
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+    -fx-background-radius: 0px;
+    -fx-border-radius: 0px;
+    -fx-padding: 8px 16px;
+    -fx-cursor: hand;
+}
+
+.pixel-button:hover {
+    -fx-background-color: #214227;
+    -fx-border-color: #d7e77f #687522 #687522 #d7e77f;
+    -fx-text-fill: #39ff14;
+}
+
+.pixel-button:pressed {
+    -fx-background-color: #2ecc71;
+    -fx-border-color: #145a32 #ffffff #ffffff #145a32;
+    -fx-text-fill: #ffffff;
+}
+
+/* Retro Titles & Labels - Eco Green Theme */
+.pixel-title {
+    -fx-text-fill: #39ff14;
+    -fx-font-family: "Monospaced", "Courier New", monospace;
+    -fx-font-weight: bold;
+    -fx-font-size: 42px;
+    -fx-effect: dropshadow(one-pass-box, #000000, 0, 0, 3, 3);
+}
+
+.pixel-subtitle {
+    -fx-text-fill: #d7e77f;
+    -fx-font-family: "Monospaced", "Courier New", monospace;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-effect: dropshadow(one-pass-box, #000000, 0, 0, 2, 2);
+}
+
+.pixel-label-green {
+    -fx-text-fill: #39ff14;
+    -fx-font-family: "Monospaced", "Courier New", monospace;
+    -fx-font-weight: bold;
+    -fx-font-size: 12px;
+}
+
+.pixel-label-yellow {
+    -fx-text-fill: #d7e77f;
+    -fx-font-family: "Monospaced", "Courier New", monospace;
+    -fx-font-weight: bold;
+    -fx-font-size: 12px;
+}
+
+.pixel-label-white {
+    -fx-text-fill: #ffffff;
+    -fx-font-family: "Monospaced", "Courier New", monospace;
+    -fx-font-weight: bold;
+    -fx-font-size: 12px;
+}
+
+.pixel-question-text {
+    -fx-text-fill: #f8f9fa;
+    -fx-font-family: "Monospaced", "Courier New", monospace;
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+}
+
+/* HUD Banner Styling - Green Theme */
+.pixel-hud-box {
+    -fx-background-color: rgba(11, 23, 14, 0.92);
+    -fx-border-color: #39ff14 #0c4d18 #0c4d18 #39ff14;
+    -fx-border-width: 3px;
+    -fx-padding: 6px 12px;
+    -fx-background-radius: 0px;
+    -fx-border-radius: 0px;
+}
+
+/* Dialog & Confirm Page Styling - Pixel Green Theme */
+.dialog-pane {
+    -fx-background-color: #0b170e;
+    -fx-border-color: #39ff14 #144517 #144517 #39ff14;
+    -fx-border-width: 4px;
+    -fx-border-style: solid;
+    -fx-background-radius: 0px;
+    -fx-border-radius: 0px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.85), 10, 0, 4, 4);
+}
+
+.dialog-pane > .header-panel {
+    -fx-background-color: #142918;
+    -fx-border-color: #39ff14;
+    -fx-border-width: 0 0 2px 0;
+}
+
+.dialog-pane > .header-panel > .label {
+    -fx-text-fill: #39ff14;
+    -fx-font-family: "Monospaced", "Courier New", monospace;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+}
+
+.dialog-pane > .content {
+    -fx-background-color: #0b170e;
+    -fx-padding: 14px;
+}
+
+.dialog-pane .label {
+    -fx-text-fill: #d7e77f;
+    -fx-font-family: "Monospaced", "Courier New", monospace;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+.dialog-pane .text-field {
+    -fx-background-color: #142918;
+    -fx-border-color: #39ff14 #0c4d18 #0c4d18 #39ff14;
+    -fx-border-width: 2px;
+    -fx-text-fill: #39ff14;
+    -fx-font-family: "Monospaced", "Courier New", monospace;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 0px;
+    -fx-border-radius: 0px;
+}
+
+.dialog-pane .button {
+    -fx-background-color: #142918;
+    -fx-border-color: #39ff14 #0c4d18 #0c4d18 #39ff14;
+    -fx-border-width: 3px;
+    -fx-text-fill: #f8f9fa;
+    -fx-font-family: "Monospaced", "Courier New", monospace;
+    -fx-font-weight: bold;
+    -fx-font-size: 12px;
+    -fx-background-radius: 0px;
+    -fx-border-radius: 0px;
+    -fx-padding: 6px 14px;
+    -fx-cursor: hand;
+}
+
+.dialog-pane .button:hover {
+    -fx-background-color: #214227;
+    -fx-border-color: #d7e77f #687522 #687522 #d7e77f;
+    -fx-text-fill: #39ff14;
+}
+
+.dialog-pane .button:pressed {
+    -fx-background-color: #2ecc71;
+    -fx-border-color: #145a32 #ffffff #ffffff #145a32;
+    -fx-text-fill: #ffffff;
+}
