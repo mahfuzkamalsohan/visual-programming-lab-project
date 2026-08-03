@@ -25,3 +25,453 @@ reward=15
 penalty=10
 feedback.correct=Correct sorting helps recyclable material get processed.
 feedback.wrong=Litter can harm wildlife and pollute the environment.
+
+id=environment-q-004
+prompt=What is the best thing to do with an old aluminum soda can after drinking from it?
+choices=Rinse and place it in a dedicated metal recycling bin|Reuse it for a craft project before recycling|Throw it in the regular trash where it goes to a landfill
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Aluminum is infinitely recyclable, saving energy when processed properly!
+feedback.wrong=Putting recyclable cans in regular trash causes valuable materials to sit in landfills forever.
+
+id=environment-q-005
+prompt=How can you help reduce food waste at home?
+choices=Serve yourself smaller portions and take seconds if you are still hungry|Store leftovers properly to eat the next day|Throw away extra food immediately after dinner
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Planning portion sizes and eating leftovers prevents waste and conserves resources!
+feedback.wrong=Throwing away good food creates greenhouse gases as it decomposes in landfills.
+
+id=environment-q-006
+prompt=What should you do with water while brushing your teeth?
+choices=Turn off the tap while scrubbing your teeth|Fill a small cup with water to rinse your mouth|Leave the tap running the entire time
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Turning off running water saves gallons of clean water every day!
+feedback.wrong=Leaving the tap running wastes gallons of treated drinking water unnecessarily.
+
+id=environment-q-007
+prompt=What is the best way to travel short distances, like going to a neighbor's house?
+choices=Walk or ride a bicycle|Skateboard or rollerblade|Have an adult drive you in a car
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Walking or biking produces zero tailpipe emissions and gives you exercise!
+feedback.wrong=Using a motor vehicle for very short trips creates unnecessary air pollution.
+
+id=environment-q-008
+prompt=How can you reduce the amount of paper used at school?
+choices=Write on both sides of every piece of paper|Use digital notes and digital assignments when available|Use a new sheet of paper for every single thought
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Using both sides of paper saves trees and conserves natural forests!
+feedback.wrong=Using new sheets unnecessarily wastes paper and contributes to deforestation.
+
+id=environment-q-009
+prompt=What is the safest way to dispose of food scraps like banana peels and apple cores?
+choices=Place them in a backyard or community compost bin|Bury them in garden soil where allowed|Throw them into a plastic bag in the normal trash
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Composting converts organic food waste into rich soil for gardening!
+feedback.wrong=Plastic-wrapped organic waste in landfills breaks down into harmful methane gas.
+
+id=environment-q-010
+prompt=What should you do if you see litter on a school field or public park?
+choices=Pick it up safely with gloves or a trash picker and bin it|Notify a teacher or staff member to clean it up|Ignore it and walk away
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Cleaning up trash prevents pollution from harming local wildlife!
+feedback.wrong=Leaving litter on the ground allows it to pollute soil and nearby water streams.
+
+id=environment-q-011
+prompt=How can you help native birds during cold winter months?
+choices=Hang a bird feeder with appropriate seeds and clean water|Plant native fruiting shrubs that offer natural shelter|Feed them processed bread and potato chips
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Offering native plants or proper birdseed gives birds essential winter energy!
+feedback.wrong=Junk food and processed bread lack nutrition and can make birds sick.
+
+id=environment-q-012
+prompt=What is the best way to handle plastic six-pack ring holders used for sodas?
+choices=Cut all the loops apart with scissors before recycling or tossing|Switch to buying drinks without plastic ring holders|Throw them into the bin completely intact
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Cutting plastic loops prevents marine animals and birds from getting trapped!
+feedback.wrong=Intact plastic loops can strangle sea turtles, birds, and other animals.
+
+id=environment-q-013
+prompt=What can you do to keep your room comfortable in the summer without overusing air conditioning?
+choices=Close curtains or blinds during the hottest part of the day|Use a ceiling fan or desk fan to circulate air|Keep windows open wide while the air conditioner is running
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Blocking direct sunlight keeps rooms cool naturally and uses far less power!
+feedback.wrong=Running an AC with open windows wastes huge amounts of electricity.
+
+id=environment-q-014
+prompt=How can you help wild bees and pollinators in your home garden?
+choices=Plant colorful native flowers that bloom across different seasons|Provide a small shallow saucer of water with pebbles for landing|Spray chemical insecticides all over flower petals
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Native flowers and fresh water support bees, which pollinate much of our food!
+feedback.wrong=Chemical pesticides poison bees and destroy local ecosystem balance.
+
+id=environment-q-015
+prompt=What is the best way to drink water while on a long walk or hiking trail?
+choices=Carry a durable, refillable stainless steel or glass water bottle|Use a hydration reservoir backpack you can clean and reuse|Buy multiple single-use plastic water bottles and toss them
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Refillable bottles drastically cut down on single-use plastic pollution!
+feedback.wrong=Single-use plastic bottles often end up in oceans and take centuries to break down.
+
+id=environment-q-016
+prompt=What should you do with clothing you have outgrown but is still in good condition?
+choices=Donate it to a local charity, thrift store, or clothing drive|Pass it down to a younger sibling, relative, or friend|Throw it directly into the household trash bin
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Donating or passing down clothes extends their life and keeps textile waste out of landfills!
+feedback.wrong=Throwing away wearable clothes contributes heavily to global textile waste.
+
+id=environment-q-017
+prompt=How can you prevent ocean pollution when visiting a beach?
+choices=Pack out all your trash and throw it in proper beach bins|Participate in a organized beach clean-up volunteer event|Leave food wrappers and plastic buckets buried in the sand
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Taking all waste off the beach keeps plastic out of marine life habitats!
+feedback.wrong=Burying garbage in sand allows high tides to wash plastic straight into the ocean.
+
+id=environment-q-018
+prompt=What is the most environmentally friendly option for washing a full load of clothes?
+choices=Wash with cold water settings on your washing machine|Hang clothes on a clothesline or rack to air dry|Wash small batches using hot water and high heat dryer settings
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Cold water washing and air drying use significantly less power and lower carbon emissions!
+feedback.wrong=Hot water washing and heat drying use large amounts of fossil-fuel energy.
+
+id=environment-q-019
+prompt=What should you do with old batteries that no longer hold a charge?
+choices=Take them to a household hazardous waste or battery recycling drop-off|Check if your local electronics store accepts battery recycling|Throw them in the regular household trash can
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Recycling batteries safely reclaims metals and keeps toxic chemicals out of soil!
+feedback.wrong=Throwing batteries in regular trash can leak toxic metals into local groundwater.
+
+id=environment-q-020
+prompt=How can a family reduce petrol emissions when running errands around town?
+choices=Combine multiple errands into a single efficient driving trip|Take public transit like buses or trains whenever possible|Drive back and forth for every single chore separately
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Trip chaining and public transit cut down overall vehicle exhaust emissions!
+feedback.wrong=Making multiple unnecessary trips increases air pollution and fuel consumption.
+
+id=environment-q-021
+prompt=What is the best way to help local wildlife during hot summer dry spells?
+choices=Put out a shallow bowl of clean water in a shady spot|Plant shade-providing trees and native bushes|Leave out sweet sugary soda pops for wildlife to drink
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Clean water helps birds, mammals, and insects survive heatwaves safely!
+feedback.wrong=Sugary sodas are unhealthy for animals and attract unwanted pests or bacteria.
+
+id=environment-q-022
+prompt=What should you do with leftover paint or chemical household cleaners?
+choices=Deliver them to a local hazardous waste drop-off facility|Store them safely in sealed containers for future maintenance|Pour them down the storm drain or sink drain
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Proper hazardous waste collection prevents water contamination and river pollution!
+feedback.wrong=Pouring chemicals down drains pollutes waterways and harms aquatic animals.
+
+id=environment-q-023
+prompt=What is a great eco-friendly way to wrap birthday presents for friends?
+choices=Use colorful old newspaper, comics, or reusable cloth wrap|Reuse gift bags and gift boxes you saved from past events|Buy glossy foil-laminated wrapping paper that cannot be recycled
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Reusing items or choosing recyclable paper cuts down on unnecessary packaging waste!
+feedback.wrong=Foil and metallic gift wraps contain plastics that cannot be processed in normal recycling.
+
+id=environment-q-024
+prompt=How can you help protect wild sea turtles when staying near ocean beaches?
+choices=Turn off coastal outdoor lights at night so hatchlings find the ocean|Fill in large sand holes you dug before leaving the beach|Use bright flashlights on the sand to hunt for nesting mothers
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Dark beaches help baby turtles follow natural moonlight to reach the ocean safety!
+feedback.wrong=Bright artificial lights disorient sea turtles and lead them away from the ocean.
+
+id=environment-q-025
+prompt=What is the best way to purchase school supplies like notebooks and folders?
+choices=Choose notebooks made from 100% post-consumer recycled paper|Reuse leftover binders and pencil cases from the previous school year|Buy entirely new plastic supplies every single term
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Reusing durable goods and buying recycled items saves timber and energy!
+feedback.wrong=Replacing perfectly functional supplies every year creates unnecessary manufacturing waste.
+
+id=environment-q-026
+prompt=What should you do if your home garden has a small population of ladybirds or garden spiders?
+choices=Leave them alone so they can eat harmful insect pests naturally|Relocate them gently to plants that need pest control|Spray general bug spray over the entire garden
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Predatory bugs like ladybirds control pests naturally without harmful chemicals!
+feedback.wrong=Pesticides kill beneficial insects that maintain balance in the garden ecosystem.
+
+id=environment-q-027
+prompt=What is the best way to clean up after a family picnic in a national park?
+choices=Pack out every item of garbage, food scraps, and recycling|Double-check the area to make sure no trash was left behind|Leave food leftovers on the ground for wild animals to eat
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Leaving no trace keeps natural park environments clean and safe for everyone!
+feedback.wrong=Human food makes wild animals sick and causes them to rely dangerously on humans.
+
+id=environment-q-028
+prompt=How can you reduce electricity usage from electronic devices when not using them?
+choices=Unplug chargers and power strips when devices are fully charged|Use smart power boards that shut off power to idle equipment|Leave all chargers and gaming consoles turned on 24/7
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Stopping "phantom load" power draw conserves energy and lowers electricity bills!
+feedback.wrong=Devices plugged in continuously draw electricity even when you are not using them.
+
+id=environment-q-029
+prompt=What is the most environmentally friendly choice when buying fruits and vegetables?
+choices=Select locally grown, seasonal produce from nearby farms|Choose loose produce instead of items wrapped in heavy plastic|Buy imported out-of-season fruit individually wrapped in plastic
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Local, unwrapped produce requires less transport fuel and creates less plastic waste!
+feedback.wrong=Shipping plastic-wrapped food across the world generates high carbon emissions.
+
+id=environment-q-030
+prompt=How does planting native trees in your neighborhood help the environment?
+choices=Trees absorb carbon dioxide and release clean oxygen|Tree roots stabilize soil and absorb rainwater to reduce flooding|Trees increase ground temperature by trapping smog near lawns
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Trees filter air pollution, store carbon, and manage stormwater runoff naturally!
+feedback.wrong=Trees actually cool surroundings and filter air pollution rather than trapping smog.
+
+id=environment-q-031
+prompt=What should you do with an old mobile phone or tablet that no longer works?
+choices=Take it to a verified e-waste collection center or drop-off box|Trade it in to a manufacturer recycling program|Throw it into your backyard garbage bin
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Electronic waste recycling recovers rare metals like gold, copper, and lithium!
+feedback.wrong=E-waste in landfills leaks heavy metals like lead and mercury into the surrounding soil.
+
+id=environment-q-032
+prompt=What is the best way to help protect coral reefs when swimming in the ocean?
+choices=Wear reef-safe sunscreen free of oxybenzone and octinoxate|Wear a UV sun shirt or rashguard to limit sunscreen needs|Touch or stand on delicate living coral structures while swimming
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Reef-safe sunscreen and protective clothing shield human skin without bleaching coral!
+feedback.wrong=Stepping on coral damages fragile living organisms that take decades to grow back.
+
+id=environment-q-033
+prompt=How can eating meatless meals once or twice a week help the planet?
+choices=It reduces greenhouse gas emissions associated with livestock farming|It conserves large amounts of land and fresh water resources|It increases air pollution from agricultural crop fields
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Plant-rich diets require less land and water while producing fewer carbon emissions!
+feedback.wrong=Plant agriculture generally produces lower carbon emissions than industrial animal farming.
+
+id=environment-q-034
+prompt=What should you do if you encounter a wild animal, such as a deer or fox, in a park?
+choices=Observe quietly from a safe distance without disturbing it|Keep pet dogs on a leash so they do not chase the animal|Walk right up to it and try to offer it human snacks
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Keeping distance respects wildlife and protects both you and the animal!
+feedback.wrong=Approaching or feeding wild animals causes stress and dangerous loss of fear toward humans.
+
+id=environment-q-035
+prompt=What is the most eco-friendly option for taking notes during class?
+choices=Use digital note-taking apps on a device you already own|Use recycled paper notebooks and write on both sides|Use a brand new sheet of single-use paper for every single line
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Utilizing existing digital tools or recycled paper reduces raw timber logging!
+feedback.wrong=Wasting paper forces more trees to be chopped down for single-use items.
+
+id=environment-q-036
+prompt=How can you cut down on microplastic pollution in our water systems?
+choices=Choose clothes made from natural fibers like cotton, wool, or linen|Wash synthetic clothing in laundry bags that capture microfibers|Flush plastic cleaning wipes and synthetic lint down the toilet
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Natural fibers and microfiber catchers stop microscopic plastic threads from entering rivers!
+feedback.wrong=Flushing plastic products allows synthetic fibers to travel straight into marine ecosystems.
+
+id=environment-q-037
+prompt=What is the best way to heat up food leftovers efficiently?
+choices=Use a microwave oven or toaster oven for small portions|Cover the dish to retain heat and cook faster|Heat a giant conventional oven for 30 minutes for a single snack
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Smaller appliances use up to 80% less energy to heat small meals compared to full ovens!
+feedback.wrong=Preheating a large oven for a tiny snack wastes significant electrical or gas power.
+
+id=environment-q-038
+prompt=How can you help protect local freshwater streams and ponds?
+choices=Never pour motor oil, pet waste, or trash into street storm drains|Plant native vegetation along stream banks to prevent erosion|Rinse dirty paintbrushes in outdoor rain gutters
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Storm drains empty directly into local creeks without being filtered at water plants!
+feedback.wrong=Washing pollutants into storm drains poisons fish and destroys river habitats downstream.
+
+id=environment-q-039
+prompt=What is the greenest way to enjoy books for school or leisure?
+choices=Borrow books from your local school or public library|Swap books with friends or purchase second-hand paperbacks|Buy new hardcovers and throw them in the trash when finished
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Sharing books through libraries maximizes the life of paper and conserves resources!
+feedback.wrong=Throwing away readable books creates unnecessary landfill waste instead of sharing knowledge.
+
+id=environment-q-040
+prompt=What should you do if your bicycle has a flat tire?
+choices=Patch the inner tube or replace only the damaged part|Take it to a local bike shop for repair|Throw the whole bicycle away and buy a new one immediately
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Repairing products extends their life cycle and keeps metal out of scrap yards!
+feedback.wrong=Discarding whole products over minor issues wastes valuable manufacturing materials.
+
+id=environment-q-041
+prompt=How can we help forest ecosystems stay healthy and vibrant?
+choices=Support sustainable timber products certified by forest stewardship groups|Stay on marked trails when hiking to avoid damaging undergrowth|Collect wild forest plants and chop down young saplings for fun
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Responsible forestry standards and careful hiking protect habitat diversity!
+feedback.wrong=Destroying young plants harms natural forest regeneration and ruins wildlife homes.
+
+id=environment-q-042
+prompt=What is the best choice when buying school lunch milk or juice?
+choices=Choose recyclable paper cartons or reusable thermoses|Drink from water fountains using a personal reusable cup|Purchase drinks in heavy single-use plastic bottles every day
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Paper cartons and reusable containers significantly lower overall plastic waste!
+feedback.wrong=Single-use plastic bottles consume massive amounts of petroleum to manufacture.
+
+id=environment-q-043
+prompt=Why is it important to clean up pet waste from yards and sidewalks?
+choices=It prevents harmful bacteria from washing into local rivers when it rains|It stops excess nutrients from causing toxic algae blooms in ponds|It acts as a high-quality natural fertilizer for public city streets
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Scooping pet waste protects water quality and keeps municipal watersheds safe!
+feedback.wrong=Pet waste contains harmful pathogens and is not safe fertilizer for open public areas.
+
+id=environment-q-044
+prompt=How can you reduce air pollution inside your home or classroom?
+choices=Open windows for cross-ventilation when outdoor air quality is good|Keep household plants that help filter indoor air naturally|Burn scented wax candles continuously in small unventilated rooms
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Fresh air circulation and plants clean indoor air without adding synthetic chemicals!
+feedback.wrong=Burning candles in enclosed spaces releases soot particles and chemical compounds into the air.
+
+id=environment-q-045
+prompt=What is the best way to handle food packaging when ordering takeaway?
+choices=Choose places that use compostable or minimal cardboard packaging|Opt out of receiving plastic cutlery, straws, and extra napkins|Ask for extra plastic bags to carry each item separately
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Declining extra single-use plastic cutlery reduces immediate waste at home!
+feedback.wrong=Taking unnecessary plastic items creates extra garbage that ends up in landfills.
+
+id=environment-q-046
+prompt=How do rain barrels help conserve local water resources?
+choices=They collect roof rainwater for watering outdoor gardens and lawns|They store runoff to reduce soil erosion around house foundations|They filter roof water into purified drinking water without treatment
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Rain barrels capture free water for plants, reducing tap water demand during summer!
+feedback.wrong=Roof runoff contains dirt and debris and is not safe for drinking without filtration.
+
+id=environment-q-047
+prompt=What is the best way to care for wild birds in your local area during spring nesting season?
+choices=Keep domestic cats indoors or in outdoor enclosures|Keep pet dogs on designated paths away from ground nests|Leave yarn and synthetic strings all over the lawn for nesting material
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Keeping pets monitored protects vulnerable baby birds learning to fly!
+feedback.wrong=Yarn and synthetic strings can entangle chick legs or cause choking hazards in nests.
+
+id=environment-q-048
+prompt=How can high school sports teams reduce their environmental footprint?
+choices=Encourage team carpooling or bus transport to away games|Provide large water refilling stations instead of single-use bottles|Throw away slightly worn sports equipment at the end of each season
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Shared transportation and bulk water refills eliminate hundreds of plastic bottles and carbon emissions!
+feedback.wrong=Discarding functional sports gear creates heavy waste; equipment should be donated or reused.
+
+id=environment-q-049
+prompt=What should you do if you find an injured wild bird in your backyard?
+choices=Contact a local licensed wildlife rehabilitator or rescue center|Place it gently in a dark, quiet, ventilated box away from pets while waiting for help|Try to feed it milk and bread through an eyedropper immediately
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Trained wildlife rescuers know exact medical procedures and diets for wild species!
+feedback.wrong=Feeding incorrect food or liquids can cause birds to choke or become severely ill.
+
+id=environment-q-050
+prompt=Why are wetlands like swamps and marshes so vital for our planet?
+choices=They act as natural sponges that absorb floodwaters and filter pollution|They provide essential nursery habitats for fish, birds, and amphibians|They are worthless lands that should always be drained for buildings
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Wetlands safeguard communities from floods while cleaning water and protecting biodiversity!
+feedback.wrong=Wetlands are among the most productive ecosystems on Earth and prevent catastrophic flooding.
+
+id=environment-q-051
+prompt=What is the best option when purchasing household furniture or wooden crafts?
+choices=Look for wood certified by environmental organizations like the FSC|Buy second-hand or antique furniture pieces|Purchase items made from illegally harvested rainforest timber
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Certified sustainable wood and second-hand items protect endangered rainforests!
+feedback.wrong=Buying unsourced or illegal timber drives habitat destruction and species extinction.
+
+id=environment-q-052
+prompt=How can we reduce energy consumption when heating our homes in the winter?
+choices=Wear a comfortable jumper or hoodie indoors and set thermostat lower|Seal leaks around windows and doors with draft stoppers|Turn the heater to maximum temperature and keep windows cracked open
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Dressing warmly and sealing drafts lowers heating demand and cuts fuel emissions!
+feedback.wrong=Cracking windows open while blasting heat wastes large amounts of expensive energy.
+
+id=environment-q-053
+prompt=What is the primary benefit of planting native flowers instead of exotic decorative plants?
+choices=Native plants require less water and fertilizer to grow well|They provide proper food and habitat for local native wildlife|They require constant chemical treatments to survive local weather
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Native plants are adapted to local climates and thrive naturally while supporting local wildlife!
+feedback.wrong=Native plants actually require fewer chemicals and less maintenance than exotic species.

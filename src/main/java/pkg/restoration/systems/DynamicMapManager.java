@@ -12,9 +12,26 @@ import javafx.scene.Node;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class DynamicMapManager {
+
+    // MAP DIMENSIONS (40x40 Tiles)
+    private static final int MAP_WIDTH_TILES = 40;
+    private static final int MAP_HEIGHT_TILES = 40;
+
+    // CHUNK CONFIGURATION (10x10 Tiles per Chunk -> 4x4 Chunks total)
+    private static final int CHUNK_SIZE = 10;
+    private static final int CHUNKS_X = MAP_WIDTH_TILES / CHUNK_SIZE; // 4
+    private static final int CHUNKS_Y = MAP_HEIGHT_TILES / CHUNK_SIZE; // 4
+
+    // [y][x] array representing the 4x4 grid of 10x10 chunks.
+    // Set true = Explored (Visible/Restored), false = Unexplored (Hidden/polluted)
+    private final boolean[][] exploredChunks = new boolean[CHUNKS_Y][CHUNKS_X];
+    // Cache of map entities by their tile coordinates
+    private final Map<String, Entity> tileEntities = new HashMap<>();
 
     private final String mapResourcePath;
     private URL mapURL;
@@ -23,11 +40,90 @@ public class DynamicMapManager {
     private Layer tileLayer;
 
     private int currentStage = 5;
+    private double currentRestorationRatio = 1.0;
     private Entity mapTileEntity;
 
     public DynamicMapManager(String mapResourcePath) {
+
+        exploredChunks[0][0] = true; // Top-Left Chunk
+        exploredChunks[0][1] = true; // Top-Left Chunk
+        exploredChunks[0][2] = true;
+        exploredChunks[0][3] = true; // Center-Right Chunk]
+        exploredChunks[1][0] = true; // Top-Left Chunk
+        exploredChunks[1][1] = true; // Top-Left Chunk
+        exploredChunks[1][2] = true;
+        exploredChunks[1][3] = true;
+        exploredChunks[2][0] = true; // Top-Left Chunk
+        exploredChunks[2][1] = true; // Top-Left Chunk
+        exploredChunks[2][2] = true;
+        exploredChunks[2][3] = true;
+        exploredChunks[3][0] = true; // Bottom-Right Chunk
+        exploredChunks[3][1] = true;
+        exploredChunks[3][2] = true; // Center-Right Chunk
+        exploredChunks[3][3] = true; // Bottom-Right Chunk
         this.mapResourcePath = mapResourcePath;
         loadOriginalMap();
+    }
+
+    public void registerTileEntity(int tileX, int tileY, Entity entity) {
+        String key = tileX + "," + tileY;
+        tileEntities.put(key, entity);
+
+        // Apply initial visibility based on chunk state
+        updateSingleTileVisibility(tileX, tileY, entity);
+    }
+
+    private void updateSingleTileVisibility(int tileX, int tileY, Entity entity) {
+        int chunkX = tileX / CHUNK_SIZE;
+        int chunkY = tileY / CHUNK_SIZE;
+
+        // Check if current tile belongs to an explored chunk
+        boolean isExplored = isChunkExplored(chunkX, chunkY);
+
+        // Adjust visibility or effects
+        entity.setVisible(isExplored);
+
+        // Optional: Disable entity components/collisions if unexplored
+        if (!isExplored) {
+            // e.g., entity.setProperty("collidable", false);
+        }
+    }
+
+    public boolean isChunkExplored(int chunkX, int chunkY) {
+        if (chunkX < 0 || chunkX >= CHUNKS_X || chunkY < 0 || chunkY >= CHUNKS_Y) {
+            return false;
+        }
+        return exploredChunks[chunkY][chunkX];
+    }
+
+    public void setChunkExplored(int chunkX, int chunkY, boolean explored) {
+        if (chunkX >= 0 && chunkX < CHUNKS_X && chunkY >= 0 && chunkY < CHUNKS_Y) {
+            if (exploredChunks[chunkY][chunkX] != explored) {
+                exploredChunks[chunkY][chunkX] = explored;
+                refreshMapVisibility();
+            }
+        }
+    }
+
+    public void refreshMapVisibility() {
+        applyStageTransitions(currentRestorationRatio);
+        tileEntities.forEach((key, entity) -> {
+            String[] coords = key.split(",");
+            int tileX = Integer.parseInt(coords[0]);
+            int tileY = Integer.parseInt(coords[1]);
+            updateSingleTileVisibility(tileX, tileY, entity);
+        });
+    }
+
+    public void unlockChunkAtWorldPos(double worldX, double worldY) {
+        // Isometric coordinate conversion matching 32x16 isometric tiles
+        int tileX = (int) (worldX / 32);
+        int tileY = (int) (worldY / 16);
+
+        int chunkX = tileX / CHUNK_SIZE;
+        int chunkY = tileY / CHUNK_SIZE;
+
+        setChunkExplored(chunkX, chunkY, true);
     }
 
     private void loadOriginalMap() {
@@ -58,14 +154,16 @@ public class DynamicMapManager {
         for (Entity entity : levelEntities) {
             if (!entity.getProperties().exists("type") ||
                     (!"wall".equalsIgnoreCase(entity.getProperties().getString("type")) &&
-                     !"PLAYER".equalsIgnoreCase(entity.getProperties().getString("type")))) {
+                            !"PLAYER".equalsIgnoreCase(entity.getProperties().getString("type")))) {
                 this.mapTileEntity = entity;
                 break;
             }
         }
+        refreshMapVisibility();
     }
 
     public void update(double restorationRatio) {
+        this.currentRestorationRatio = restorationRatio;
         int targetStage = calculateStage(restorationRatio);
         if (targetStage != currentStage) {
             currentStage = targetStage;
@@ -91,9 +189,22 @@ public class DynamicMapManager {
         if (tileLayer == null || originalTileGids == null)
             return;
 
+        int mapWidth = tiledMap != null ? tiledMap.getWidth() : MAP_WIDTH_TILES;
         List<Long> currentGids = new ArrayList<>(originalTileGids.size());
 
-        for (Long originalGid : originalTileGids) {
+        for (int i = 0; i < originalTileGids.size(); i++) {
+
+            long originalGid = originalTileGids.get(i);
+
+            int tileX = i % mapWidth;
+            int tileY = i / mapWidth;
+            int chunkX = tileX / CHUNK_SIZE;
+            int chunkY = tileY / CHUNK_SIZE;
+
+            if (!isChunkExplored(chunkX, chunkY)) {
+                currentGids.add(0L);
+                continue;
+            }
             long gid = originalGid;
 
             // Stage Transition Rules based on timer percentage:

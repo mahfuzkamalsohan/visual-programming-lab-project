@@ -147,7 +147,6 @@ public class MovementApp extends GameApplication {
     private double activeSortZoneWidth = SORT_ZONE_WIDTH;
     private double activeSortZoneHeight = SORT_ZONE_HEIGHT;
 
-
     @Override
     protected void initSettings(GameSettings settings) {
         settings.setWidth(1280);
@@ -214,7 +213,8 @@ public class MovementApp extends GameApplication {
     }
 
     private void bindAnswerKey(String name, KeyCode code, int choiceIndex) {
-        bindKey(name, code, () -> answerTestQuestion(choiceIndex), () -> { });
+        bindKey(name, code, () -> answerTestQuestion(choiceIndex), () -> {
+        });
     }
 
     private void handleMovement(int playerNum, Direction dir, boolean pressed) {
@@ -297,7 +297,7 @@ public class MovementApp extends GameApplication {
         List<Entity> players = FXGL.getGameWorld().getEntitiesByComponent(PlayerComponent.class);
         playerEntity = findPlayer(players, 1);
         if (playerEntity == null) {
-            playerEntity = FXGL.spawn("restorationPlayer", 240, 160);
+            playerEntity = FXGL.spawn("restorationPlayer", 640, 320);
         }
         playerComponent = playerEntity.getComponent(PlayerComponent.class);
 
@@ -310,7 +310,7 @@ public class MovementApp extends GameApplication {
             playerEntity2 = findPlayer(players, 2);
             if (playerEntity2 == null) {
                 playerEntity2 = FXGL.entityBuilder()
-                        .at(360, 160)
+                        .at(670, 320)
                         .type(EntityType.PLAYER)
                         .bbox(new HitBox(BoundingShape.box(16, 24)))
                         .with(new CollidableComponent(true))
@@ -348,8 +348,8 @@ public class MovementApp extends GameApplication {
         }
 
         double[][] positions = {
-            {420, 220}, {220, 160}, {580, 260}, {180, 320},
-            {350, 380}, {500, 150}, {300, 220}, {620, 340}
+                { 420, 220 }, { 220, 160 }, { 580, 260 }, { 180, 320 },
+                { 350, 380 }, { 500, 150 }, { 300, 220 }, { 620, 340 }
         };
 
         for (int i = 0; i < testQuestions.size(); i++) {
@@ -390,8 +390,10 @@ public class MovementApp extends GameApplication {
             questionPanel.getStyleClass().add("pixel-panel");
         }
         try {
-            questionPanel.getStylesheets().add(getClass().getResource("/assets/ui/css/pixel_style.css").toExternalForm());
-        } catch (Exception ignored) { }
+            questionPanel.getStylesheets()
+                    .add(getClass().getResource("/assets/ui/css/pixel_style.css").toExternalForm());
+        } catch (Exception ignored) {
+        }
         questionPanel.setTranslateX(-135);
         questionPanel.setTranslateY(-165);
         questionPanel.setScaleX(0.72);
@@ -455,8 +457,8 @@ public class MovementApp extends GameApplication {
                 new WasteItem("battery", "Used battery", "red"),
                 new WasteItem("phone", "Broken mobile phone", "red"));
         Map<String, String> expectedBins = new LinkedHashMap<>();
-        double[][] positions = {{180, 150}, {280, 255}, {390, 160}, {205, 280},
-                {350, 265}, {440, 75}, {155, 75}, {410, 305}};
+        double[][] positions = { { 180, 150 }, { 280, 255 }, { 390, 160 }, { 205, 280 },
+                { 350, 265 }, { 440, 75 }, { 155, 75 }, { 410, 305 } };
         for (int i = 0; i < waste.size(); i++) {
             WasteItem item = waste.get(i);
             expectedBins.put(item.id(), item.binId());
@@ -546,7 +548,7 @@ public class MovementApp extends GameApplication {
 
         double baseX = questionPoint.getX();
         double baseY = questionPoint.getY();
-        double[][] demoOffsets = {{0, 0}, {90, -50}, {-70, 60}, {110, 50}, {-60, -60}};
+        double[][] demoOffsets = { { 0, 0 }, { 90, -50 }, { -70, 60 }, { 110, 50 }, { -60, -60 } };
         for (int i = 0; i < testQuestions.size(); i++) {
             EnvironmentalQuestion q = testQuestions.get(i);
             Entity qEntity;
@@ -738,7 +740,8 @@ public class MovementApp extends GameApplication {
         }
         Entity entity = FXGL.entityBuilder().at(x, y).type(EntityType.QUESTION_POINT).view(binView).buildAndAttach();
         Label label = new Label(labelText);
-        label.setStyle("-fx-text-fill:white;-fx-font-family:Verdana;-fx-font-size:8px;-fx-font-weight:bold;-fx-alignment:center;");
+        label.setStyle(
+                "-fx-text-fill:white;-fx-font-family:Verdana;-fx-font-size:8px;-fx-font-weight:bold;-fx-alignment:center;");
         label.setWrapText(true);
         label.setMaxWidth(76);
         label.setTranslateX(-2);
@@ -774,7 +777,8 @@ public class MovementApp extends GameApplication {
                             if (timer != null) {
                                 timer.applyDelta(120.0);
                             }
-                            showEndGameOverlay("WORLD RESTORED", "All 3 stages completed successfully!\nAdded +120 seconds bonus time.", true);
+                            showEndGameOverlay("WORLD RESTORED",
+                                    "All 3 stages completed successfully!\nAdded +120 seconds bonus time.", true);
                         }
                         return;
                     }
@@ -864,7 +868,7 @@ public class MovementApp extends GameApplication {
 
     private double distanceBetween(Entity a, Entity b) {
         return Math.hypot(a.getCenter().getX() - b.getCenter().getX(),
-                          a.getCenter().getY() - b.getCenter().getY());
+                a.getCenter().getY() - b.getCenter().getY());
     }
 
     private void refreshQuestionPanelForCurrent() {
@@ -882,7 +886,8 @@ public class MovementApp extends GameApplication {
     private void answerTestQuestion(int choiceIndex) {
         boolean questionModeActive = selectedGameMode == GameMode.QUESTION_TEST
                 || (selectedGameMode == GameMode.SEQUENTIAL_DEMO && demoStage == DemoStage.QUESTION);
-        if (!questionModeActive || currentActiveQuestionEntity == null || currentActiveQuestion == null || questionAnswerLocked) {
+        if (!questionModeActive || currentActiveQuestionEntity == null || currentActiveQuestion == null
+                || questionAnswerLocked) {
             return;
         }
         if (choiceIndex >= currentActiveQuestion.choices().size()) {
@@ -917,14 +922,14 @@ public class MovementApp extends GameApplication {
     private void spawnRandomTrash() {
         collectedTrash = 0;
         double[][] spawnPositions = {
-            {200, 180},
-            {320, 240},
-            {450, 180},
-            {150, 300},
-            {520, 280},
-            {280, 350},
-            {400, 320},
-            {600, 220}
+                { 200, 180 },
+                { 320, 240 },
+                { 450, 180 },
+                { 150, 300 },
+                { 520, 280 },
+                { 280, 350 },
+                { 400, 320 },
+                { 600, 220 }
         };
 
         for (int i = 0; i < TOTAL_TRASH; i++) {
@@ -1031,11 +1036,13 @@ public class MovementApp extends GameApplication {
     private void applyRemoteGameState(GameStatePacket packet) {
         if (playerEntity != null) {
             playerEntity.setPosition(packet.p1X, packet.p1Y);
-            playerComponent.setRemoteState(Direction.values()[Math.min(packet.p1DirIndex, Direction.values().length - 1)], packet.p1Moving);
+            playerComponent.setRemoteState(
+                    Direction.values()[Math.min(packet.p1DirIndex, Direction.values().length - 1)], packet.p1Moving);
         }
         if (playerEntity2 != null) {
             playerEntity2.setPosition(packet.p2X, packet.p2Y);
-            playerComponent2.setRemoteState(Direction.values()[Math.min(packet.p2DirIndex, Direction.values().length - 1)], packet.p2Moving);
+            playerComponent2.setRemoteState(
+                    Direction.values()[Math.min(packet.p2DirIndex, Direction.values().length - 1)], packet.p2Moving);
         }
         if (timer != null) {
             timer.setCurrentSeconds(packet.remainingTime);
@@ -1143,7 +1150,8 @@ public class MovementApp extends GameApplication {
                 FXGL.addUINode(levelNoticeText);
             }
             if (trashCounterText != null) {
-                trashCounterText.setText(String.format("Trash Collected: %d / %d (COMPLETE!)", collectedTrash, TOTAL_TRASH));
+                trashCounterText
+                        .setText(String.format("Trash Collected: %d / %d (COMPLETE!)", collectedTrash, TOTAL_TRASH));
                 trashCounterText.setFill(Color.web("#ffd700"));
             }
         }
@@ -1235,7 +1243,7 @@ public class MovementApp extends GameApplication {
         List<Entity> trashes = FXGL.getGameWorld().getEntitiesByType(EntityType.TRASH);
         for (Entity trash : trashes) {
             if ((playerEntity != null && playerEntity.isColliding(trash)) ||
-                (playerEntity2 != null && playerEntity2.isColliding(trash))) {
+                    (playerEntity2 != null && playerEntity2.isColliding(trash))) {
                 nearTrash = true;
                 break;
             }
@@ -1302,7 +1310,8 @@ public class MovementApp extends GameApplication {
         }
         String status = switch (demoStage) {
             case COLLECTION -> String.format("Stage 1/3 — Collect garbage: %d / %d",
-                    demoCollectionTask.collectedItems(), demoCollectionTask.collectedItems() + demoCollectionItems.size());
+                    demoCollectionTask.collectedItems(),
+                    demoCollectionTask.collectedItems() + demoCollectionItems.size());
             case QUESTION -> String.format("Stage 2/3 — Questions: %d / %d",
                     testQuestionIndex, testQuestions.size());
             case SORTING -> String.format("Stage 3/3 — Sort garbage: %d / %d%n%s",
@@ -1548,28 +1557,56 @@ public class MovementApp extends GameApplication {
                 Button btnJoinLan = (Button) menuRoot.lookup("#btnJoinLan");
                 Button btnExit = (Button) menuRoot.lookup("#btnExit");
 
-                if (btnSingle != null) btnSingle.setOnAction(e -> { selectedGameMode = GameMode.SINGLE_PLAYER; fireNewGame(); });
-                if (btnQuestionTest != null) btnQuestionTest.setOnAction(e -> { selectedGameMode = GameMode.QUESTION_TEST; fireNewGame(); });
-                if (btnSortingTest != null) btnSortingTest.setOnAction(e -> { selectedGameMode = GameMode.SORTING_TEST; fireNewGame(); });
-                if (btnSequentialDemo != null) btnSequentialDemo.setOnAction(e -> { selectedGameMode = GameMode.SEQUENTIAL_DEMO; fireNewGame(); });
-                if (btnLocalCoop != null) btnLocalCoop.setOnAction(e -> { selectedGameMode = GameMode.LOCAL_COOP_SPLITSCREEN; fireNewGame(); });
-                if (btnHostLan != null) btnHostLan.setOnAction(e -> { selectedGameMode = GameMode.LAN_HOST; fireNewGame(); });
-                if (btnJoinLan != null) btnJoinLan.setOnAction(e -> {
-                    TextInputDialog dialog = new TextInputDialog("127.0.0.1");
-                    dialog.setTitle("Join LAN Co-Op");
-                    dialog.setHeaderText("Enter Host IP Address:");
-                    dialog.setContentText("Host IP:");
-                    try {
-                        dialog.getDialogPane().getStylesheets().add(getClass().getResource("/assets/ui/css/pixel_style.css").toExternalForm());
-                    } catch (Exception ignored) {}
-                    Optional<String> result = dialog.showAndWait();
-                    result.ifPresent(ip -> {
-                        targetHostIp = ip.trim();
-                        selectedGameMode = GameMode.LAN_JOIN;
+                if (btnSingle != null)
+                    btnSingle.setOnAction(e -> {
+                        selectedGameMode = GameMode.SINGLE_PLAYER;
                         fireNewGame();
                     });
-                });
-                if (btnExit != null) btnExit.setOnAction(e -> showPixelExitConfirmation());
+                if (btnQuestionTest != null)
+                    btnQuestionTest.setOnAction(e -> {
+                        selectedGameMode = GameMode.QUESTION_TEST;
+                        fireNewGame();
+                    });
+                if (btnSortingTest != null)
+                    btnSortingTest.setOnAction(e -> {
+                        selectedGameMode = GameMode.SORTING_TEST;
+                        fireNewGame();
+                    });
+                if (btnSequentialDemo != null)
+                    btnSequentialDemo.setOnAction(e -> {
+                        selectedGameMode = GameMode.SEQUENTIAL_DEMO;
+                        fireNewGame();
+                    });
+                if (btnLocalCoop != null)
+                    btnLocalCoop.setOnAction(e -> {
+                        selectedGameMode = GameMode.LOCAL_COOP_SPLITSCREEN;
+                        fireNewGame();
+                    });
+                if (btnHostLan != null)
+                    btnHostLan.setOnAction(e -> {
+                        selectedGameMode = GameMode.LAN_HOST;
+                        fireNewGame();
+                    });
+                if (btnJoinLan != null)
+                    btnJoinLan.setOnAction(e -> {
+                        TextInputDialog dialog = new TextInputDialog("127.0.0.1");
+                        dialog.setTitle("Join LAN Co-Op");
+                        dialog.setHeaderText("Enter Host IP Address:");
+                        dialog.setContentText("Host IP:");
+                        try {
+                            dialog.getDialogPane().getStylesheets()
+                                    .add(getClass().getResource("/assets/ui/css/pixel_style.css").toExternalForm());
+                        } catch (Exception ignored) {
+                        }
+                        Optional<String> result = dialog.showAndWait();
+                        result.ifPresent(ip -> {
+                            targetHostIp = ip.trim();
+                            selectedGameMode = GameMode.LAN_JOIN;
+                            fireNewGame();
+                        });
+                    });
+                if (btnExit != null)
+                    btnExit.setOnAction(e -> showPixelExitConfirmation());
 
             } catch (Exception ex) {
                 menuRoot = createFallbackMenu();
@@ -1599,7 +1636,10 @@ public class MovementApp extends GameApplication {
             Button btnJoinLan = styledButton("Join LAN Co-Op");
             Button btnExit = styledButton("Exit");
 
-            btnSingle.setOnAction(e -> { selectedGameMode = GameMode.SINGLE_PLAYER; fireNewGame(); });
+            btnSingle.setOnAction(e -> {
+                selectedGameMode = GameMode.SINGLE_PLAYER;
+                fireNewGame();
+            });
             btnExit.setOnAction(e -> fireExit());
 
             VBox vbox = new VBox(8, title, subtitle, btnSingle, btnQuestionTest, btnSortingTest,
@@ -1665,9 +1705,12 @@ public class MovementApp extends GameApplication {
                 Button btnMainMenu = (Button) menuRoot.lookup("#btnMainMenu");
                 Button btnExit = (Button) menuRoot.lookup("#btnExit");
 
-                if (btnResume != null) btnResume.setOnAction(e -> fireResume());
-                if (btnMainMenu != null) btnMainMenu.setOnAction(e -> fireExitToMainMenu());
-                if (btnExit != null) btnExit.setOnAction(e -> showPixelExitConfirmation());
+                if (btnResume != null)
+                    btnResume.setOnAction(e -> fireResume());
+                if (btnMainMenu != null)
+                    btnMainMenu.setOnAction(e -> fireExitToMainMenu());
+                if (btnExit != null)
+                    btnExit.setOnAction(e -> showPixelExitConfirmation());
             } catch (Exception ex) {
                 menuRoot = createFallbackPauseMenu();
             }
@@ -1692,7 +1735,8 @@ public class MovementApp extends GameApplication {
 
             VBox vbox = new VBox(10, title, btnResume, btnMainMenu, btnExit);
             vbox.setAlignment(Pos.CENTER);
-            vbox.setStyle("-fx-background-color:rgba(11,23,14,0.95);-fx-border-color:#39ff14;-fx-border-width:4px;-fx-padding:20px;");
+            vbox.setStyle(
+                    "-fx-background-color:rgba(11,23,14,0.95);-fx-border-color:#39ff14;-fx-border-width:4px;-fx-padding:20px;");
             return vbox;
         }
 
@@ -1719,8 +1763,10 @@ public class MovementApp extends GameApplication {
         alert.setHeaderText("EXIT RESTORATION?");
         alert.setContentText("Are you sure you want to quit the game?");
         try {
-            alert.getDialogPane().getStylesheets().add(MovementApp.class.getResource("/assets/ui/css/pixel_style.css").toExternalForm());
-        } catch (Exception ignored) {}
+            alert.getDialogPane().getStylesheets()
+                    .add(MovementApp.class.getResource("/assets/ui/css/pixel_style.css").toExternalForm());
+        } catch (Exception ignored) {
+        }
         Optional<ButtonType> result = alert.showAndWait();
         if (result.isPresent() && result.get() == ButtonType.OK) {
             FXGL.getGameController().exit();
