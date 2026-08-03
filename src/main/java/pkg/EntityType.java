@@ -3,5 +3,6 @@ package pkg;
 public enum EntityType {
     PLAYER,
     WALL,
-    TRASH
+    TRASH,
+    QUESTION_POINT
 }

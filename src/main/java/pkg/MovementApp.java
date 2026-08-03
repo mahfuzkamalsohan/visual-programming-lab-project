@@ -19,15 +19,19 @@ import com.almasb.fxgl.entity.level.Level;
 import com.almasb.fxgl.app.scene.Viewport;
 
 import javafx.geometry.Pos;
+import javafx.geometry.Insets;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.input.KeyCode;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.shape.Circle;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
@@ -38,8 +42,19 @@ import pkg.net.InputPacket;
 import pkg.net.NetworkManager;
 import pkg.restoration.systems.DynamicMapManager;
 import pkg.restoration.systems.RestorationTimer;
+import pkg.restoration.questions.EnvironmentalQuestion;
+import pkg.restoration.questions.QuestionLoader;
+import pkg.restoration.questions.QuestionResult;
+import pkg.restoration.tasks.TaskTimer;
+import pkg.restoration.tasks.SortingTask;
+import pkg.restoration.tasks.TaskResult;
 
+import java.io.IOException;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public class MovementApp extends GameApplication {
@@ -70,6 +85,44 @@ public class MovementApp extends GameApplication {
     private int collectedTrash = 0;
 
     private boolean clientUp, clientDown, clientLeft, clientRight;
+
+    private Entity questionPoint;
+    private VBox questionPanel;
+    private Label questionLabel;
+    private Label questionFeedbackLabel;
+    private List<EnvironmentalQuestion> testQuestions = List.of();
+    private int testQuestionIndex;
+    private boolean playerNearQuestionPoint;
+    private boolean questionAnswerLocked;
+
+    private static final double SORT_ZONE_X = 500;
+    private static final double SORT_ZONE_Y = 105;
+    private static final double SORT_ZONE_WIDTH = 260;
+    private static final double SORT_ZONE_HEIGHT = 225;
+    // These are the visible red interaction boxes used by Sorting Test Mode.
+    // Change them here while tuning interaction distances.
+    private static final double PICKUP_BOX_WIDTH = 48;
+    private static final double PICKUP_BOX_HEIGHT = 48;
+    private static final double INTAKE_BOX_WIDTH = 90;
+    private static final double INTAKE_BOX_HEIGHT = 120;
+    private static final double BIN_BOX_WIDTH = 96;
+    private static final double BIN_BOX_HEIGHT = 82;
+    private static final double PLAYER_BOX_WIDTH = 16;
+    private static final double PLAYER_BOX_HEIGHT = 24;
+    private final Map<Entity, WasteItem> sortingWasteEntities = new LinkedHashMap<>();
+    private final Map<Entity, String> sortingBins = new LinkedHashMap<>();
+    private final Map<Entity, InteractionBox> sortingPickupBoxes = new LinkedHashMap<>();
+    private final Map<Entity, InteractionBox> sortingBinBoxes = new LinkedHashMap<>();
+    private final Deque<WasteItem> sortingIntake = new ArrayDeque<>();
+    private SortingTask sortingTask;
+    private WasteItem outsideCarriedWaste;
+    private WasteItem insideCarriedWaste;
+    private Entity sortingIntakePoint;
+    private InteractionBox sortingIntakeBox;
+    private Label floatingWasteLabel;
+    private ImageView collectorCarriedWasteView;
+    private Text sortingStatusText;
+    private String sortingFeedback = "P1: collect unknown waste and bring it to the intake";
 
 
     @Override
@@ -123,6 +176,17 @@ public class MovementApp extends GameApplication {
                 this::tryCollectTrash,
                 () -> {
                 });
+
+        bindAnswerKey("Answer 1", KeyCode.DIGIT1, 0);
+        bindAnswerKey("Answer 2", KeyCode.DIGIT2, 1);
+        bindAnswerKey("Answer 3", KeyCode.DIGIT3, 2);
+        bindAnswerKey("Answer Numpad 1", KeyCode.NUMPAD1, 0);
+        bindAnswerKey("Answer Numpad 2", KeyCode.NUMPAD2, 1);
+        bindAnswerKey("Answer Numpad 3", KeyCode.NUMPAD3, 2);
+    }
+
+    private void bindAnswerKey(String name, KeyCode code, int choiceIndex) {
+        bindKey(name, code, () -> answerTestQuestion(choiceIndex), () -> { });
     }
 
     private void handleMovement(int playerNum, Direction dir, boolean pressed) {
@@ -143,7 +207,8 @@ public class MovementApp extends GameApplication {
                 setComponentMovement(playerComponent, dir, pressed);
             }
         } else if (playerNum == 2) {
-            if (selectedGameMode == GameMode.LOCAL_COOP_SPLITSCREEN) {
+            if (selectedGameMode == GameMode.LOCAL_COOP_SPLITSCREEN
+                    || selectedGameMode == GameMode.SORTING_TEST) {
                 if (playerComponent2 != null) {
                     setComponentMovement(playerComponent2, dir, pressed);
                 }
@@ -201,7 +266,10 @@ public class MovementApp extends GameApplication {
         playerComponent = playerEntity.getComponent(PlayerComponent.class);
 
         // Spawn Player 2 for Co-Op modes
-        if (selectedGameMode != GameMode.SINGLE_PLAYER) {
+        if (selectedGameMode == GameMode.LOCAL_COOP_SPLITSCREEN
+                || selectedGameMode == GameMode.LAN_HOST
+                || selectedGameMode == GameMode.LAN_JOIN
+                || selectedGameMode == GameMode.SORTING_TEST) {
             playerEntity2 = FXGL.entityBuilder()
                     .at(360, 160)
                     .type(EntityType.PLAYER)
@@ -212,9 +280,280 @@ public class MovementApp extends GameApplication {
             playerComponent2 = playerEntity2.getComponent(PlayerComponent.class);
         }
 
-        spawnRandomTrash();
+        if (selectedGameMode == GameMode.QUESTION_TEST) {
+            setupQuestionTest();
+        } else if (selectedGameMode == GameMode.SORTING_TEST) {
+            setupSortingTest();
+        } else {
+            spawnRandomTrash();
+        }
         setupViewports();
         setupNetworking();
+    }
+
+    private void setupQuestionTest() {
+        try {
+            testQuestions = new QuestionLoader().loadResource("assets/questions/environment.dat");
+        } catch (IOException exception) {
+            throw new IllegalStateException("Could not load question test data", exception);
+        }
+
+        Circle marker = new Circle(18, Color.web("#f1d090"));
+        marker.setStroke(Color.web("#fff5bd"));
+        marker.setStrokeWidth(4);
+
+        questionLabel = new Label();
+        questionLabel.setWrapText(true);
+        questionLabel.setMaxWidth(360);
+        questionLabel.setStyle("-fx-text-fill:#f7f4dc;-fx-font-family:Verdana;-fx-font-size:14px;-fx-font-weight:bold;");
+        questionFeedbackLabel = new Label("Walk close to answer");
+        questionFeedbackLabel.setWrapText(true);
+        questionFeedbackLabel.setMaxWidth(360);
+        questionFeedbackLabel.setStyle("-fx-text-fill:#d7e77f;-fx-font-family:Verdana;-fx-font-size:12px;");
+
+        questionPanel = new VBox(7, questionLabel, questionFeedbackLabel);
+        questionPanel.setPadding(new Insets(12));
+        questionPanel.setMaxWidth(380);
+        questionPanel.setStyle("-fx-background-color:rgba(23,35,30,0.94);-fx-border-color:#d8e77f;"
+                + "-fx-border-width:2;-fx-background-radius:8;-fx-border-radius:8;");
+        questionPanel.setTranslateX(-180);
+        questionPanel.setTranslateY(-190);
+        questionPanel.setScaleX(0.72);
+        questionPanel.setScaleY(0.72);
+        questionPanel.setVisible(false);
+
+        questionPoint = FXGL.entityBuilder()
+                .at(420, 220)
+                .type(EntityType.QUESTION_POINT)
+                .view(marker)
+                .buildAndAttach();
+        questionPoint.getViewComponent().addChild(questionPanel);
+        refreshQuestionPanel();
+    }
+
+    private void setupSortingTest() {
+        resetSortingTestState();
+        playerEntity2.setPosition(625, 215);
+        playerEntity.getViewComponent().addChild(debugRectangle(PLAYER_BOX_WIDTH, PLAYER_BOX_HEIGHT));
+        playerEntity2.getViewComponent().addChild(debugRectangle(PLAYER_BOX_WIDTH, PLAYER_BOX_HEIGHT));
+
+        Rectangle zone = new Rectangle(SORT_ZONE_WIDTH, SORT_ZONE_HEIGHT, Color.web("#d7e77f", 0.10));
+        zone.setStroke(Color.web("#d7e77f"));
+        zone.setStrokeWidth(4);
+        FXGL.entityBuilder().at(SORT_ZONE_X, SORT_ZONE_Y)
+                .type(EntityType.QUESTION_POINT).view(zone).buildAndAttach();
+
+        Circle intakeMarker = new Circle(16, Color.web("#f1d090"));
+        intakeMarker.setStroke(Color.WHITE);
+        intakeMarker.setStrokeWidth(3);
+        Label intakeLabel = worldLabel("INTAKE");
+        intakeLabel.setTranslateX(-30);
+        intakeLabel.setTranslateY(-42);
+        sortingIntakePoint = FXGL.entityBuilder().at(SORT_ZONE_X, 215)
+                .type(EntityType.QUESTION_POINT).view(intakeMarker).buildAndAttach();
+        sortingIntakePoint.getViewComponent().addChild(intakeLabel);
+        sortingIntakeBox = new InteractionBox(
+                SORT_ZONE_X - INTAKE_BOX_WIDTH / 2,
+                215 - INTAKE_BOX_HEIGHT / 2,
+                INTAKE_BOX_WIDTH,
+                INTAKE_BOX_HEIGHT);
+        Rectangle intakeHitBox = debugRectangle(INTAKE_BOX_WIDTH, INTAKE_BOX_HEIGHT);
+        intakeHitBox.setTranslateX(-INTAKE_BOX_WIDTH / 2);
+        intakeHitBox.setTranslateY(-INTAKE_BOX_HEIGHT / 2);
+        sortingIntakePoint.getViewComponent().addChild(intakeHitBox);
+
+        createSortingBin("black", "BLACK\nGeneral", 545, 145, "#272727");
+        createSortingBin("blue", "BLUE\nRecyclables", 675, 145, "#397ac7");
+        createSortingBin("green", "GREEN\nOrganic", 545, 275, "#3e914c");
+        createSortingBin("red", "RED\nHazardous", 675, 275, "#bd4545");
+
+        List<WasteItem> waste = List.of(
+                new WasteItem("wrapper", "Greasy snack wrapper", "black"),
+                new WasteItem("foam", "Used foam food box", "black"),
+                new WasteItem("newspaper", "Clean newspaper", "blue"),
+                new WasteItem("can", "Clean aluminium can", "blue"),
+                new WasteItem("peel", "Banana peel", "green"),
+                new WasteItem("leaves", "Dry yard leaves", "green"),
+                new WasteItem("battery", "Used battery", "red"),
+                new WasteItem("phone", "Broken mobile phone", "red"));
+        Map<String, String> expectedBins = new LinkedHashMap<>();
+        double[][] positions = {{180, 150}, {280, 255}, {390, 160}, {205, 280},
+                {350, 265}, {440, 75}, {155, 75}, {410, 305}};
+        for (int i = 0; i < waste.size(); i++) {
+            WasteItem item = waste.get(i);
+            expectedBins.put(item.id(), item.binId());
+            Entity entity = FXGL.entityBuilder().at(positions[i][0], positions[i][1])
+                    .type(EntityType.TRASH)
+                    .viewWithBBox("trashbag.png")
+                    .with(new CollidableComponent(true))
+                    .buildAndAttach();
+            sortingWasteEntities.put(entity, item);
+            InteractionBox pickupBox = new InteractionBox(
+                    positions[i][0] - 8,
+                    positions[i][1] - 8,
+                    PICKUP_BOX_WIDTH,
+                    PICKUP_BOX_HEIGHT);
+            sortingPickupBoxes.put(entity, pickupBox);
+            Rectangle pickupHitBox = debugRectangle(PICKUP_BOX_WIDTH, PICKUP_BOX_HEIGHT);
+            pickupHitBox.setTranslateX(-8);
+            pickupHitBox.setTranslateY(-8);
+            entity.getViewComponent().addChild(pickupHitBox);
+        }
+        sortingTask = new SortingTask(expectedBins, 15, 7, 8);
+
+        collectorCarriedWasteView = new ImageView(FXGL.image("trashbag.png"));
+        collectorCarriedWasteView.setTranslateX(-4);
+        collectorCarriedWasteView.setTranslateY(-34);
+        collectorCarriedWasteView.setMouseTransparent(true);
+        collectorCarriedWasteView.setVisible(false);
+        playerEntity.getViewComponent().addChild(collectorCarriedWasteView);
+
+        floatingWasteLabel = worldLabel("");
+        floatingWasteLabel.setStyle(floatingWasteLabel.getStyle()
+                + "-fx-background-color:rgba(23,35,30,0.92);-fx-padding:5;-fx-border-color:#f1d090;");
+        floatingWasteLabel.setTranslateX(-75);
+        floatingWasteLabel.setTranslateY(-55);
+        floatingWasteLabel.setVisible(false);
+        playerEntity2.getViewComponent().addChild(floatingWasteLabel);
+    }
+
+    private void resetSortingTestState() {
+        sortingWasteEntities.clear();
+        sortingBins.clear();
+        sortingPickupBoxes.clear();
+        sortingBinBoxes.clear();
+        sortingIntake.clear();
+        outsideCarriedWaste = null;
+        insideCarriedWaste = null;
+        sortingIntakePoint = null;
+        sortingIntakeBox = null;
+        collectorCarriedWasteView = null;
+        floatingWasteLabel = null;
+        sortingFeedback = "Collect every scattered garbage and sort it";
+    }
+
+    private Rectangle debugRectangle(double width, double height) {
+        Rectangle rectangle = new Rectangle(width, height, Color.web("#ff2020", 0.08));
+        rectangle.setStroke(Color.web("#ff2020"));
+        rectangle.setStrokeWidth(2);
+        rectangle.setMouseTransparent(true);
+        return rectangle;
+    }
+
+    private Label worldLabel(String text) {
+        Label label = new Label(text);
+        label.setStyle("-fx-text-fill:white;-fx-font-family:Verdana;-fx-font-size:10px;-fx-font-weight:bold;");
+        label.setMouseTransparent(true);
+        return label;
+    }
+
+    private void createSortingBin(String binId, String labelText, double x, double y, String color) {
+        Rectangle bin = new Rectangle(72, 58, Color.web(color));
+        bin.setStroke(Color.WHITE);
+        bin.setStrokeWidth(2);
+        Label label = worldLabel(labelText);
+        label.setWrapText(true);
+        label.setMaxWidth(68);
+        label.setTranslateX(4);
+        label.setTranslateY(8);
+        Entity entity = FXGL.entityBuilder().at(x, y).type(EntityType.QUESTION_POINT).view(bin).buildAndAttach();
+        entity.getViewComponent().addChild(label);
+        Rectangle binHitBox = debugRectangle(BIN_BOX_WIDTH, BIN_BOX_HEIGHT);
+        binHitBox.setTranslateX(-12);
+        binHitBox.setTranslateY(-12);
+        entity.getViewComponent().addChild(binHitBox);
+        sortingBins.put(entity, binId);
+        sortingBinBoxes.put(entity, new InteractionBox(x - 12, y - 12, BIN_BOX_WIDTH, BIN_BOX_HEIGHT));
+    }
+
+    private void interactWithSortingTest() {
+        if (playerEntity2 != null) {
+            if (insideCarriedWaste != null) {
+                for (Map.Entry<Entity, String> bin : sortingBins.entrySet()) {
+                    if (sortingBinBoxes.get(bin.getKey()).intersectsPlayer(playerEntity2)) {
+                        TaskResult result = sortingTask.sort(insideCarriedWaste.id(), bin.getValue());
+                        double applied = TaskTimer.apply(timer, result);
+                        sortingFeedback = result.message() + String.format(" (%+.0f seconds)", applied);
+                        boolean retryableWrongBin = result.status() == pkg.restoration.tasks.TaskStatus.REJECTED
+                                && "Wrong bin".equals(result.message());
+                        if (!retryableWrongBin) {
+                            clearInsideCarriedWaste();
+                        }
+                        return;
+                    }
+                }
+            } else if (!sortingIntake.isEmpty() && sortingIntakeBox.intersectsPlayer(playerEntity2)) {
+                insideCarriedWaste = sortingIntake.removeFirst();
+                floatingWasteLabel.setText(insideCarriedWaste.name());
+                floatingWasteLabel.setVisible(true);
+                sortingFeedback = "P2 identified: " + insideCarriedWaste.name();
+                return;
+            }
+        }
+
+        if (outsideCarriedWaste != null && sortingIntakeBox.intersectsPlayer(playerEntity)) {
+            sortingIntake.addLast(outsideCarriedWaste);
+            outsideCarriedWaste = null;
+            collectorCarriedWasteView.setVisible(false);
+            sortingFeedback = "Waste delivered. P2: press E at the intake to identify it";
+            return;
+        }
+        if (outsideCarriedWaste == null) {
+            for (Map.Entry<Entity, WasteItem> entry : List.copyOf(sortingWasteEntities.entrySet())) {
+                if (sortingPickupBoxes.get(entry.getKey()).intersectsPlayer(playerEntity)) {
+                    outsideCarriedWaste = entry.getValue();
+                    entry.getKey().removeFromWorld();
+                    sortingWasteEntities.remove(entry.getKey());
+                    sortingPickupBoxes.remove(entry.getKey());
+                    collectorCarriedWasteView.setVisible(true);
+                    sortingFeedback = "P1 is carrying unidentified waste. Take it to the intake";
+                    return;
+                }
+            }
+        }
+    }
+
+    private void clearInsideCarriedWaste() {
+        insideCarriedWaste = null;
+        floatingWasteLabel.setText("");
+        floatingWasteLabel.setVisible(false);
+    }
+
+    private void refreshQuestionPanel() {
+        if (questionLabel == null) {
+            return;
+        }
+        if (testQuestionIndex >= testQuestions.size()) {
+            questionLabel.setText("QUESTION TEST COMPLETE");
+            questionFeedbackLabel.setText("All sample questions answered.");
+            return;
+        }
+        EnvironmentalQuestion question = testQuestions.get(testQuestionIndex);
+        StringBuilder text = new StringBuilder(question.prompt());
+        for (int i = 0; i < Math.min(3, question.choices().size()); i++) {
+            text.append("\n").append(i + 1).append(". ").append(question.choices().get(i));
+        }
+        questionLabel.setText(text.toString());
+        questionFeedbackLabel.setText("Press 1, 2, or 3 to answer");
+        questionAnswerLocked = false;
+    }
+
+    private void answerTestQuestion(int choiceIndex) {
+        if (selectedGameMode != GameMode.QUESTION_TEST || !playerNearQuestionPoint
+                || questionAnswerLocked || testQuestionIndex >= testQuestions.size()) {
+            return;
+        }
+        EnvironmentalQuestion question = testQuestions.get(testQuestionIndex);
+        if (choiceIndex >= question.choices().size()) {
+            return;
+        }
+        QuestionResult result = question.answer(choiceIndex);
+        questionAnswerLocked = true;
+        double appliedDelta = TaskTimer.apply(timer, result.asTaskResult());
+        questionFeedbackLabel.setText(result.quality() + ": " + result.feedback()
+                + String.format(" (%+.0f seconds)", appliedDelta));
+        testQuestionIndex++;
+        FXGL.runOnce(this::refreshQuestionPanel, Duration.seconds(1.4));
     }
 
     private void spawnRandomTrash() {
@@ -244,6 +583,10 @@ public class MovementApp extends GameApplication {
     }
 
     private void tryCollectTrash() {
+        if (selectedGameMode == GameMode.SORTING_TEST) {
+            interactWithSortingTest();
+            return;
+        }
         List<Entity> trashes = FXGL.getGameWorld().getEntitiesByType(EntityType.TRASH);
         for (Entity trash : trashes) {
             boolean p1Colliding = playerEntity != null && playerEntity.isColliding(trash);
@@ -265,7 +608,8 @@ public class MovementApp extends GameApplication {
         Viewport vp = FXGL.getGameScene().getViewport();
         vp.setLazy(true);
 
-        if (selectedGameMode == GameMode.LOCAL_COOP_SPLITSCREEN && playerEntity != null && playerEntity2 != null) {
+        if ((selectedGameMode == GameMode.LOCAL_COOP_SPLITSCREEN
+                || selectedGameMode == GameMode.SORTING_TEST) && playerEntity != null && playerEntity2 != null) {
             // Shared Screen Local Co-Op: Fixed 1.8x crisp zoom tracking dual player
             // midpoint
             vp.setZoom(1.8);
@@ -344,7 +688,11 @@ public class MovementApp extends GameApplication {
         modeStatusText.setY(60);
         FXGL.addUINode(modeStatusText);
 
-        if (selectedGameMode == GameMode.LOCAL_COOP_SPLITSCREEN) {
+        if (selectedGameMode == GameMode.QUESTION_TEST) {
+            modeStatusText.setText("Question Test Mode — find the glowing question point");
+        } else if (selectedGameMode == GameMode.SORTING_TEST) {
+            modeStatusText.setText("Sorting Test — P1: WASD, P2: arrows, E: interact");
+        } else if (selectedGameMode == GameMode.LOCAL_COOP_SPLITSCREEN) {
             Text p1Label = new Text("P1: WASD");
             p1Label.setFont(Font.font("Verdana", FontWeight.BOLD, 14));
             p1Label.setFill(Color.web("#eff7d4"));
@@ -368,13 +716,15 @@ public class MovementApp extends GameApplication {
             modeStatusText.setText("Single Player Mode");
         }
 
-        trashCounterText = new Text();
-        trashCounterText.setFont(Font.font("Verdana", FontWeight.BOLD, 18));
-        trashCounterText.setFill(Color.web("#80ff80"));
-        trashCounterText.setX(20);
-        trashCounterText.setY(FXGL.getAppHeight() - 30);
-        FXGL.addUINode(trashCounterText);
-        updateTrashCounter();
+        if (selectedGameMode != GameMode.SORTING_TEST) {
+            trashCounterText = new Text();
+            trashCounterText.setFont(Font.font("Verdana", FontWeight.BOLD, 18));
+            trashCounterText.setFill(Color.web("#80ff80"));
+            trashCounterText.setX(20);
+            trashCounterText.setY(FXGL.getAppHeight() - 30);
+            FXGL.addUINode(trashCounterText);
+            updateTrashCounter();
+        }
 
         interactPromptText = new Text("Press [E] to Collect Trash (+10s)");
         interactPromptText.setFont(Font.font("Verdana", FontWeight.BOLD, 16));
@@ -383,6 +733,15 @@ public class MovementApp extends GameApplication {
         interactPromptText.setY(FXGL.getAppHeight() - 40);
         interactPromptText.setVisible(false);
         FXGL.addUINode(interactPromptText);
+
+        if (selectedGameMode == GameMode.SORTING_TEST) {
+            sortingStatusText = new Text();
+            sortingStatusText.setFont(Font.font("Verdana", FontWeight.BOLD, 15));
+            sortingStatusText.setFill(Color.web("#f7f4dc"));
+            sortingStatusText.setX(20);
+            sortingStatusText.setY(88);
+            FXGL.addUINode(sortingStatusText);
+        }
 
         refreshTimerLabel();
     }
@@ -415,8 +774,14 @@ public class MovementApp extends GameApplication {
         if (timer == null)
             return;
 
-        if (selectedGameMode == GameMode.LOCAL_COOP_SPLITSCREEN) {
+        if (selectedGameMode == GameMode.LOCAL_COOP_SPLITSCREEN
+                || selectedGameMode == GameMode.SORTING_TEST) {
             updateCoopCamera();
+        }
+
+        if (selectedGameMode == GameMode.SORTING_TEST) {
+            enforceSortingRoles();
+            updateSortingStatus();
         }
 
         if (selectedGameMode != GameMode.LAN_JOIN) {
@@ -425,6 +790,15 @@ public class MovementApp extends GameApplication {
 
         if (mapManager != null) {
             mapManager.update(timer.restorationRatio());
+        }
+
+        if (selectedGameMode == GameMode.QUESTION_TEST && questionPoint != null && playerEntity != null) {
+            double playerCenterX = playerEntity.getCenter().getX();
+            double playerCenterY = playerEntity.getCenter().getY();
+            playerNearQuestionPoint = Math.hypot(
+                    questionPoint.getX() - playerCenterX,
+                    questionPoint.getY() - playerCenterY) <= 110;
+            questionPanel.setVisible(playerNearQuestionPoint);
         }
 
         if (selectedGameMode == GameMode.LAN_HOST && netManager != null && playerEntity != null
@@ -447,11 +821,37 @@ public class MovementApp extends GameApplication {
                 break;
             }
         }
-        if (interactPromptText != null) {
+        if (interactPromptText != null && selectedGameMode != GameMode.SORTING_TEST) {
             interactPromptText.setVisible(nearTrash);
+        } else if (interactPromptText != null) {
+            interactPromptText.setVisible(false);
         }
 
         refreshTimerLabel();
+    }
+
+    private void enforceSortingRoles() {
+        if (playerEntity2 != null) {
+            playerEntity2.setX(Math.max(SORT_ZONE_X + 8,
+                    Math.min(SORT_ZONE_X + SORT_ZONE_WIDTH - 24, playerEntity2.getX())));
+            playerEntity2.setY(Math.max(SORT_ZONE_Y + 8,
+                    Math.min(SORT_ZONE_Y + SORT_ZONE_HEIGHT - 28, playerEntity2.getY())));
+        }
+        if (playerEntity != null
+                && playerEntity.getX() >= SORT_ZONE_X - 5
+                && playerEntity.getX() <= SORT_ZONE_X + SORT_ZONE_WIDTH
+                && playerEntity.getY() >= SORT_ZONE_Y - 5
+                && playerEntity.getY() <= SORT_ZONE_Y + SORT_ZONE_HEIGHT) {
+            playerEntity.setX(SORT_ZONE_X - 28);
+        }
+    }
+
+    private void updateSortingStatus() {
+        if (sortingStatusText == null || sortingTask == null) {
+            return;
+        }
+        sortingStatusText.setText(String.format("Sorted: %d / 8%n%s",
+                sortingTask.sortedItems(), sortingFeedback));
     }
 
     private void refreshTimerLabel() {
@@ -534,6 +934,8 @@ public class MovementApp extends GameApplication {
             subtitle.setFill(Color.web("#d7e77f"));
 
             Button btnSingle = styledButton("Single Player");
+            Button btnQuestionTest = styledButton("Question Test Mode");
+            Button btnSortingTest = styledButton("Sorting Test Mode");
             Button btnLocalCoop = styledButton("Local Co-Op (2 Players)");
             Button btnHostLan = styledButton("Host LAN Co-Op");
             Button btnJoinLan = styledButton("Join LAN Co-Op");
@@ -541,6 +943,16 @@ public class MovementApp extends GameApplication {
 
             btnSingle.setOnAction(e -> {
                 selectedGameMode = GameMode.SINGLE_PLAYER;
+                fireNewGame();
+            });
+
+            btnQuestionTest.setOnAction(e -> {
+                selectedGameMode = GameMode.QUESTION_TEST;
+                fireNewGame();
+            });
+
+            btnSortingTest.setOnAction(e -> {
+                selectedGameMode = GameMode.SORTING_TEST;
                 fireNewGame();
             });
 
@@ -569,7 +981,8 @@ public class MovementApp extends GameApplication {
 
             btnExit.setOnAction(e -> fireExit());
 
-            VBox vbox = new VBox(14, title, subtitle, btnSingle, btnLocalCoop, btnHostLan, btnJoinLan, btnExit);
+            VBox vbox = new VBox(12, title, subtitle, btnSingle, btnQuestionTest, btnSortingTest,
+                    btnLocalCoop, btnHostLan, btnJoinLan, btnExit);
             vbox.setAlignment(Pos.CENTER_LEFT);
             vbox.setTranslateX(108);
 
@@ -613,6 +1026,18 @@ public class MovementApp extends GameApplication {
             gc.fillRect(0, 0, w, h);
             gc.setFill(Color.web("#f1d090", 0.18));
             gc.fillOval(w - 260, 80, 140, 140);
+        }
+    }
+
+    private record WasteItem(String id, String name, String binId) {
+    }
+
+    private record InteractionBox(double x, double y, double width, double height) {
+        private boolean intersectsPlayer(Entity entity) {
+            double playerX = entity.getX();
+            double playerY = entity.getY();
+            return playerX + PLAYER_BOX_WIDTH >= x && playerX <= x + width
+                    && playerY + PLAYER_BOX_HEIGHT >= y && playerY <= y + height;
         }
     }
 }

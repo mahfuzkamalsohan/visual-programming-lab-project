@@ -35,6 +35,19 @@ Controls
 - 1, 2, 3: answer question overlays
 - Esc: pause menu
 
+Sorting Test Mode
+-----------------
+
+Choose `Sorting Test Mode` from the main menu. Player 1 uses WASD to collect one
+concealed waste item at a time and presses E at the sorting-zone intake to deliver
+it. Player 2 uses the arrow keys, is confined inside the zone, and presses E at the
+intake to reveal and carry the next item. Its name floats above Player 2 until E is
+pressed near the appropriate black, blue, green, or red bin. Correct items add seven
+seconds, wrong bins subtract eight seconds, and completing all items adds a further
+fifteen seconds. Red rectangles show the exact player, pickup, intake, and bin
+interaction bounds. The editable debug dimensions are grouped with the `SORT_ZONE_*`
+constants near the top of `MovementApp`.
+
 Project Layout
 --------------
 
@@ -60,7 +73,8 @@ Decision doors are selected from real boundary slots on the current district sha
 Question DAT Format
 -------------------
 
-Question files live in `src/main/resources/assets/restoration/questions`.
+Question files live in `src/main/resources/assets/questions`. The standalone
+`QuestionLoader` can load one bundled DAT resource or every `.dat` file in a directory.
 
 Required keys per record:
 
@@ -69,10 +83,23 @@ id=easy-q-001
 type=QUESTION
 prompt=Question text?
 choices=Choice A|Choice B|Choice C
-answer=0
+answer=0,1
 ```
 
-Records are separated by a blank line. `answer` is zero-based and can be comma-separated. Optional keys: `reward`, `penalty`, `feedback.correct`, `feedback.wrong`.
+Records are separated by a blank line. `answer` contains zero-based indices with the
+best answer first and the second-best answer second. The best answer adds `reward`
+seconds, the second-best answer changes no time, and every other answer subtracts
+`penalty` seconds. Optional keys: `reward`, `penalty`, `feedback.correct`,
+`feedback.wrong`.
+
+Standalone Task Logic
+---------------------
+
+`CollectionTask` and `SortingTask` track progress without depending on FXGL. Each
+returns a `TaskResult`; pass that result to `TaskTimer.apply(timer, result)` to apply
+its reward or penalty to a `RestorationTimer`. Rewards are issued once, when a task
+becomes complete. These classes are intentionally not connected to the current game
+scene yet.
 
 Regenerate Demo PNG Assets
 --------------------------

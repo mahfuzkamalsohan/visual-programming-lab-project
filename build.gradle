@@ -32,6 +32,13 @@ application {
 
 dependencies {
     implementation "com.github.almasb:fxgl:${fxglVersion}"
+
+    testImplementation platform('org.junit:junit-bom:5.11.4')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
 }
 
 tasks.withType(JavaCompile).configureEach {

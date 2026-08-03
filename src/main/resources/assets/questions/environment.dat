@@ -1,0 +1,27 @@
+# answer lists the best option first and the second-best option second.
+id=environment-q-001
+prompt=You are leaving a room for several hours. What should you do with the lights?
+choices=Switch them off|Leave only one light on|Leave every light on
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Turning unused lights off saves energy.
+feedback.wrong=Leaving all the lights on wastes energy.
+
+id=environment-q-002
+prompt=Which choice is best for carrying groceries?
+choices=Use reusable bags|Reuse plastic bags you already have|Ask for new plastic bags each time
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Reusable bags reduce single-use waste.
+feedback.wrong=Taking new single-use bags creates avoidable waste.
+
+id=environment-q-003
+prompt=What is the best way to dispose of an empty recyclable bottle?
+choices=Put it in the correct recycling bin|Reuse it safely before recycling it|Drop it beside the road
+answer=0,1
+reward=15
+penalty=10
+feedback.correct=Correct sorting helps recyclable material get processed.
+feedback.wrong=Litter can harm wildlife and pollute the environment.
