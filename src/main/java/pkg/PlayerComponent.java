@@ -41,6 +41,10 @@ public class PlayerComponent extends Component {
         this.playerIndex = playerIndex;
     }
 
+    public int getPlayerIndex() {
+        return playerIndex;
+    }
+
     @Override
     public void onAdded() {
         walkAnimations = new EnumMap<>(Direction.class);

@@ -48,6 +48,30 @@ fifteen seconds. Red rectangles show the exact player, pickup, intake, and bin
 interaction bounds. The editable debug dimensions are grouped with the `SORT_ZONE_*`
 constants near the top of `MovementApp`.
 
+Three-Stage Demo Map
+--------------------
+
+Choose `3-Stage Demo Map` to load `level_demo.tmx` and run the standalone systems
+in sequence:
+
+1. Collect all four mapped garbage bags with E.
+2. Approach the mapped question point and answer with 1, 2, or 3.
+3. Complete the two-player intake and four-bin sorting stage with E.
+
+The demo uses WASD for Player 1 and arrow keys for Player 2. Later stages remain
+hidden until the preceding stage is complete. The 72x32 open world places collection
+in the western district, questions in the center, and sorting in the eastern district,
+so players travel across the map between stages. Player 2 is only locked after walking
+inside the sorting zone. `level_demo.tmx` contains separate
+object layers for players, collection objects, the question point, the sorting zone,
+the intake, bins, waste, and boundaries. Reward and penalty tuning values are stored
+as map properties. Its isometric orientation, tileset, tile dimensions, and
+CSV-encoded `Tile Layer 1` use the same format as `level_0.tmx`, so it can be edited
+with the same Tiled workflow. Every gameplay object has
+a stable `logicalId`; task objects also have `itemId`, `binId`, or
+`questionResource` properties as appropriate. Their current coordinates and visuals
+are placeholders intended to be edited directly in Tiled.
+
 Project Layout
 --------------
 

@@ -4,6 +4,7 @@ public enum GameMode {
     SINGLE_PLAYER,
     QUESTION_TEST,
     SORTING_TEST,
+    SEQUENTIAL_DEMO,
     LOCAL_COOP_SPLITSCREEN,
     LAN_HOST,
     LAN_JOIN
