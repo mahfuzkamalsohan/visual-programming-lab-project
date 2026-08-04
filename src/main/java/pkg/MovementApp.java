@@ -88,6 +88,8 @@ public class MovementApp extends GameApplication {
 
     private final int TOTAL_TRASH = 8;
     private int collectedTrash = 0;
+    private int trashMask = (1 << TOTAL_TRASH) - 1;
+    private final Map<Integer, Entity> trashEntities = new java.util.HashMap<>();
 
     private boolean clientUp, clientDown, clientLeft, clientRight, clientInteract;
 
@@ -149,10 +151,12 @@ public class MovementApp extends GameApplication {
 
     @Override
     protected void initSettings(GameSettings settings) {
-        settings.setWidth(1920);
-        settings.setHeight(1080);
+        settings.setWidth(1280);
+        settings.setHeight(720);
         settings.setFullScreenAllowed(true);
-        settings.setFullScreenFromStart(true);
+        settings.setFullScreenFromStart(false);
+        settings.setManualResizeEnabled(true);
+        settings.setPreserveResizeRatio(true);
         settings.setTitle("Restoration");
         settings.setVersion("0.1.0");
         settings.setMainMenuEnabled(true);
@@ -208,6 +212,11 @@ public class MovementApp extends GameApplication {
 
         bindKey("P2 Interact / Collect", KeyCode.SLASH,
                 this::tryCollectTrashP2,
+                () -> {
+                });
+
+        bindKey("Toggle Fullscreen", KeyCode.F11,
+                () -> FXGL.getPrimaryStage().setFullScreen(!FXGL.getPrimaryStage().isFullScreen()),
                 () -> {
                 });
 
@@ -786,6 +795,9 @@ public class MovementApp extends GameApplication {
 
     private void tryCollectTrashP1() {
         if (selectedGameMode == GameMode.LAN_JOIN) {
+            clientInteract = true;
+            sendClientInputPacket();
+            clientInteract = false;
             return;
         }
         if (selectedGameMode == GameMode.SEQUENTIAL_DEMO) {
@@ -846,24 +858,18 @@ public class MovementApp extends GameApplication {
 
     private void collectNearbyTrashForPlayer(Entity player) {
         if (player == null) return;
-        List<Entity> trashes = FXGL.getGameWorld().getEntitiesByType(EntityType.TRASH);
-        for (Entity trash : trashes) {
-            if (safelyCollides(player, trash)) {
+        for (Map.Entry<Integer, Entity> entry : List.copyOf(trashEntities.entrySet())) {
+            int idx = entry.getKey();
+            Entity trash = entry.getValue();
+            if (trash != null && trash.isActive() && safelyCollides(player, trash)) {
                 trash.removeFromWorld();
+                trashMask &= ~(1 << idx);
                 collectedTrash++;
-                if (collectedTrash >= TOTAL_TRASH) {
-                    if (levelNoticeText != null) {
-                        levelNoticeText.setText("LEVEL RESTORED!");
-                        levelNoticeText.setFill(Color.web("#39ff14"));
-                        if (!FXGL.getGameScene().getUINodes().contains(levelNoticeText)) {
-                            FXGL.addUINode(levelNoticeText);
-                        }
-                    }
-                    if (trashCounterText != null) {
-                        trashCounterText.setText(String.format("Trash Collected: %d / %d (COMPLETE!)", collectedTrash, TOTAL_TRASH));
-                        trashCounterText.setFill(Color.web("#ffd700"));
-                    }
+                if (timer != null) {
+                    timer.applyDelta(10.0);
                 }
+                updateTrashCounter();
+                checkLevelCompletion();
                 break;
             }
         }
@@ -1041,6 +1047,8 @@ public class MovementApp extends GameApplication {
 
     private void spawnRandomTrash() {
         collectedTrash = 0;
+        trashMask = (1 << TOTAL_TRASH) - 1;
+        trashEntities.clear();
         double[][] spawnPositions = {
                 { 200, 180 },
                 { 320, 240 },
@@ -1057,6 +1065,8 @@ public class MovementApp extends GameApplication {
             double y = (i < spawnPositions.length) ? spawnPositions[i][1] : 150 + Math.random() * 200;
             Entity trash = FXGL.spawn("trash", new SpawnData(x, y));
             trash.setRotation(FXGL.random(0, 360));
+            trash.setProperty("trashIndex", i);
+            trashEntities.put(i, trash);
         }
     }
 
@@ -1146,16 +1156,31 @@ public class MovementApp extends GameApplication {
     private void applyRemoteGameState(GameStatePacket packet) {
         if (playerEntity != null) {
             playerEntity.setPosition(packet.p1X, packet.p1Y);
-            playerComponent.setRemoteState(
-                    Direction.values()[Math.min(packet.p1DirIndex, Direction.values().length - 1)], packet.p1Moving);
+            if (playerComponent != null) {
+                playerComponent.setRemoteState(
+                        Direction.values()[Math.min(packet.p1DirIndex, Direction.values().length - 1)], packet.p1Moving);
+            }
         }
         if (playerEntity2 != null) {
             playerEntity2.setPosition(packet.p2X, packet.p2Y);
-            playerComponent2.setRemoteState(
-                    Direction.values()[Math.min(packet.p2DirIndex, Direction.values().length - 1)], packet.p2Moving);
+            if (playerComponent2 != null) {
+                playerComponent2.setRemoteState(
+                        Direction.values()[Math.min(packet.p2DirIndex, Direction.values().length - 1)], packet.p2Moving);
+            }
         }
         if (timer != null) {
             timer.setCurrentSeconds(packet.remainingTime);
+        }
+        this.collectedTrash = packet.collectedTrash;
+        updateTrashCounter();
+        checkLevelCompletion();
+
+        for (Map.Entry<Integer, Entity> entry : trashEntities.entrySet()) {
+            int idx = entry.getKey();
+            boolean isActiveOnHost = (packet.trashMask & (1 << idx)) != 0;
+            if (!isActiveOnHost && entry.getValue() != null && entry.getValue().isActive()) {
+                entry.getValue().removeFromWorld();
+            }
         }
     }
 
@@ -1348,7 +1373,9 @@ public class MovementApp extends GameApplication {
                     playerComponent.isMoving(),
                     playerEntity2.getX(), playerEntity2.getY(), playerComponent2.getCurrentDirection().index,
                     playerComponent2.isMoving(),
-                    timer.currentSeconds());
+                    timer.currentSeconds(),
+                    trashMask,
+                    collectedTrash);
             netManager.sendGameState(packet);
         }
 
@@ -1653,6 +1680,41 @@ public class MovementApp extends GameApplication {
         }
     }
 
+    private static void bindWindowControls(Node root) {
+        if (root == null) return;
+        Button btnMin = (Button) root.lookup("#btnMinimize");
+        Button btnFS = (Button) root.lookup("#btnFullscreen");
+        Button btnClose = (Button) root.lookup("#btnClose");
+
+        if (btnMin != null) {
+            btnMin.setOnAction(e -> {
+                try {
+                    if (FXGL.getPrimaryStage() != null) {
+                        FXGL.getPrimaryStage().setIconified(true);
+                    }
+                } catch (Exception ignored) {}
+            });
+        }
+        if (btnFS != null) {
+            btnFS.setOnAction(e -> toggleFullscreen());
+        }
+        if (btnClose != null) {
+            btnClose.setOnAction(e -> showPixelExitConfirmation());
+        }
+    }
+
+    private static void toggleFullscreen() {
+        try {
+            javafx.stage.Stage stage = FXGL.getPrimaryStage();
+            if (stage != null) {
+                boolean current = stage.isFullScreen();
+                stage.setFullScreen(!current);
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+
     private void stopNetworking() {
         if (netManager != null) {
             netManager.stop();
@@ -1683,6 +1745,7 @@ public class MovementApp extends GameApplication {
                 Button btnLocalCoop = (Button) menuRoot.lookup("#btnLocalCoop");
                 Button btnHostLan = (Button) menuRoot.lookup("#btnHostLan");
                 Button btnJoinLan = (Button) menuRoot.lookup("#btnJoinLan");
+                Button btnFullscreen = (Button) menuRoot.lookup("#btnFullscreen");
                 Button btnExit = (Button) menuRoot.lookup("#btnExit");
 
                 if (btnSingle != null)
