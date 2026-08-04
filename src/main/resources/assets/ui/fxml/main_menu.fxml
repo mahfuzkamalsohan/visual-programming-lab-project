@@ -6,7 +6,8 @@
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
-<StackPane stylesheets="@../css/pixel_style.css" prefWidth="1280.0" prefHeight="720.0" xmlns="http://javafx.com/fxml/1" xmlns:fx="http://javafx.com/fxml/1">
+<StackPane stylesheets="@../css/pixel_style.css" prefWidth="1280.0" prefHeight="720.0"
+    xmlns="http://javafx.com/fxml/1" xmlns:fx="http://javafx.com/fxml/1">
     <children>
         <VBox alignment="CENTER_LEFT" spacing="8.0" translateX="108.0">
             <padding>
@@ -14,20 +15,28 @@
             </padding>
             <children>
                 <Label text="RESTORATION" styleClass="pixel-title" />
-                <Label text="★ 8-BIT RETRO RESTORATION ADVENTURE ★" styleClass="pixel-subtitle" />
+                <Label text="★ RESTORATION ADVENTURE ★" styleClass="pixel-subtitle" />
                 <VBox spacing="6.0">
                     <VBox.margin>
                         <Insets top="12.0" />
                     </VBox.margin>
                     <children>
-                        <Button fx:id="btnSingle" text="Single Player" prefWidth="280.0" prefHeight="38.0" styleClass="pixel-button" />
-                        <Button fx:id="btnQuestionTest" text="Question Test Mode" prefWidth="280.0" prefHeight="38.0" styleClass="pixel-button" />
-                        <Button fx:id="btnSortingTest" text="Sorting Test Mode" prefWidth="280.0" prefHeight="38.0" styleClass="pixel-button" />
-                        <Button fx:id="btnSequentialDemo" text="3-Stage Demo Map" prefWidth="280.0" prefHeight="38.0" styleClass="pixel-button" />
-                        <Button fx:id="btnLocalCoop" text="Local Co-Op (2 Players)" prefWidth="280.0" prefHeight="38.0" styleClass="pixel-button" />
-                        <Button fx:id="btnHostLan" text="Host LAN Co-Op" prefWidth="280.0" prefHeight="38.0" styleClass="pixel-button" />
-                        <Button fx:id="btnJoinLan" text="Join LAN Co-Op" prefWidth="280.0" prefHeight="38.0" styleClass="pixel-button" />
-                        <Button fx:id="btnExit" text="Exit" prefWidth="280.0" prefHeight="38.0" styleClass="pixel-button" />
+                        <Button fx:id="btnSingle" text="Single Player" prefWidth="280.0"
+                            prefHeight="38.0" styleClass="pixel-button" />
+                        <Button fx:id="btnQuestionTest" text="Question Test Mode" prefWidth="280.0"
+                            prefHeight="38.0" styleClass="pixel-button" />
+                        <Button fx:id="btnSortingTest" text="Sorting Test Mode" prefWidth="280.0"
+                            prefHeight="38.0" styleClass="pixel-button" />
+                        <Button fx:id="btnSequentialDemo" text="3-Stage Demo Map" prefWidth="280.0"
+                            prefHeight="38.0" styleClass="pixel-button" />
+                        <Button fx:id="btnLocalCoop" text="Local Co-Op (2 Players)"
+                            prefWidth="280.0" prefHeight="38.0" styleClass="pixel-button" />
+                        <Button fx:id="btnHostLan" text="Host LAN Co-Op" prefWidth="280.0"
+                            prefHeight="38.0" styleClass="pixel-button" />
+                        <Button fx:id="btnJoinLan" text="Join LAN Co-Op" prefWidth="280.0"
+                            prefHeight="38.0" styleClass="pixel-button" />
+                        <Button fx:id="btnExit" text="Exit" prefWidth="280.0" prefHeight="38.0"
+                            styleClass="pixel-button" />
                     </children>
                 </VBox>
             </children>
