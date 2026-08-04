@@ -150,7 +150,7 @@ public class MovementApp extends GameApplication {
     @Override
     protected void initSettings(GameSettings settings) {
         settings.setWidth(1920);
-        settings.setHeight(1080);
+        settings.setHeight(1000);
         settings.setTitle("Restoration");
         settings.setVersion("0.1.0");
         settings.setMainMenuEnabled(true);
