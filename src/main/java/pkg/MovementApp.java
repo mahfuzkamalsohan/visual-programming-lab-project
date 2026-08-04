@@ -1,61 +1,5 @@
 package pkg;
 
-import com.almasb.fxgl.app.GameApplication;
-import com.almasb.fxgl.app.GameSettings;
-import com.almasb.fxgl.app.scene.FXGLMenu;
-import com.almasb.fxgl.app.scene.MenuType;
-import com.almasb.fxgl.app.scene.SceneFactory;
-import com.almasb.fxgl.dsl.FXGL;
-import com.almasb.fxgl.entity.Entity;
-import com.almasb.fxgl.entity.EntityFactory;
-import com.almasb.fxgl.entity.SpawnData;
-import com.almasb.fxgl.entity.Spawns;
-import com.almasb.fxgl.entity.components.CollidableComponent;
-import com.almasb.fxgl.input.UserAction;
-import com.almasb.fxgl.physics.BoundingShape;
-import com.almasb.fxgl.physics.CollisionHandler;
-import com.almasb.fxgl.physics.HitBox;
-import com.almasb.fxgl.entity.level.Level;
-import com.almasb.fxgl.app.scene.Viewport;
-
-import javafx.fxml.FXMLLoader;
-import javafx.geometry.Pos;
-import javafx.geometry.Insets;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.Label;
-import javafx.scene.control.TextInputDialog;
-import java.util.Optional;
-import javafx.scene.input.KeyCode;
-import javafx.scene.Node;
-import javafx.scene.image.ImageView;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
-import javafx.scene.paint.Color;
-import javafx.scene.shape.Rectangle;
-import javafx.scene.shape.Circle;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
-import javafx.scene.text.Text;
-import javafx.util.Duration;
-
-import pkg.net.GameStatePacket;
-import pkg.net.InputPacket;
-import pkg.net.NetworkManager;
-import pkg.restoration.systems.DynamicMapManager;
-import pkg.restoration.systems.RestorationTimer;
-import pkg.restoration.questions.EnvironmentalQuestion;
-import pkg.restoration.questions.QuestionLoader;
-import pkg.restoration.questions.QuestionResult;
-import pkg.restoration.questions.QuestionSelector;
-import pkg.restoration.tasks.TaskTimer;
-import pkg.restoration.tasks.SortingTask;
-import pkg.restoration.tasks.TaskResult;
-import pkg.restoration.tasks.CollectionTask;
-
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -64,6 +8,58 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
+import com.almasb.fxgl.app.GameApplication;
+import com.almasb.fxgl.app.GameSettings;
+import com.almasb.fxgl.app.scene.FXGLMenu;
+import com.almasb.fxgl.app.scene.MenuType;
+import com.almasb.fxgl.app.scene.SceneFactory;
+import com.almasb.fxgl.app.scene.Viewport;
+import com.almasb.fxgl.dsl.FXGL;
+import com.almasb.fxgl.entity.Entity;
+import com.almasb.fxgl.entity.EntityFactory;
+import com.almasb.fxgl.entity.SpawnData;
+import com.almasb.fxgl.entity.Spawns;
+import com.almasb.fxgl.entity.components.CollidableComponent;
+import com.almasb.fxgl.entity.level.Level;
+import com.almasb.fxgl.input.UserAction;
+import com.almasb.fxgl.physics.BoundingShape;
+import com.almasb.fxgl.physics.HitBox;
+
+import javafx.fxml.FXMLLoader;
+import javafx.geometry.Pos;
+import javafx.scene.Node;
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextInputDialog;
+import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
+import javafx.scene.shape.Rectangle;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
+import javafx.util.Duration;
+import pkg.net.GameStatePacket;
+import pkg.net.InputPacket;
+import pkg.net.NetworkManager;
+import pkg.restoration.questions.EnvironmentalQuestion;
+import pkg.restoration.questions.QuestionLoader;
+import pkg.restoration.questions.QuestionResult;
+import pkg.restoration.questions.QuestionSelector;
+import pkg.restoration.systems.DynamicMapManager;
+import pkg.restoration.systems.RestorationTimer;
+import pkg.restoration.tasks.CollectionTask;
+import pkg.restoration.tasks.SortingTask;
+import pkg.restoration.tasks.TaskResult;
+import pkg.restoration.tasks.TaskTimer;
 
 public class MovementApp extends GameApplication {
 
@@ -153,8 +149,8 @@ public class MovementApp extends GameApplication {
 
     @Override
     protected void initSettings(GameSettings settings) {
-        settings.setWidth(1280);
-        settings.setHeight(720);
+        settings.setWidth(1920);
+        settings.setHeight(1080);
         settings.setTitle("Restoration");
         settings.setVersion("0.1.0");
         settings.setMainMenuEnabled(true);
