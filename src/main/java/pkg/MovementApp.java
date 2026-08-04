@@ -300,9 +300,15 @@ public class MovementApp extends GameApplication {
                 : "tmx/level_0.tmx";
         Level level = FXGL.setLevelFromMap(mapPath);
 
-        mapManager = new DynamicMapManager(mapPath);
-        if (level != null) {
-            mapManager.setInitialTileEntities(level.getEntities());
+        // The demo is substantially larger than the chunked 40x40 restoration map.
+        // Keep its TMX layer intact instead of masking most of it as unexplored.
+        if (selectedGameMode == GameMode.SEQUENTIAL_DEMO) {
+            mapManager = null;
+        } else {
+            mapManager = new DynamicMapManager(mapPath);
+            if (level != null) {
+                mapManager.setInitialTileEntities(level.getEntities());
+            }
         }
 
         List<Entity> players = FXGL.getGameWorld().getEntitiesByComponent(PlayerComponent.class);
@@ -1019,9 +1025,18 @@ public class MovementApp extends GameApplication {
 
     private void updateCoopCamera() {
         if (playerEntity != null && playerEntity2 != null) {
-            double midX = (playerEntity.getX() + playerEntity2.getX()) / 2.0 + 120.0;
-            double midY = (playerEntity.getY() + playerEntity2.getY()) / 2.0 + 120.0;
-            FXGL.getGameScene().getViewport().focusOn(new javafx.geometry.Point2D(midX, midY));
+            if (selectedGameMode != GameMode.SEQUENTIAL_DEMO) {
+                double midX = (playerEntity.getX() + playerEntity2.getX()) / 2.0 + 120.0;
+                double midY = (playerEntity.getY() + playerEntity2.getY()) / 2.0 + 120.0;
+                FXGL.getGameScene().getViewport().focusOn(new javafx.geometry.Point2D(midX, midY));
+                return;
+            }
+
+            double midX = (playerEntity.getCenter().getX() + playerEntity2.getCenter().getX()) / 2.0;
+            double midY = (playerEntity.getCenter().getY() + playerEntity2.getCenter().getY()) / 2.0;
+            Viewport viewport = FXGL.getGameScene().getViewport();
+            viewport.setX(midX - viewport.getWidth() / (2.0 * viewport.getZoom()));
+            viewport.setY(midY - viewport.getHeight() / (2.0 * viewport.getZoom()));
         }
     }
 
