@@ -89,7 +89,7 @@ public class MovementApp extends GameApplication {
     private final int TOTAL_TRASH = 8;
     private int collectedTrash = 0;
 
-    private boolean clientUp, clientDown, clientLeft, clientRight;
+    private boolean clientUp, clientDown, clientLeft, clientRight, clientInteract;
 
     private Entity questionPoint;
     private VBox questionPanel;
@@ -150,7 +150,9 @@ public class MovementApp extends GameApplication {
     @Override
     protected void initSettings(GameSettings settings) {
         settings.setWidth(1920);
-        settings.setHeight(1000);
+        settings.setHeight(1080);
+        settings.setFullScreenAllowed(true);
+        settings.setFullScreenFromStart(true);
         settings.setTitle("Restoration");
         settings.setVersion("0.1.0");
         settings.setMainMenuEnabled(true);
@@ -199,8 +201,13 @@ public class MovementApp extends GameApplication {
                 () -> handleMovement(2, Direction.EAST, true),
                 () -> handleMovement(2, Direction.EAST, false));
 
-        bindKey("Collect Trash", KeyCode.E,
-                this::tryCollectTrash,
+        bindKey("P1 Interact / Collect", KeyCode.E,
+                this::tryCollectTrashP1,
+                () -> {
+                });
+
+        bindKey("P2 Interact / Collect", KeyCode.SLASH,
+                this::tryCollectTrashP2,
                 () -> {
                 });
 
@@ -660,7 +667,8 @@ public class MovementApp extends GameApplication {
                 }
             }
         } else if (demoStage == DemoStage.SORTING) {
-            interactWithSortingTest();
+            interactWithSortingP1();
+            interactWithSortingP2();
         }
     }
 
@@ -776,45 +784,93 @@ public class MovementApp extends GameApplication {
         sortingBinBoxes.put(entity, new InteractionBox(x + boxOffsetX, y + boxOffsetY, BIN_BOX_WIDTH, BIN_BOX_HEIGHT));
     }
 
-    private void interactWithSortingTest() {
-        if (playerEntity2 != null) {
-            if (insideCarriedWaste != null) {
-                for (Map.Entry<Entity, String> bin : sortingBins.entrySet()) {
-                    if (sortingBinBoxes.get(bin.getKey()).intersectsPlayer(playerEntity2)) {
-                        TaskResult result = sortingTask.sort(insideCarriedWaste.id(), bin.getValue());
-                        double applied = TaskTimer.apply(timer, result);
-                        sortingFeedback = result.message() + String.format(" (%+.0f seconds)", applied);
-                        boolean retryableWrongBin = result.status() == pkg.restoration.tasks.TaskStatus.REJECTED
-                                && "Wrong bin".equals(result.message());
-                        if (!retryableWrongBin) {
-                            clearInsideCarriedWaste();
-                        }
-                        if (selectedGameMode == GameMode.SEQUENTIAL_DEMO && sortingTask.isComplete() && !gameEnded) {
-                            gameEnded = true;
-                            demoStage = DemoStage.COMPLETE;
-                            sortingFeedback = "Demo complete — all three stages passed";
-                            if (timer != null) {
-                                timer.applyDelta(120.0);
-                            }
-                            showEndGameOverlay("WORLD RESTORED",
-                                    "All 3 stages completed successfully!\nAdded +120 seconds bonus time.", true);
-                        }
-                        return;
-                    }
+    private void tryCollectTrashP1() {
+        if (selectedGameMode == GameMode.LAN_JOIN) {
+            return;
+        }
+        if (selectedGameMode == GameMode.SEQUENTIAL_DEMO) {
+            if (demoStage == DemoStage.COLLECTION) {
+                interactWithDemoCollection(playerEntity);
+            } else if (demoStage == DemoStage.SORTING) {
+                interactWithSortingP1();
+            }
+            return;
+        }
+        if (selectedGameMode == GameMode.SORTING_TEST) {
+            interactWithSortingP1();
+            return;
+        }
+        collectNearbyTrashForPlayer(playerEntity);
+    }
+
+    private void tryCollectTrashP2() {
+        if (selectedGameMode == GameMode.LAN_JOIN) {
+            clientInteract = true;
+            sendClientInputPacket();
+            clientInteract = false;
+            return;
+        }
+        if (selectedGameMode == GameMode.SEQUENTIAL_DEMO) {
+            if (demoStage == DemoStage.COLLECTION) {
+                interactWithDemoCollection(playerEntity2 != null ? playerEntity2 : playerEntity);
+            } else if (demoStage == DemoStage.SORTING) {
+                interactWithSortingP2();
+            }
+            return;
+        }
+        if (selectedGameMode == GameMode.SORTING_TEST) {
+            interactWithSortingP2();
+            return;
+        }
+        collectNearbyTrashForPlayer(playerEntity2 != null ? playerEntity2 : playerEntity);
+    }
+
+    private void interactWithDemoCollection(Entity player) {
+        if (player == null || demoStage != DemoStage.COLLECTION) return;
+        for (Map.Entry<Entity, String> entry : List.copyOf(demoCollectionItems.entrySet())) {
+            InteractionBox pickup = new InteractionBox(
+                    entry.getKey().getX() - 16, entry.getKey().getY() - 16,
+                    PICKUP_BOX_WIDTH + 32, PICKUP_BOX_HEIGHT + 32);
+            if (pickup.intersectsPlayer(player) || safelyCollides(player, entry.getKey())) {
+                TaskResult result = demoCollectionTask.collect(entry.getValue());
+                TaskTimer.apply(timer, result);
+                entry.getKey().removeFromWorld();
+                demoCollectionItems.remove(entry.getKey());
+                if (result.completedNow()) {
+                    activateDemoQuestionStage();
                 }
-            } else if (!sortingIntake.isEmpty() && sortingIntakeBox.intersectsPlayer(playerEntity2)) {
-                insideCarriedWaste = sortingIntake.removeFirst();
-                if (intakeWasteView != null) {
-                    intakeWasteView.setVisible(!sortingIntake.isEmpty());
-                }
-                if (sorterCarriedWasteView != null) {
-                    sorterCarriedWasteView.setVisible(true);
-                }
-                sortingFeedback = "P2 identified: " + insideCarriedWaste.name();
                 return;
             }
         }
+    }
 
+    private void collectNearbyTrashForPlayer(Entity player) {
+        if (player == null) return;
+        List<Entity> trashes = FXGL.getGameWorld().getEntitiesByType(EntityType.TRASH);
+        for (Entity trash : trashes) {
+            if (safelyCollides(player, trash)) {
+                trash.removeFromWorld();
+                collectedTrash++;
+                if (collectedTrash >= TOTAL_TRASH) {
+                    if (levelNoticeText != null) {
+                        levelNoticeText.setText("LEVEL RESTORED!");
+                        levelNoticeText.setFill(Color.web("#39ff14"));
+                        if (!FXGL.getGameScene().getUINodes().contains(levelNoticeText)) {
+                            FXGL.addUINode(levelNoticeText);
+                        }
+                    }
+                    if (trashCounterText != null) {
+                        trashCounterText.setText(String.format("Trash Collected: %d / %d (COMPLETE!)", collectedTrash, TOTAL_TRASH));
+                        trashCounterText.setFill(Color.web("#ffd700"));
+                    }
+                }
+                break;
+            }
+        }
+    }
+
+    private void interactWithSortingP1() {
+        if (playerEntity == null) return;
         if (outsideCarriedWaste != null && sortingIntakeBox.intersectsPlayer(playerEntity)) {
             sortingIntake.addLast(outsideCarriedWaste);
             outsideCarriedWaste = null;
@@ -824,7 +880,7 @@ public class MovementApp extends GameApplication {
             if (intakeWasteView != null) {
                 intakeWasteView.setVisible(true);
             }
-            sortingFeedback = "Waste delivered. P2: press E at the intake to identify it";
+            sortingFeedback = "Waste delivered. P2: press / at the intake to identify it";
             return;
         }
         if (outsideCarriedWaste == null) {
@@ -841,6 +897,45 @@ public class MovementApp extends GameApplication {
                     return;
                 }
             }
+        }
+    }
+
+    private void interactWithSortingP2() {
+        if (playerEntity2 == null) return;
+        if (insideCarriedWaste != null) {
+            for (Map.Entry<Entity, String> bin : sortingBins.entrySet()) {
+                if (sortingBinBoxes.get(bin.getKey()).intersectsPlayer(playerEntity2)) {
+                    TaskResult result = sortingTask.sort(insideCarriedWaste.id(), bin.getValue());
+                    double applied = TaskTimer.apply(timer, result);
+                    sortingFeedback = result.message() + String.format(" (%+.0f seconds)", applied);
+                    boolean retryableWrongBin = result.status() == pkg.restoration.tasks.TaskStatus.REJECTED
+                            && "Wrong bin".equals(result.message());
+                    if (!retryableWrongBin) {
+                        clearInsideCarriedWaste();
+                    }
+                    if (selectedGameMode == GameMode.SEQUENTIAL_DEMO && sortingTask.isComplete() && !gameEnded) {
+                        gameEnded = true;
+                        demoStage = DemoStage.COMPLETE;
+                        sortingFeedback = "Demo complete — all three stages passed";
+                        if (timer != null) {
+                            timer.applyDelta(120.0);
+                        }
+                        showEndGameOverlay("WORLD RESTORED",
+                                "All 3 stages completed successfully!\nAdded +120 seconds bonus time.", true);
+                    }
+                    return;
+                }
+            }
+        } else if (!sortingIntake.isEmpty() && sortingIntakeBox.intersectsPlayer(playerEntity2)) {
+            insideCarriedWaste = sortingIntake.removeFirst();
+            if (intakeWasteView != null) {
+                intakeWasteView.setVisible(!sortingIntake.isEmpty());
+            }
+            if (sorterCarriedWasteView != null) {
+                sorterCarriedWasteView.setVisible(true);
+            }
+            sortingFeedback = "P2 identified: " + insideCarriedWaste.name();
+            return;
         }
     }
 
@@ -971,29 +1066,7 @@ public class MovementApp extends GameApplication {
     }
 
     private void tryCollectTrash() {
-        if (selectedGameMode == GameMode.SEQUENTIAL_DEMO) {
-            interactWithSequentialDemo();
-            return;
-        }
-        if (selectedGameMode == GameMode.SORTING_TEST) {
-            interactWithSortingTest();
-            return;
-        }
-        List<Entity> trashes = FXGL.getGameWorld().getEntitiesByType(EntityType.TRASH);
-        for (Entity trash : trashes) {
-            boolean p1Colliding = safelyCollides(playerEntity, trash);
-            boolean p2Colliding = safelyCollides(playerEntity2, trash);
-            if (p1Colliding || p2Colliding) {
-                trash.removeFromWorld();
-                collectedTrash++;
-                if (timer != null) {
-                    timer.applyDelta(10.0);
-                }
-                updateTrashCounter();
-                checkLevelCompletion();
-                break;
-            }
-        }
+        tryCollectTrashP1();
     }
 
     private void setupViewports() {
@@ -1051,6 +1124,9 @@ public class MovementApp extends GameApplication {
                         playerComponent2.setLeft(input.left);
                         playerComponent2.setRight(input.right);
                     }
+                    if (input.interact) {
+                        tryCollectTrashP2();
+                    }
                 });
             });
         } else if (selectedGameMode == GameMode.LAN_JOIN) {
@@ -1063,7 +1139,7 @@ public class MovementApp extends GameApplication {
 
     private void sendClientInputPacket() {
         if (selectedGameMode == GameMode.LAN_JOIN && netManager != null) {
-            netManager.sendInputPacket(new InputPacket(clientUp, clientDown, clientLeft, clientRight));
+            netManager.sendInputPacket(new InputPacket(clientUp, clientDown, clientLeft, clientRight, clientInteract));
         }
     }
 
@@ -1102,7 +1178,7 @@ public class MovementApp extends GameApplication {
         if (selectedGameMode == GameMode.QUESTION_TEST) {
             modeStatusText.setText("Question Test — Answered: 0 / " + testQuestions.size());
         } else if (selectedGameMode == GameMode.SORTING_TEST) {
-            modeStatusText.setText("Sorting Test — P1: WASD, P2: arrows, E: interact");
+            modeStatusText.setText("Sorting Test — P1: WASD + E, P2: Arrows + /");
         } else if (selectedGameMode == GameMode.SEQUENTIAL_DEMO) {
             modeStatusText.setText("Sequential Demo — P1: WASD, P2: arrows, E: interact");
         } else if (selectedGameMode == GameMode.LOCAL_COOP_SPLITSCREEN) {
