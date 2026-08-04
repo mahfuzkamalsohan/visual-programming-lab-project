@@ -50,6 +50,7 @@ import pkg.restoration.systems.RestorationTimer;
 import pkg.restoration.questions.EnvironmentalQuestion;
 import pkg.restoration.questions.QuestionLoader;
 import pkg.restoration.questions.QuestionResult;
+import pkg.restoration.questions.QuestionSelector;
 import pkg.restoration.tasks.TaskTimer;
 import pkg.restoration.tasks.SortingTask;
 import pkg.restoration.tasks.TaskResult;
@@ -57,6 +58,7 @@ import pkg.restoration.tasks.CollectionTask;
 
 import java.io.IOException;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -67,6 +69,7 @@ public class MovementApp extends GameApplication {
 
     private static final double INITIAL_TIME = 120.0;
     private static final double MAX_TIME = 120.0;
+    private static final int DEMO_QUESTION_COUNT = 6;
 
     public static GameMode selectedGameMode = GameMode.SINGLE_PLAYER;
     public static String targetHostIp = "127.0.0.1";
@@ -97,6 +100,7 @@ public class MovementApp extends GameApplication {
     private Label questionLabel;
     private Label questionFeedbackLabel;
     private List<EnvironmentalQuestion> testQuestions = List.of();
+    private final List<Entity> demoQuestionEntities = new ArrayList<>();
     private int testQuestionIndex;
     private boolean playerNearQuestionPoint;
     private boolean questionAnswerLocked;
@@ -275,6 +279,13 @@ public class MovementApp extends GameApplication {
 
     @Override
     protected void initGame() {
+        // A new game clears FXGL's world, but Java fields still reference entities from
+        // the previous run. Reset them before resolving players from the new level.
+        playerEntity = null;
+        playerEntity2 = null;
+        playerComponent = null;
+        playerComponent2 = null;
+
         FXGL.getGameScene().setBackgroundColor(Color.web("#17231e"));
         timer = new RestorationTimer(INITIAL_TIME, MAX_TIME);
         gameEnded = false;
@@ -346,26 +357,23 @@ public class MovementApp extends GameApplication {
         } catch (IOException exception) {
             throw new IllegalStateException("Could not load question test data", exception);
         }
-
-        double[][] positions = {
-                { 420, 220 }, { 220, 160 }, { 580, 260 }, { 180, 320 },
-                { 350, 380 }, { 500, 150 }, { 300, 220 }, { 620, 340 }
-        };
-
-        for (int i = 0; i < testQuestions.size(); i++) {
-            EnvironmentalQuestion question = testQuestions.get(i);
-            double[] pos = positions[i % positions.length];
-            Entity qEntity = FXGL.entityBuilder()
-                    .at(pos[0], pos[1])
-                    .type(EntityType.QUESTION_POINT)
-                    .view(safeQuestionTexture())
-                    .buildAndAttach();
-            qEntity.setProperty("question", question);
-            qEntity.setProperty("questionIndex", i);
-            if (i == 0) {
-                questionPoint = qEntity;
-            }
+        if (testQuestions.isEmpty()) {
+            throw new IllegalStateException("Question test data is empty");
         }
+
+        testQuestionIndex = 0;
+        questionAnswerLocked = false;
+        currentActiveQuestionEntity = null;
+        currentActiveQuestion = null;
+
+        // The standalone test intentionally reuses one reachable point for the
+        // complete question bank. The three-stage demo uses one point per question.
+        questionPoint = FXGL.entityBuilder()
+                .at(420, 220)
+                .type(EntityType.QUESTION_POINT)
+                .view(safeQuestionTexture())
+                .buildAndAttach();
+        questionPoint.setProperty("question", testQuestions.getFirst());
         createQuestionPanel();
     }
 
@@ -517,6 +525,7 @@ public class MovementApp extends GameApplication {
         resetSortingTestState();
         demoCollectionItems.clear();
         demoSortingObjects.clear();
+        demoQuestionEntities.clear();
         demoStage = DemoStage.COLLECTION;
         demoSorterLocked = false;
         testQuestionIndex = 0;
@@ -541,30 +550,34 @@ public class MovementApp extends GameApplication {
         questionPoint = questionPoints.getFirst();
         String questionResource = questionPoint.getProperties().getString("questionResource");
         try {
-            testQuestions = new QuestionLoader().loadResource(questionResource);
+            List<EnvironmentalQuestion> allQuestions = new QuestionLoader().loadResource(questionResource);
+            testQuestions = QuestionSelector.randomUnique(allQuestions, DEMO_QUESTION_COUNT);
         } catch (IOException exception) {
             throw new IllegalStateException("Could not load demo questions: " + questionResource, exception);
         }
 
         double baseX = questionPoint.getX();
         double baseY = questionPoint.getY();
-        double[][] demoOffsets = { { 0, 0 }, { 90, -50 }, { -70, 60 }, { 110, 50 }, { -60, -60 } };
+        double[][] demoOffsets = {
+                { 0, 0 }, { -190, 0 }, { 190, 0 },
+                { -95, -180 }, { 95, -180 }, { 0, 190 }
+        };
         for (int i = 0; i < testQuestions.size(); i++) {
             EnvironmentalQuestion q = testQuestions.get(i);
             Entity qEntity;
             if (i == 0) {
                 qEntity = questionPoint;
             } else {
-                double[] offset = demoOffsets[i % demoOffsets.length];
+                double[] offset = demoOffsets[i];
                 qEntity = FXGL.entityBuilder()
                         .at(baseX + offset[0], baseY + offset[1])
                         .type(EntityType.DEMO_QUESTION_POINT)
                         .view(safeQuestionTexture())
                         .buildAndAttach();
-                demoSortingObjects.add(qEntity);
             }
             qEntity.setProperty("question", q);
             qEntity.setVisible(false);
+            demoQuestionEntities.add(qEntity);
         }
         createQuestionPanel();
 
@@ -651,7 +664,9 @@ public class MovementApp extends GameApplication {
 
     private void activateDemoQuestionStage() {
         demoStage = DemoStage.QUESTION;
-        getActiveQuestionEntities().forEach(e -> e.setVisible(true));
+        demoQuestionEntities.stream()
+                .filter(Entity::isActive)
+                .forEach(entity -> entity.setVisible(true));
         sortingFeedback = "Walk up to the question points to answer";
     }
 
@@ -661,7 +676,9 @@ public class MovementApp extends GameApplication {
         }
         demoStage = DemoStage.SORTING;
         questionPanel.setVisible(false);
-        questionPoint.setVisible(false);
+        demoQuestionEntities.stream()
+                .filter(Entity::isActive)
+                .forEach(entity -> entity.setVisible(false));
         demoSortingObjects.forEach(entity -> entity.setVisible(true));
         sortingFeedback = "Travel east — P2 enters the sorting zone";
     }
@@ -896,6 +913,7 @@ public class MovementApp extends GameApplication {
         QuestionResult result = currentActiveQuestion.answer(choiceIndex);
         questionAnswerLocked = true;
         double appliedDelta = TaskTimer.apply(timer, result.asTaskResult());
+        testQuestionIndex++;
         questionFeedbackLabel.setText(result.quality() + ": " + result.feedback()
                 + String.format(" (%+.0f seconds)", appliedDelta));
 
@@ -905,15 +923,20 @@ public class MovementApp extends GameApplication {
 
         FXGL.runOnce(() -> {
             if (targetEntity != null && targetEntity.isActive()) {
-                targetEntity.removeFromWorld();
+                if (selectedGameMode == GameMode.QUESTION_TEST
+                        && testQuestionIndex < testQuestions.size()) {
+                    targetEntity.setProperty("question", testQuestions.get(testQuestionIndex));
+                } else {
+                    targetEntity.removeFromWorld();
+                }
             }
             if (questionPanel != null) {
                 questionPanel.setVisible(false);
             }
             questionAnswerLocked = false;
 
-            List<Entity> remainingQ = getActiveQuestionEntities();
-            if (remainingQ.isEmpty() && selectedGameMode == GameMode.SEQUENTIAL_DEMO) {
+            if (selectedGameMode == GameMode.SEQUENTIAL_DEMO
+                    && testQuestionIndex >= testQuestions.size()) {
                 activateDemoSortingStage();
             }
         }, Duration.seconds(1.2));
@@ -956,8 +979,8 @@ public class MovementApp extends GameApplication {
         }
         List<Entity> trashes = FXGL.getGameWorld().getEntitiesByType(EntityType.TRASH);
         for (Entity trash : trashes) {
-            boolean p1Colliding = playerEntity != null && playerEntity.isColliding(trash);
-            boolean p2Colliding = playerEntity2 != null && playerEntity2.isColliding(trash);
+            boolean p1Colliding = safelyCollides(playerEntity, trash);
+            boolean p2Colliding = safelyCollides(playerEntity2, trash);
             if (p1Colliding || p2Colliding) {
                 trash.removeFromWorld();
                 collectedTrash++;
@@ -1066,7 +1089,7 @@ public class MovementApp extends GameApplication {
         FXGL.addUINode(modeStatusText);
 
         if (selectedGameMode == GameMode.QUESTION_TEST) {
-            modeStatusText.setText("Question Test Mode — find the glowing question point");
+            modeStatusText.setText("Question Test — Answered: 0 / " + testQuestions.size());
         } else if (selectedGameMode == GameMode.SORTING_TEST) {
             modeStatusText.setText("Sorting Test — P1: WASD, P2: arrows, E: interact");
         } else if (selectedGameMode == GameMode.SEQUENTIAL_DEMO) {
@@ -1171,6 +1194,9 @@ public class MovementApp extends GameApplication {
         if (selectedGameMode == GameMode.SORTING_TEST) {
             enforceSortingRoles();
             updateSortingStatus();
+        } else if (selectedGameMode == GameMode.QUESTION_TEST && modeStatusText != null) {
+            modeStatusText.setText(String.format("Question Test — Answered: %d / %d",
+                    testQuestionIndex, testQuestions.size()));
         } else if (selectedGameMode == GameMode.SEQUENTIAL_DEMO) {
             if (demoStage == DemoStage.SORTING || demoStage == DemoStage.COMPLETE) {
                 if (!demoSorterLocked && playerIsInsideSortingZone(playerEntity2)) {
@@ -1239,23 +1265,38 @@ public class MovementApp extends GameApplication {
             netManager.sendGameState(packet);
         }
 
+        boolean showStandardTrashPrompt = selectedGameMode != GameMode.SORTING_TEST
+                && selectedGameMode != GameMode.SEQUENTIAL_DEMO
+                && selectedGameMode != GameMode.QUESTION_TEST;
         boolean nearTrash = false;
-        List<Entity> trashes = FXGL.getGameWorld().getEntitiesByType(EntityType.TRASH);
-        for (Entity trash : trashes) {
-            if ((playerEntity != null && playerEntity.isColliding(trash)) ||
-                    (playerEntity2 != null && playerEntity2.isColliding(trash))) {
-                nearTrash = true;
-                break;
+        if (showStandardTrashPrompt) {
+            List<Entity> trashes = FXGL.getGameWorld().getEntitiesByType(EntityType.TRASH);
+            for (Entity trash : trashes) {
+                if (safelyCollides(playerEntity, trash) || safelyCollides(playerEntity2, trash)) {
+                    nearTrash = true;
+                    break;
+                }
             }
         }
-        if (interactPromptText != null && selectedGameMode != GameMode.SORTING_TEST
-                && selectedGameMode != GameMode.SEQUENTIAL_DEMO) {
+        if (interactPromptText != null && showStandardTrashPrompt) {
             interactPromptText.setVisible(nearTrash);
         } else if (interactPromptText != null) {
             interactPromptText.setVisible(false);
         }
 
         refreshTimerLabel();
+    }
+
+    private boolean safelyCollides(Entity first, Entity second) {
+        return hasLiveBoundingBox(first)
+                && hasLiveBoundingBox(second)
+                && first.isColliding(second);
+    }
+
+    private boolean hasLiveBoundingBox(Entity entity) {
+        return entity != null
+                && entity.isActive()
+                && entity.getBoundingBoxComponent().getEntity() != null;
     }
 
     private void enforceSortingRoles() {
