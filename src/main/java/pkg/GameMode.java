@@ -7,5 +7,6 @@ public enum GameMode {
     SEQUENTIAL_DEMO,
     LOCAL_COOP_SPLITSCREEN,
     LAN_HOST,
-    LAN_JOIN
+    LAN_JOIN,
+    MAP_GENERATOR
 }

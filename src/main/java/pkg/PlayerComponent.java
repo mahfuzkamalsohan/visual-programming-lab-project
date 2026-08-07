@@ -160,11 +160,23 @@ public class PlayerComponent extends Component {
         }
     }
 
+    private boolean ignoreBoundaryWalls = false;
+
+    public void setIgnoreBoundaryWalls(boolean ignore) {
+        this.ignoreBoundaryWalls = ignore;
+    }
+
+    public boolean isIgnoreBoundaryWalls() {
+        return ignoreBoundaryWalls;
+    }
+
     private boolean collidesWithWall() {
-        List<Entity> walls = FXGL.getGameWorld().getEntitiesByType(EntityType.WALL);
-        for (Entity wall : walls) {
-            if (entity.isColliding(wall)) {
-                return true;
+        if (!ignoreBoundaryWalls) {
+            List<Entity> walls = FXGL.getGameWorld().getEntitiesByType(EntityType.WALL);
+            for (Entity wall : walls) {
+                if (entity.isColliding(wall)) {
+                    return true;
+                }
             }
         }
         List<Entity> players = FXGL.getGameWorld().getEntitiesByType(EntityType.PLAYER);

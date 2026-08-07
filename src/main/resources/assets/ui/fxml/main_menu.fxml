@@ -28,6 +28,7 @@
                         <Button fx:id="btnLocalCoop" text="Local Co-Op (2 Players)" prefWidth="310.0" prefHeight="36.0" styleClass="pixel-button" />
                         <Button fx:id="btnHostLan" text="Host LAN Co-Op" prefWidth="310.0" prefHeight="36.0" styleClass="pixel-button" />
                         <Button fx:id="btnJoinLan" text="Join LAN Co-Op" prefWidth="310.0" prefHeight="36.0" styleClass="pixel-button" />
+                        <Button fx:id="btnMapGenerator" text="Map Generator (Infinite)" prefWidth="310.0" prefHeight="36.0" styleClass="pixel-button" />
                         <Button fx:id="btnExit" text="Exit" prefWidth="310.0" prefHeight="36.0" styleClass="pixel-button" />
                     </children>
                 </VBox>
