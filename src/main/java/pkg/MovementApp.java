@@ -2206,49 +2206,56 @@ public class MovementApp extends GameApplication {
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/assets/ui/fxml/main_menu.fxml"));
                 menuRoot = loader.load();
 
+                Node mainMenuBox = menuRoot.lookup("#mainMenuBox");
+                Node multiplayerMenuBox = menuRoot.lookup("#multiplayerMenuBox");
+                Node settingsBox = menuRoot.lookup("#settingsBox");
+                Node aboutBox = menuRoot.lookup("#aboutBox");
+
                 Button btnSingle = (Button) menuRoot.lookup("#btnSingle");
-                Button btnQuestionTest = (Button) menuRoot.lookup("#btnQuestionTest");
-                Button btnSortingTest = (Button) menuRoot.lookup("#btnSortingTest");
-                Button btnSequentialDemo = (Button) menuRoot.lookup("#btnSequentialDemo");
-                Button btnLocalCoop = (Button) menuRoot.lookup("#btnLocalCoop");
-                Button btnHostLan = (Button) menuRoot.lookup("#btnHostLan");
-                Button btnJoinLan = (Button) menuRoot.lookup("#btnJoinLan");
-                Button btnMapGenerator = (Button) menuRoot.lookup("#btnMapGenerator");
-                Button btnFullscreen = (Button) menuRoot.lookup("#btnFullscreen");
+                Button btnMultiplayer = (Button) menuRoot.lookup("#btnMultiplayer");
+                Button btnSettings = (Button) menuRoot.lookup("#btnSettings");
+                Button btnAbout = (Button) menuRoot.lookup("#btnAbout");
                 Button btnExit = (Button) menuRoot.lookup("#btnExit");
 
-                if (btnSingle != null)
+                Button btnHostCoop = (Button) menuRoot.lookup("#btnHostCoop");
+                Button btnJoinCoop = (Button) menuRoot.lookup("#btnJoinCoop");
+                Button btnSharedScreenCoop = (Button) menuRoot.lookup("#btnSharedScreenCoop");
+                Button btnMultiplayerBack = (Button) menuRoot.lookup("#btnMultiplayerBack");
+
+                Button btnToggleFullscreen = (Button) menuRoot.lookup("#btnToggleFullscreen");
+                Button btnSettingsBack = (Button) menuRoot.lookup("#btnSettingsBack");
+
+                Button btnAboutBack = (Button) menuRoot.lookup("#btnAboutBack");
+
+                // Top level main menu button handlers
+                if (btnSingle != null) {
                     btnSingle.setOnAction(e -> {
                         selectedGameMode = GameMode.SINGLE_PLAYER;
                         fireNewGame();
                     });
-                if (btnQuestionTest != null)
-                    btnQuestionTest.setOnAction(e -> {
-                        selectedGameMode = GameMode.QUESTION_TEST;
-                        fireNewGame();
-                    });
-                if (btnSortingTest != null)
-                    btnSortingTest.setOnAction(e -> {
-                        selectedGameMode = GameMode.SORTING_TEST;
-                        fireNewGame();
-                    });
-                if (btnSequentialDemo != null)
-                    btnSequentialDemo.setOnAction(e -> {
-                        selectedGameMode = GameMode.SEQUENTIAL_DEMO;
-                        fireNewGame();
-                    });
-                if (btnLocalCoop != null)
-                    btnLocalCoop.setOnAction(e -> {
-                        selectedGameMode = GameMode.LOCAL_COOP_SPLITSCREEN;
-                        fireNewGame();
-                    });
-                if (btnHostLan != null)
-                    btnHostLan.setOnAction(e -> {
+                }
+                if (btnMultiplayer != null) {
+                    btnMultiplayer.setOnAction(e -> showCard(multiplayerMenuBox, mainMenuBox, settingsBox, aboutBox));
+                }
+                if (btnSettings != null) {
+                    btnSettings.setOnAction(e -> showCard(settingsBox, mainMenuBox, multiplayerMenuBox, aboutBox));
+                }
+                if (btnAbout != null) {
+                    btnAbout.setOnAction(e -> showCard(aboutBox, mainMenuBox, multiplayerMenuBox, settingsBox));
+                }
+                if (btnExit != null) {
+                    btnExit.setOnAction(e -> showPixelExitConfirmation());
+                }
+
+                // Multiplayer sub-menu button handlers
+                if (btnHostCoop != null) {
+                    btnHostCoop.setOnAction(e -> {
                         selectedGameMode = GameMode.LAN_HOST;
                         fireNewGame();
                     });
-                if (btnJoinLan != null)
-                    btnJoinLan.setOnAction(e -> {
+                }
+                if (btnJoinCoop != null) {
+                    btnJoinCoop.setOnAction(e -> {
                         TextInputDialog dialog = new TextInputDialog("127.0.0.1");
                         dialog.setTitle("Join LAN Co-Op");
                         dialog.setHeaderText("Enter Host IP Address:");
@@ -2265,13 +2272,29 @@ public class MovementApp extends GameApplication {
                             fireNewGame();
                         });
                     });
-                if (btnMapGenerator != null)
-                    btnMapGenerator.setOnAction(e -> {
-                        selectedGameMode = GameMode.MAP_GENERATOR;
+                }
+                if (btnSharedScreenCoop != null) {
+                    btnSharedScreenCoop.setOnAction(e -> {
+                        selectedGameMode = GameMode.LOCAL_COOP_SPLITSCREEN;
                         fireNewGame();
                     });
-                if (btnExit != null)
-                    btnExit.setOnAction(e -> showPixelExitConfirmation());
+                }
+                if (btnMultiplayerBack != null) {
+                    btnMultiplayerBack.setOnAction(e -> showCard(mainMenuBox, multiplayerMenuBox, settingsBox, aboutBox));
+                }
+
+                // Settings button handlers
+                if (btnToggleFullscreen != null) {
+                    btnToggleFullscreen.setOnAction(e -> FXGL.getPrimaryStage().setFullScreen(!FXGL.getPrimaryStage().isFullScreen()));
+                }
+                if (btnSettingsBack != null) {
+                    btnSettingsBack.setOnAction(e -> showCard(mainMenuBox, multiplayerMenuBox, settingsBox, aboutBox));
+                }
+
+                // About button handlers
+                if (btnAboutBack != null) {
+                    btnAboutBack.setOnAction(e -> showCard(mainMenuBox, multiplayerMenuBox, settingsBox, aboutBox));
+                }
 
             } catch (Exception ex) {
                 menuRoot = createFallbackMenu();
@@ -2281,6 +2304,19 @@ public class MovementApp extends GameApplication {
             root.setPrefSize(w, h);
 
             getContentRoot().getChildren().add(root);
+        }
+
+        private static void showCard(Node activeCard, Node... cardsToHide) {
+            if (activeCard != null) {
+                activeCard.setVisible(true);
+                activeCard.setManaged(true);
+            }
+            for (Node c : cardsToHide) {
+                if (c != null) {
+                    c.setVisible(false);
+                    c.setManaged(false);
+                }
+            }
         }
 
         private VBox createFallbackMenu() {
@@ -2293,30 +2329,98 @@ public class MovementApp extends GameApplication {
             subtitle.setFill(Color.web("#d7e77f"));
 
             Button btnSingle = styledButton("Single Player");
-            Button btnQuestionTest = styledButton("Question Test Mode");
-            Button btnSortingTest = styledButton("Sorting Test Mode");
-            Button btnSequentialDemo = styledButton("3-Stage Demo Map");
-            Button btnLocalCoop = styledButton("Local Co-Op (2 Players)");
-            Button btnHostLan = styledButton("Host LAN Co-Op");
-            Button btnJoinLan = styledButton("Join LAN Co-Op");
-            Button btnMapGenerator = styledButton("Map Generator (Infinite)");
+            Button btnMultiplayer = styledButton("Multiplayer");
+            Button btnSettings = styledButton("Settings");
+            Button btnAbout = styledButton("About");
             Button btnExit = styledButton("Exit");
+
+            Button btnHostCoop = styledButton("Host Co-op");
+            Button btnJoinCoop = styledButton("Join Co-op");
+            Button btnSharedScreenCoop = styledButton("Shared-Screen Co-op");
+            Button btnMultiBack = styledButton("Back");
+
+            Button btnToggleFullscreen = styledButton("Toggle Fullscreen");
+            Text settingsInfo = new Text("Audio: FXGL Default Sound Engine\nResolution: 1280 x 720");
+            settingsInfo.setFont(Font.font("Monospaced", FontWeight.BOLD, 12));
+            settingsInfo.setFill(Color.web("#d7e77f"));
+            Button btnSettingsBack = styledButton("Back");
+
+            Text aboutInfo = new Text("Objective: Clean & Restore ecosystems by collecting trash & answering questions.\nP1: WASD + Space\nP2: Arrows + Enter\nVersion: 1.0.0");
+            aboutInfo.setFont(Font.font("Monospaced", FontWeight.BOLD, 12));
+            aboutInfo.setFill(Color.web("#f8f9fa"));
+            Button btnAboutBack = styledButton("Back");
+
+            VBox mainBox = new VBox(10, title, subtitle, btnSingle, btnMultiplayer, btnSettings, btnAbout, btnExit);
+            mainBox.setAlignment(Pos.CENTER_LEFT);
+
+            Text mpTitle = new Text("MULTIPLAYER");
+            mpTitle.setFont(Font.font("Monospaced", FontWeight.BOLD, 32));
+            mpTitle.setFill(Color.web("#39ff14"));
+            VBox mpBox = new VBox(10, mpTitle, btnHostCoop, btnJoinCoop, btnSharedScreenCoop, btnMultiBack);
+            mpBox.setAlignment(Pos.CENTER_LEFT);
+            mpBox.setVisible(false);
+            mpBox.setManaged(false);
+
+            Text stTitle = new Text("SETTINGS");
+            stTitle.setFont(Font.font("Monospaced", FontWeight.BOLD, 32));
+            stTitle.setFill(Color.web("#39ff14"));
+            VBox stBox = new VBox(10, stTitle, btnToggleFullscreen, settingsInfo, btnSettingsBack);
+            stBox.setAlignment(Pos.CENTER_LEFT);
+            stBox.setVisible(false);
+            stBox.setManaged(false);
+
+            Text abTitle = new Text("ABOUT");
+            abTitle.setFont(Font.font("Monospaced", FontWeight.BOLD, 32));
+            abTitle.setFill(Color.web("#39ff14"));
+            VBox abBox = new VBox(10, abTitle, aboutInfo, btnAboutBack);
+            abBox.setAlignment(Pos.CENTER_LEFT);
+            abBox.setVisible(false);
+            abBox.setManaged(false);
 
             btnSingle.setOnAction(e -> {
                 selectedGameMode = GameMode.SINGLE_PLAYER;
                 fireNewGame();
             });
-            btnMapGenerator.setOnAction(e -> {
-                selectedGameMode = GameMode.MAP_GENERATOR;
+            btnMultiplayer.setOnAction(e -> showCard(mpBox, mainBox, stBox, abBox));
+            btnSettings.setOnAction(e -> showCard(stBox, mainBox, mpBox, abBox));
+            btnAbout.setOnAction(e -> showCard(abBox, mainBox, mpBox, stBox));
+            btnExit.setOnAction(e -> showPixelExitConfirmation());
+
+            btnHostCoop.setOnAction(e -> {
+                selectedGameMode = GameMode.LAN_HOST;
                 fireNewGame();
             });
-            btnExit.setOnAction(e -> fireExit());
+            btnJoinCoop.setOnAction(e -> {
+                TextInputDialog dialog = new TextInputDialog("127.0.0.1");
+                dialog.setTitle("Join LAN Co-Op");
+                dialog.setHeaderText("Enter Host IP Address:");
+                dialog.setContentText("Host IP:");
+                try {
+                    dialog.getDialogPane().getStylesheets()
+                            .add(getClass().getResource("/assets/ui/css/pixel_style.css").toExternalForm());
+                } catch (Exception ignored) {
+                }
+                Optional<String> result = dialog.showAndWait();
+                result.ifPresent(ip -> {
+                    targetHostIp = ip.trim();
+                    selectedGameMode = GameMode.LAN_JOIN;
+                    fireNewGame();
+                });
+            });
+            btnSharedScreenCoop.setOnAction(e -> {
+                selectedGameMode = GameMode.LOCAL_COOP_SPLITSCREEN;
+                fireNewGame();
+            });
+            btnMultiBack.setOnAction(e -> showCard(mainBox, mpBox, stBox, abBox));
 
-            VBox vbox = new VBox(8, title, subtitle, btnSingle, btnQuestionTest, btnSortingTest,
-                    btnSequentialDemo, btnLocalCoop, btnHostLan, btnJoinLan, btnMapGenerator, btnExit);
-            vbox.setAlignment(Pos.CENTER_LEFT);
-            vbox.setTranslateX(108);
-            return vbox;
+            btnToggleFullscreen.setOnAction(e -> FXGL.getPrimaryStage().setFullScreen(!FXGL.getPrimaryStage().isFullScreen()));
+            btnSettingsBack.setOnAction(e -> showCard(mainBox, mpBox, stBox, abBox));
+            btnAboutBack.setOnAction(e -> showCard(mainBox, mpBox, stBox, abBox));
+
+            VBox container = new VBox(mainBox, mpBox, stBox, abBox);
+            container.setAlignment(Pos.CENTER_LEFT);
+            container.setTranslateX(108);
+            return container;
         }
 
         private static Button styledButton(String label) {
