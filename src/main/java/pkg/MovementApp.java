@@ -27,6 +27,7 @@ import com.almasb.fxgl.physics.BoundingShape;
 import com.almasb.fxgl.physics.HitBox;
 
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Point2D;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.canvas.Canvas;
@@ -93,20 +94,26 @@ public class MovementApp extends GameApplication {
 
     private final List<Entity> generatorTrashEntities = new ArrayList<>();
     private int generatorTrashCollected = 0;
-    private final int GENERATOR_TARGET_TRASH = 10;
+    private final int GENERATOR_TARGET_TRASH = 8;
 
     private final List<Entity> generatorQuestionEntities = new ArrayList<>();
     private int generatorQuestionsAnswered = 0;
-    private final int GENERATOR_TARGET_QUESTIONS = 3;
+    private final int GENERATOR_TARGET_QUESTIONS = 2;
 
     private final List<Entity> generatorSortingWasteEntities = new ArrayList<>();
     private int generatorSortedCount = 0;
     private final int GENERATOR_TARGET_SORTING = 6;
 
+    private int currentDistrict = 1;
+    private int ecoScore = 0;
+    private Label carriedItemLabel;
+    private Node currentNoticeNode;
+
     private NetworkManager netManager;
 
     private Text timerText;
     private Text modeStatusText;
+    private Text scoreText;
     private Text trashCounterText;
     private Text levelNoticeText;
     private Text interactPromptText;
@@ -235,6 +242,11 @@ public class MovementApp extends GameApplication {
                 () -> {
                 });
 
+        bindKey("P1 Interact Space", KeyCode.SPACE,
+                this::tryCollectTrashP1,
+                () -> {
+                });
+
         bindKey("P2 Interact / Collect", KeyCode.SLASH,
                 this::tryCollectTrashP2,
                 () -> {
@@ -339,24 +351,31 @@ public class MovementApp extends GameApplication {
 
         FXGL.getGameWorld().addEntityFactory(new GameEntityFactory());
 
-        if (selectedGameMode == GameMode.MAP_GENERATOR) {
+        if (selectedGameMode == GameMode.MAP_GENERATOR || selectedGameMode == GameMode.SINGLE_PLAYER) {
             mapManager = null;
             infiniteMapManager = new InfiniteMapManager(System.currentTimeMillis());
-            playerEntity = FXGL.spawn("restorationPlayer", -20, 160);
+            playerEntity = FXGL.spawn("restorationPlayer", 0, 160);
             playerComponent = playerEntity.getComponent(PlayerComponent.class);
 
-            // Spawn Player 2 for Local Co-Op in Map Generator mode
-            playerEntity2 = FXGL.entityBuilder()
-                    .at(20, 160)
-                    .type(EntityType.PLAYER)
-                    .bbox(new HitBox(BoundingShape.box(16, 24)))
-                    .with(new CollidableComponent(true))
-                    .with(new PlayerComponent(2))
-                    .buildAndAttach();
-            playerComponent2 = playerEntity2.getComponent(PlayerComponent.class);
+            if (selectedGameMode == GameMode.MAP_GENERATOR) {
+                // Spawn Player 2 for Local Co-Op in Map Generator mode
+                playerEntity2 = FXGL.entityBuilder()
+                        .at(20, 160)
+                        .type(EntityType.PLAYER)
+                        .bbox(new HitBox(BoundingShape.box(16, 24)))
+                        .with(new CollidableComponent(true))
+                        .with(new PlayerComponent(2))
+                        .buildAndAttach();
+                playerComponent2 = playerEntity2.getComponent(PlayerComponent.class);
+            } else {
+                playerEntity2 = null;
+                playerComponent2 = null;
+            }
 
             infiniteMapManager.updatePlayerPosition(playerEntity.getX(), playerEntity.getY());
             collectedTrash = 0;
+            currentDistrict = 1;
+            ecoScore = 0;
             generatorStage = GeneratorStage.TRASH_COLLECTION;
             generatorStageCompleted = false;
             lastCompletedChunkKey = "";
@@ -563,30 +582,49 @@ public class MovementApp extends GameApplication {
 
     private void attachSortingCarryViews() {
         if (playerEntity != null) {
-            collectorCarriedWasteView = new ImageView(FXGL.image("trashbag.png"));
-            collectorCarriedWasteView.setTranslateX(-4);
-            collectorCarriedWasteView.setTranslateY(-16);
-            collectorCarriedWasteView.setMouseTransparent(true);
+            if (collectorCarriedWasteView == null) {
+                collectorCarriedWasteView = new ImageView(FXGL.image("trashbag.png"));
+                collectorCarriedWasteView.setTranslateX(-4);
+                collectorCarriedWasteView.setTranslateY(-16);
+                collectorCarriedWasteView.setMouseTransparent(true);
+                playerEntity.getViewComponent().addChild(collectorCarriedWasteView);
+            }
             collectorCarriedWasteView.setVisible(outsideCarriedWaste != null);
-            playerEntity.getViewComponent().addChild(collectorCarriedWasteView);
+
+            if (carriedItemLabel == null) {
+                carriedItemLabel = new Label();
+                carriedItemLabel.setStyle("-fx-text-fill:#ffd700;-fx-font-family:Monospaced;-fx-font-size:9px;-fx-font-weight:bold;-fx-background-color:rgba(0,0,0,0.75);-fx-padding:1px 4px;-fx-border-color:#ffd700;-fx-border-width:1px;");
+                carriedItemLabel.setTranslateX(-30);
+                carriedItemLabel.setTranslateY(-28);
+                carriedItemLabel.setMouseTransparent(true);
+                playerEntity.getViewComponent().addChild(carriedItemLabel);
+            }
+            carriedItemLabel.setVisible(outsideCarriedWaste != null);
+            if (outsideCarriedWaste != null) {
+                carriedItemLabel.setText(outsideCarriedWaste.name());
+            }
         }
 
         if (playerEntity2 != null) {
-            sorterCarriedWasteView = new ImageView(FXGL.image("trashbag.png"));
-            sorterCarriedWasteView.setTranslateX(-4);
-            sorterCarriedWasteView.setTranslateY(-16);
-            sorterCarriedWasteView.setMouseTransparent(true);
+            if (sorterCarriedWasteView == null) {
+                sorterCarriedWasteView = new ImageView(FXGL.image("trashbag.png"));
+                sorterCarriedWasteView.setTranslateX(-4);
+                sorterCarriedWasteView.setTranslateY(-16);
+                sorterCarriedWasteView.setMouseTransparent(true);
+                playerEntity2.getViewComponent().addChild(sorterCarriedWasteView);
+            }
             sorterCarriedWasteView.setVisible(insideCarriedWaste != null);
-            playerEntity2.getViewComponent().addChild(sorterCarriedWasteView);
         }
 
         if (sortingIntakePoint != null) {
-            intakeWasteView = new ImageView(FXGL.image("trashbag.png"));
-            intakeWasteView.setTranslateX(-8);
-            intakeWasteView.setTranslateY(-12);
-            intakeWasteView.setMouseTransparent(true);
+            if (intakeWasteView == null) {
+                intakeWasteView = new ImageView(FXGL.image("trashbag.png"));
+                intakeWasteView.setTranslateX(-8);
+                intakeWasteView.setTranslateY(-12);
+                intakeWasteView.setMouseTransparent(true);
+                sortingIntakePoint.getViewComponent().addChild(intakeWasteView);
+            }
             intakeWasteView.setVisible(!sortingIntake.isEmpty());
-            sortingIntakePoint.getViewComponent().addChild(intakeWasteView);
         }
     }
 
@@ -777,8 +815,8 @@ public class MovementApp extends GameApplication {
         clearGeneratorStageEntities();
         if (infiniteMapManager != null) {
             infiniteMapManager.setFragmentedMode(true);
+            infiniteMapManager.lockCurrentRegion(chunkX, chunkY);
         }
-        infiniteMapManager.lockCurrentRegion(chunkX, chunkY);
         generatorTrashCollected = 0;
 
         double originX = (chunkX - chunkY) * 320.0;
@@ -787,45 +825,50 @@ public class MovementApp extends GameApplication {
         int[][] tilePositions = {
             {5, 5}, {9, 5}, {14, 5},
             {6, 9}, {10, 9}, {14, 9},
-            {5, 14}, {9, 14}, {14, 14},
-            {10, 12}
+            {5, 14}, {9, 14}
         };
 
-        for (int[] pos : tilePositions) {
+        for (int i = 0; i < GENERATOR_TARGET_TRASH && i < tilePositions.length; i++) {
+            int[] pos = tilePositions[i];
             int lx = pos[0];
             int ly = pos[1];
             double isoX = originX + (lx - ly) * 16.0 + 8;
             double isoY = originY + (lx + ly) * 8.0 + 4;
-            Entity bottle = FXGL.entityBuilder()
+            String textureName = (i % 2 == 0) ? "bottle.png" : "trashbag.png";
+            Entity trash = FXGL.entityBuilder()
                     .at(isoX, isoY)
                     .type(EntityType.TRASH)
-                    .viewWithBBox("bottle.png")
+                    .viewWithBBox(textureName)
                     .with(new CollidableComponent(true))
                     .buildAndAttach();
-            bottle.setRotation(FXGL.random(0, 360));
-            generatorTrashEntities.add(bottle);
+            trash.setRotation(FXGL.random(0, 360));
+            generatorTrashEntities.add(trash);
         }
         generatorStageCompleted = false;
         updateTrashCounter();
+        if (selectedGameMode == GameMode.SINGLE_PLAYER) {
+            showTemporaryNotice("🌱 DISTRICT " + currentDistrict + " — PHASE 1: ECO-CLEANUP\nCollect scattered trash items to heal the soil! [E / Space]");
+        }
     }
 
     private void setupGeneratorStage2(int chunkX, int chunkY) {
         clearGeneratorStageEntities();
         if (infiniteMapManager != null) {
             infiniteMapManager.setFragmentedMode(false);
+            infiniteMapManager.lockCurrentRegion(chunkX, chunkY);
         }
-        infiniteMapManager.lockCurrentRegion(chunkX, chunkY);
         generatorQuestionsAnswered = 0;
 
         double originX = (chunkX - chunkY) * 320.0;
         double originY = (chunkX + chunkY) * 160.0;
 
         try {
-            testQuestions = new QuestionLoader().loadResource("assets/questions/environment.dat");
+            List<EnvironmentalQuestion> allQuestions = new QuestionLoader().loadResource("assets/questions/environment.dat");
+            testQuestions = QuestionSelector.randomUnique(allQuestions, GENERATOR_TARGET_QUESTIONS);
         } catch (IOException ignored) {}
 
-        int[][] tilePositions = { {6, 6}, {13, 6}, {10, 13} };
-        for (int i = 0; i < 3 && i < testQuestions.size(); i++) {
+        int[][] tilePositions = { {7, 7}, {13, 11} };
+        for (int i = 0; i < GENERATOR_TARGET_QUESTIONS && i < testQuestions.size(); i++) {
             int lx = tilePositions[i][0];
             int ly = tilePositions[i][1];
             double isoX = originX + (lx - ly) * 16.0;
@@ -836,38 +879,44 @@ public class MovementApp extends GameApplication {
                     .type(EntityType.QUESTION_POINT)
                     .view(safeQuestionTexture())
                     .buildAndAttach();
-            qPoint.setProperty("question", testQuestions.get(i % testQuestions.size()));
+            qPoint.setProperty("question", testQuestions.get(i));
             generatorQuestionEntities.add(qPoint);
         }
         generatorStageCompleted = false;
         createQuestionPanel();
+        updateTrashCounter();
+        if (selectedGameMode == GameMode.SINGLE_PLAYER) {
+            showTemporaryNotice("⚡ DISTRICT " + currentDistrict + " — PHASE 2: ECO-GRID\nApproach interactive terminals to resolve environmental queries! [1, 2, 3]");
+        }
     }
 
     private void setupGeneratorStage3(int chunkX, int chunkY) {
         clearGeneratorStageEntities();
         if (infiniteMapManager != null) {
             infiniteMapManager.setFragmentedMode(false);
+            infiniteMapManager.lockCurrentRegion(chunkX, chunkY);
         }
-        infiniteMapManager.lockCurrentRegion(chunkX, chunkY);
         generatorSortedCount = 0;
 
         double originX = (chunkX - chunkY) * 320.0;
         double originY = (chunkX + chunkY) * 160.0;
 
-        double intakeX = originX + (10 - 10) * 16.0;
-        double intakeY = originY + (10 + 10) * 8.0;
-        Node intakeView = safeTexture("intake.png", 48, 48, "#f1d090");
-        Label intakeLabel = worldLabel("INTAKE");
-        intakeLabel.setTranslateX(-8);
-        intakeLabel.setTranslateY(-18);
+        if (selectedGameMode != GameMode.SINGLE_PLAYER) {
+            double intakeX = originX + (10 - 10) * 16.0;
+            double intakeY = originY + (10 + 10) * 8.0;
+            Node intakeView = safeTexture("intake.png", 48, 48, "#f1d090");
+            Label intakeLabel = worldLabel("INTAKE");
+            intakeLabel.setTranslateX(-8);
+            intakeLabel.setTranslateY(-18);
 
-        sortingIntakePoint = FXGL.entityBuilder()
-                .at(intakeX, intakeY)
-                .type(EntityType.QUESTION_POINT)
-                .view(intakeView)
-                .buildAndAttach();
-        sortingIntakePoint.getViewComponent().addChild(intakeLabel);
-        sortingIntakeBox = new InteractionBox(intakeX - 25, intakeY - 25, INTAKE_BOX_WIDTH, INTAKE_BOX_HEIGHT);
+            sortingIntakePoint = FXGL.entityBuilder()
+                    .at(intakeX, intakeY)
+                    .type(EntityType.QUESTION_POINT)
+                    .view(intakeView)
+                    .buildAndAttach();
+            sortingIntakePoint.getViewComponent().addChild(intakeLabel);
+            sortingIntakeBox = new InteractionBox(intakeX - 25, intakeY - 25, INTAKE_BOX_WIDTH, INTAKE_BOX_HEIGHT);
+        }
 
         createSortingBin("black", "BLACK\nGeneral", originX + (10 - 6) * 16.0, originY + (10 + 6) * 8.0, "#272727");
         createSortingBin("blue", "BLUE\nRecyclables", originX + (14 - 10) * 16.0, originY + (14 + 10) * 8.0, "#397ac7");
@@ -909,8 +958,16 @@ public class MovementApp extends GameApplication {
             sortingPickupBoxes.put(entity, pickupBox);
         }
         attachSortingCarryViews();
-        sortingFeedback = "P1: Collect waste to INTAKE | P2: Identify & sort into bins";
+        if (selectedGameMode == GameMode.SINGLE_PLAYER) {
+            sortingFeedback = "Pick up waste with [E] / [Space] & deposit directly into matching bin";
+        } else {
+            sortingFeedback = "P1: Collect waste to INTAKE | P2: Identify & sort into bins";
+        }
         generatorStageCompleted = false;
+        updateTrashCounter();
+        if (selectedGameMode == GameMode.SINGLE_PLAYER) {
+            showTemporaryNotice("♻ DISTRICT " + currentDistrict + " — PHASE 3: ECO-SORTING\nPick up waste items & deposit into matching color bins! [E / Space]");
+        }
     }
 
     private void clearGeneratorStageEntities() {
@@ -932,6 +989,9 @@ public class MovementApp extends GameApplication {
         if (collectorCarriedWasteView != null) {
             collectorCarriedWasteView.setVisible(false);
         }
+        if (carriedItemLabel != null) {
+            carriedItemLabel.setVisible(false);
+        }
         if (sorterCarriedWasteView != null) {
             sorterCarriedWasteView.setVisible(false);
         }
@@ -943,22 +1003,78 @@ public class MovementApp extends GameApplication {
     }
 
     private void showTemporaryNotice(String msg) {
-        if (levelNoticeText != null) {
-            FXGL.removeUINode(levelNoticeText);
+        if (currentNoticeNode != null) {
+            FXGL.removeUINode(currentNoticeNode);
+            currentNoticeNode = null;
         }
-        levelNoticeText = new Text(msg);
-        levelNoticeText.setFont(Font.font("Monospaced", FontWeight.BOLD, 18));
-        levelNoticeText.setFill(Color.web("#ffd700"));
-        levelNoticeText.setX(FXGL.getAppWidth() / 2.0 - 280);
-        levelNoticeText.setY(100);
-        FXGL.addUINode(levelNoticeText);
+
+        Label label = new Label(msg);
+        label.setFont(Font.font("Monospaced", FontWeight.BOLD, 15));
+        label.setTextFill(Color.web("#ffd700"));
+        label.setStyle("-fx-alignment:center;-fx-text-alignment:center;");
+
+        StackPane banner = new StackPane(label);
+        banner.setStyle("-fx-background-color:rgba(11,23,14,0.92);-fx-border-color:#39ff14;-fx-border-width:3px;-fx-padding:10px 24px;-fx-effect:dropshadow(three-pass-box, rgba(0,0,0,0.85), 8, 0, 3, 3);");
+        banner.setMaxWidth(680);
+        banner.setLayoutX(FXGL.getAppWidth() / 2.0 - 340);
+        banner.setLayoutY(75);
+        banner.setMouseTransparent(true);
+
+        currentNoticeNode = banner;
+        FXGL.addUINode(banner);
+
+        FXGL.animationBuilder()
+                .duration(Duration.seconds(0.3))
+                .fadeIn(banner)
+                .buildAndPlay();
 
         FXGL.runOnce(() -> {
-            if (levelNoticeText != null) {
-                FXGL.removeUINode(levelNoticeText);
-                levelNoticeText = null;
+            if (banner == currentNoticeNode) {
+                FXGL.animationBuilder()
+                        .duration(Duration.seconds(0.4))
+                        .fadeOut(banner)
+                        .buildAndPlay();
+                FXGL.runOnce(() -> {
+                    if (banner == currentNoticeNode) {
+                        FXGL.removeUINode(banner);
+                        currentNoticeNode = null;
+                    }
+                }, Duration.seconds(0.45));
             }
-        }, Duration.seconds(4.0));
+        }, Duration.seconds(3.5));
+    }
+
+    private void spawnFloatingText(double x, double y, String text, Color color) {
+        Text popup = new Text(text);
+        popup.setFont(Font.font("Monospaced", FontWeight.BOLD, 14));
+        popup.setFill(color);
+        popup.setStroke(Color.BLACK);
+        popup.setStrokeWidth(1.2);
+        popup.setMouseTransparent(true);
+
+        Entity entity = FXGL.entityBuilder()
+                .at(x - 20, y)
+                .view(popup)
+                .zIndex(1000)
+                .buildAndAttach();
+
+        FXGL.animationBuilder()
+                .duration(Duration.seconds(1.2))
+                .translate(entity)
+                .from(new Point2D(x - 20, y))
+                .to(new Point2D(x - 20, y - 40))
+                .buildAndPlay();
+
+        FXGL.animationBuilder()
+                .duration(Duration.seconds(1.2))
+                .fadeOut(entity)
+                .buildAndPlay();
+
+        FXGL.runOnce(() -> {
+            if (entity.isActive()) {
+                entity.removeFromWorld();
+            }
+        }, Duration.seconds(1.25));
     }
 
     private Rectangle debugRectangle(double width, double height) {
@@ -1033,7 +1149,7 @@ public class MovementApp extends GameApplication {
     }
 
     private void tryCollectTrashP1() {
-        if (selectedGameMode == GameMode.MAP_GENERATOR) {
+        if (selectedGameMode == GameMode.MAP_GENERATOR || selectedGameMode == GameMode.SINGLE_PLAYER) {
             if (generatorStage == GeneratorStage.TRASH_COLLECTION) {
                 for (Entity trash : List.copyOf(generatorTrashEntities)) {
                     if (trash != null && trash.isActive() && playerEntity != null && playerEntity.distance(trash) < 48.0) {
@@ -1041,10 +1157,12 @@ public class MovementApp extends GameApplication {
                         generatorTrashEntities.remove(trash);
                         generatorTrashCollected++;
                         collectedTrash++;
+                        ecoScore += 50;
                         if (infiniteMapManager != null) {
                             infiniteMapManager.onBottleCollected(generatorTrashCollected, GENERATOR_TARGET_TRASH);
                         }
                         if (timer != null) timer.applyDelta(10.0);
+                        spawnFloatingText(playerEntity.getX(), playerEntity.getY() - 16, "+10s Cleaned! (+50 pts)", Color.web("#39ff14"));
                         updateTrashCounter();
                         if (generatorTrashCollected >= GENERATOR_TARGET_TRASH) {
                             generatorStageCompleted = true;
@@ -1052,7 +1170,7 @@ public class MovementApp extends GameApplication {
                             showTemporaryNotice("STAGE 1 CLEARED!\nSpreading world restoration wave...");
                             if (infiniteMapManager != null) {
                                 infiniteMapManager.startSpreadingRestoration(() -> {
-                                    showTemporaryNotice("WORLD RESTORED! Render distance expanded.\nWalk to next region for Questions.");
+                                    showTemporaryNotice("WORLD RESTORED! Render distance expanded.\nWalk into next sector for Eco-Grid Challenge.");
                                 });
                             }
                         }
@@ -1060,7 +1178,11 @@ public class MovementApp extends GameApplication {
                     }
                 }
             } else if (generatorStage == GeneratorStage.SORTING) {
-                interactWithSortingP1();
+                if (selectedGameMode == GameMode.SINGLE_PLAYER) {
+                    interactWithSoloSorting();
+                } else {
+                    interactWithSortingP1();
+                }
             }
             return;
         }
@@ -1179,6 +1301,77 @@ public class MovementApp extends GameApplication {
                 updateTrashCounter();
                 checkLevelCompletion();
                 break;
+            }
+        }
+    }
+
+    private void interactWithSoloSorting() {
+        if (playerEntity == null) return;
+
+        // 1. If carrying waste: deposit into matching bin
+        if (outsideCarriedWaste != null) {
+            for (Map.Entry<Entity, String> bin : sortingBins.entrySet()) {
+                InteractionBox binBox = sortingBinBoxes.get(bin.getKey());
+                if ((binBox != null && binBox.intersectsPlayer(playerEntity)) || playerEntity.distance(bin.getKey()) < 56.0) {
+                    String binId = bin.getValue();
+                    if (binId.equalsIgnoreCase(outsideCarriedWaste.binId())) {
+                        TaskResult result = sortingTask.sort(outsideCarriedWaste.id(), binId);
+                        TaskTimer.apply(timer, result);
+                        ecoScore += 100;
+                        generatorSortedCount++;
+                        updateTrashCounter();
+                        spawnFloatingText(playerEntity.getX(), playerEntity.getY() - 20, "✔ Correct Bin! +8s (+100 pts)", Color.web("#39ff14"));
+                        sortingFeedback = "Correct: " + outsideCarriedWaste.name() + " -> " + binId.toUpperCase() + " bin (+8s)!";
+                        showTemporaryNotice("CORRECT! " + outsideCarriedWaste.name() + "\nSorted into " + binId.toUpperCase() + " bin (+8s)");
+                        outsideCarriedWaste = null;
+                        if (collectorCarriedWasteView != null) {
+                            collectorCarriedWasteView.setVisible(false);
+                        }
+                        if (carriedItemLabel != null) {
+                            carriedItemLabel.setVisible(false);
+                        }
+
+                        if (sortingTask.isComplete()) {
+                            generatorSortedCount = GENERATOR_TARGET_SORTING;
+                            infiniteMapManager.unlockCurrentRegion();
+                            generatorStageCompleted = true;
+                            lastCompletedChunkKey = infiniteMapManager.getCurrentChunkX() + "," + infiniteMapManager.getCurrentChunkY();
+                            ecoScore += 500;
+                            if (timer != null) timer.applyDelta(30.0);
+                            showTemporaryNotice("🎉 DISTRICT " + currentDistrict + " RESTORED! (+30s Bonus, +500 pts)\nWalk through gateway into District " + (currentDistrict + 1) + "!");
+                        }
+                    } else {
+                        if (timer != null) timer.applyDelta(-6.0);
+                        spawnFloatingText(playerEntity.getX(), playerEntity.getY() - 20, "✘ Wrong Bin! -6s", Color.web("#ff3860"));
+                        showTemporaryNotice("WRONG BIN! (-6s)\n" + outsideCarriedWaste.name() + " belongs in " + outsideCarriedWaste.binId().toUpperCase() + " bin!");
+                        sortingFeedback = "Wrong bin! " + outsideCarriedWaste.name() + " belongs in " + outsideCarriedWaste.binId().toUpperCase();
+                    }
+                    return;
+                }
+            }
+            showTemporaryNotice("Carrying: " + outsideCarriedWaste.name() + "\nDeposit into the " + outsideCarriedWaste.binId().toUpperCase() + " bin [Press E / Space]");
+            return;
+        }
+
+        // 2. Empty-handed: pick up nearby waste
+        for (Map.Entry<Entity, WasteItem> entry : List.copyOf(sortingWasteEntities.entrySet())) {
+            InteractionBox pickupBox = sortingPickupBoxes.get(entry.getKey());
+            if ((pickupBox != null && pickupBox.intersectsPlayer(playerEntity)) || playerEntity.distance(entry.getKey()) < 48.0) {
+                outsideCarriedWaste = entry.getValue();
+                entry.getKey().removeFromWorld();
+                sortingWasteEntities.remove(entry.getKey());
+                sortingPickupBoxes.remove(entry.getKey());
+                if (collectorCarriedWasteView != null) {
+                    collectorCarriedWasteView.setVisible(true);
+                }
+                if (carriedItemLabel != null) {
+                    carriedItemLabel.setText(outsideCarriedWaste.name());
+                    carriedItemLabel.setVisible(true);
+                }
+                spawnFloatingText(playerEntity.getX(), playerEntity.getY() - 20, "Picked up: " + outsideCarriedWaste.name(), Color.web("#d7e77f"));
+                sortingFeedback = "Picked up: " + outsideCarriedWaste.name() + " -> Sort into " + outsideCarriedWaste.binId().toUpperCase() + " bin";
+                showTemporaryNotice("PICKED UP: " + outsideCarriedWaste.name() + "\nSort into " + outsideCarriedWaste.binId().toUpperCase() + " BIN [Press E / Space]");
+                return;
             }
         }
     }
@@ -1327,13 +1520,25 @@ public class MovementApp extends GameApplication {
     }
 
     private void answerTestQuestion(int choiceIndex) {
-        if (selectedGameMode == GameMode.MAP_GENERATOR && generatorStage == GeneratorStage.QUESTION) {
+        if ((selectedGameMode == GameMode.MAP_GENERATOR || selectedGameMode == GameMode.SINGLE_PLAYER)
+                && generatorStage == GeneratorStage.QUESTION) {
             if (currentActiveQuestionEntity == null || currentActiveQuestion == null || questionAnswerLocked) return;
             if (choiceIndex >= currentActiveQuestion.choices().size()) return;
             QuestionResult result = currentActiveQuestion.answer(choiceIndex);
             questionAnswerLocked = true;
             double appliedDelta = TaskTimer.apply(timer, result.asTaskResult());
             generatorQuestionsAnswered++;
+            ecoScore += (result.quality() == pkg.restoration.questions.AnswerQuality.BEST) ? 100
+                    : ((result.quality() == pkg.restoration.questions.AnswerQuality.SECOND_BEST) ? 30 : 0);
+            updateTrashCounter();
+
+            Color fbColor = (result.quality() == pkg.restoration.questions.AnswerQuality.BEST) ? Color.web("#39ff14")
+                    : ((result.quality() == pkg.restoration.questions.AnswerQuality.SECOND_BEST) ? Color.web("#ffd700") : Color.web("#ff3860"));
+            if (playerEntity != null) {
+                spawnFloatingText(playerEntity.getX(), playerEntity.getY() - 20,
+                        result.quality() + String.format(" (%+.0f s)", appliedDelta), fbColor);
+            }
+
             questionFeedbackLabel.setText(result.quality() + ": " + result.feedback() + String.format(" (%+.0f seconds)", appliedDelta));
             Entity targetEntity = currentActiveQuestionEntity;
             currentActiveQuestionEntity = null;
@@ -1350,7 +1555,7 @@ public class MovementApp extends GameApplication {
                     infiniteMapManager.unlockCurrentRegion();
                     generatorStageCompleted = true;
                     lastCompletedChunkKey = infiniteMapManager.getCurrentChunkX() + "," + infiniteMapManager.getCurrentChunkY();
-                    showTemporaryNotice("QUESTIONS CLEARED! Walk into a new region for Sorting Stage.");
+                    showTemporaryNotice("💡 ECO-GRID ONLINE!\nProceed into next sector for Eco-Sorting.");
                 }
             }, Duration.seconds(1.2));
             return;
@@ -1594,6 +1799,14 @@ public class MovementApp extends GameApplication {
             modeStatusText.setText("LAN Co-Op: Hosting on Port " + NetworkManager.DEFAULT_PORT);
         } else if (selectedGameMode == GameMode.LAN_JOIN) {
             modeStatusText.setText("LAN Co-Op: Connected to " + targetHostIp);
+        } else if (selectedGameMode == GameMode.SINGLE_PLAYER) {
+            modeStatusText.setText("District 1: Phase 1 — Eco-Cleanup");
+            scoreText = new Text("Eco-Score: 0 | District: 1");
+            scoreText.setFont(Font.font("Monospaced", FontWeight.BOLD, 15));
+            scoreText.setFill(Color.web("#5bc0be"));
+            scoreText.setX(FXGL.getAppWidth() - 280);
+            scoreText.setY(36);
+            FXGL.addUINode(scoreText);
         } else {
             modeStatusText.setText("Single Player Mode");
         }
@@ -1609,10 +1822,10 @@ public class MovementApp extends GameApplication {
             updateTrashCounter();
         }
 
-        interactPromptText = new Text("Press [E] to Collect Trash (+10s)");
+        interactPromptText = new Text("Press [E / Space] to Interact");
         interactPromptText.setFont(Font.font("Monospaced", FontWeight.BOLD, 14));
-        interactPromptText.setFill(Color.web("#ffb703"));
-        interactPromptText.setX(FXGL.getAppWidth() / 2.0 - 140);
+        interactPromptText.setFill(Color.web("#ffd700"));
+        interactPromptText.setX(FXGL.getAppWidth() / 2.0 - 180);
         interactPromptText.setY(FXGL.getAppHeight() - 40);
         interactPromptText.setVisible(false);
         FXGL.addUINode(interactPromptText);
@@ -1638,7 +1851,15 @@ public class MovementApp extends GameApplication {
 
     private void updateTrashCounter() {
         if (trashCounterText != null) {
-            if (selectedGameMode == GameMode.MAP_GENERATOR) {
+            if (selectedGameMode == GameMode.SINGLE_PLAYER) {
+                if (generatorStage == GeneratorStage.TRASH_COLLECTION) {
+                    trashCounterText.setText(String.format("Eco-Cleanup: %d / %d", generatorTrashCollected, GENERATOR_TARGET_TRASH));
+                } else if (generatorStage == GeneratorStage.QUESTION) {
+                    trashCounterText.setText(String.format("Eco-Grid: %d / %d Restored", generatorQuestionsAnswered, GENERATOR_TARGET_QUESTIONS));
+                } else if (generatorStage == GeneratorStage.SORTING) {
+                    trashCounterText.setText(String.format("Recycling: %d / %d Sorted", generatorSortedCount, GENERATOR_TARGET_SORTING));
+                }
+            } else if (selectedGameMode == GameMode.MAP_GENERATOR) {
                 trashCounterText.setText(String.format("Trash Collected: %d (Infinite Mode)", collectedTrash));
             } else {
                 trashCounterText.setText(String.format("Trash Collected: %d / %d", collectedTrash, TOTAL_TRASH));
@@ -1647,7 +1868,7 @@ public class MovementApp extends GameApplication {
     }
 
     private void checkLevelCompletion() {
-        if (selectedGameMode == GameMode.MAP_GENERATOR) return;
+        if (selectedGameMode == GameMode.MAP_GENERATOR || selectedGameMode == GameMode.SINGLE_PLAYER) return;
         if (collectedTrash >= TOTAL_TRASH) {
             if (levelNoticeText == null) {
                 levelNoticeText = new Text("LEVEL 1 CLEARED! AREA RESTORED");
@@ -1677,7 +1898,7 @@ public class MovementApp extends GameApplication {
             updateCoopCamera();
         }
 
-        if (selectedGameMode == GameMode.MAP_GENERATOR) {
+        if (selectedGameMode == GameMode.MAP_GENERATOR || selectedGameMode == GameMode.SINGLE_PLAYER) {
             if (infiniteMapManager != null && playerEntity != null) {
                 double avgX = playerEntity2 != null ? (playerEntity.getX() + playerEntity2.getX()) / 2.0 : playerEntity.getX();
                 double avgY = playerEntity2 != null ? (playerEntity.getY() + playerEntity2.getY()) / 2.0 : playerEntity.getY();
@@ -1703,7 +1924,7 @@ public class MovementApp extends GameApplication {
                         && p1LocalX >= 3 && p1LocalX <= (InfiniteMapManager.CHUNK_SIZE - 4)
                         && p1LocalY >= 3 && p1LocalY <= (InfiniteMapManager.CHUNK_SIZE - 4);
 
-                boolean p2Entered = !p2Key.equals(lastCompletedChunkKey)
+                boolean p2Entered = (playerEntity2 != null) && !p2Key.equals(lastCompletedChunkKey)
                         && p2LocalX >= 3 && p2LocalX <= (InfiniteMapManager.CHUNK_SIZE - 4)
                         && p2LocalY >= 3 && p2LocalY <= (InfiniteMapManager.CHUNK_SIZE - 4);
 
@@ -1730,6 +1951,7 @@ public class MovementApp extends GameApplication {
                         generatorStage = GeneratorStage.SORTING;
                         setupGeneratorStage3(targetChunkX, targetChunkY);
                     } else {
+                        currentDistrict++;
                         generatorStage = GeneratorStage.TRASH_COLLECTION;
                         setupGeneratorStage1(targetChunkX, targetChunkY);
                     }
@@ -1762,13 +1984,29 @@ public class MovementApp extends GameApplication {
                 }
             }
             if (modeStatusText != null) {
-                if (generatorStage == GeneratorStage.TRASH_COLLECTION) {
-                    modeStatusText.setText(String.format("MAP GENERATOR (2P CO-OP) — STAGE 1: TRASH COLLECTION (%d / 10)", generatorTrashCollected));
-                } else if (generatorStage == GeneratorStage.QUESTION) {
-                    modeStatusText.setText(String.format("MAP GENERATOR (2P CO-OP) — STAGE 2: QUESTIONS ANSWERED (%d / 3)", generatorQuestionsAnswered));
-                } else if (generatorStage == GeneratorStage.SORTING) {
-                    modeStatusText.setText(String.format("MAP GENERATOR (2P CO-OP) — STAGE 3: %s", sortingFeedback));
+                if (selectedGameMode == GameMode.SINGLE_PLAYER) {
+                    if (generatorStage == GeneratorStage.TRASH_COLLECTION) {
+                        modeStatusText.setText(String.format("District %d: Phase 1 — Eco-Cleanup (%d / %d)",
+                                currentDistrict, generatorTrashCollected, GENERATOR_TARGET_TRASH));
+                    } else if (generatorStage == GeneratorStage.QUESTION) {
+                        modeStatusText.setText(String.format("District %d: Phase 2 — Eco-Grid Terminals (%d / %d)",
+                                currentDistrict, generatorQuestionsAnswered, GENERATOR_TARGET_QUESTIONS));
+                    } else if (generatorStage == GeneratorStage.SORTING) {
+                        modeStatusText.setText(String.format("District %d: Phase 3 — Recycling Station (%d / %d)",
+                                currentDistrict, generatorSortedCount, GENERATOR_TARGET_SORTING));
+                    }
+                } else {
+                    if (generatorStage == GeneratorStage.TRASH_COLLECTION) {
+                        modeStatusText.setText(String.format("MAP GENERATOR (2P CO-OP) — STAGE 1: TRASH COLLECTION (%d / 10)", generatorTrashCollected));
+                    } else if (generatorStage == GeneratorStage.QUESTION) {
+                        modeStatusText.setText(String.format("MAP GENERATOR (2P CO-OP) — STAGE 2: QUESTIONS ANSWERED (%d / 3)", generatorQuestionsAnswered));
+                    } else if (generatorStage == GeneratorStage.SORTING) {
+                        modeStatusText.setText(String.format("MAP GENERATOR (2P CO-OP) — STAGE 3: %s", sortingFeedback));
+                    }
                 }
+            }
+            if (scoreText != null && selectedGameMode == GameMode.SINGLE_PLAYER) {
+                scoreText.setText(String.format("Eco-Score: %d | District: %d", ecoScore, currentDistrict));
             }
         } else if (selectedGameMode == GameMode.SORTING_TEST) {
             enforceSortingRoles();
@@ -1805,7 +2043,8 @@ public class MovementApp extends GameApplication {
 
         boolean activeQuestionStage = (selectedGameMode == GameMode.QUESTION_TEST
                 || (selectedGameMode == GameMode.SEQUENTIAL_DEMO && demoStage == DemoStage.QUESTION)
-                || (selectedGameMode == GameMode.MAP_GENERATOR && generatorStage == GeneratorStage.QUESTION));
+                || ((selectedGameMode == GameMode.MAP_GENERATOR || selectedGameMode == GameMode.SINGLE_PLAYER)
+                        && generatorStage == GeneratorStage.QUESTION));
         if (activeQuestionStage) {
             Entity nearEntity = findNearestQuestionEntity();
             if (nearEntity != null) {
@@ -1847,23 +2086,73 @@ public class MovementApp extends GameApplication {
             netManager.sendGameState(packet);
         }
 
-        boolean showStandardTrashPrompt = selectedGameMode != GameMode.SORTING_TEST
-                && selectedGameMode != GameMode.SEQUENTIAL_DEMO
-                && selectedGameMode != GameMode.QUESTION_TEST;
-        boolean nearTrash = false;
-        if (showStandardTrashPrompt) {
-            List<Entity> trashes = FXGL.getGameWorld().getEntitiesByType(EntityType.TRASH);
-            for (Entity trash : trashes) {
-                if (safelyCollides(playerEntity, trash) || safelyCollides(playerEntity2, trash)) {
-                    nearTrash = true;
-                    break;
+        if (selectedGameMode == GameMode.SINGLE_PLAYER) {
+            if (generatorStageCompleted) {
+                interactPromptText.setText("District Sector Cleared! Walk through gateway into next zone ->");
+                interactPromptText.setVisible(true);
+            } else if (generatorStage == GeneratorStage.TRASH_COLLECTION) {
+                boolean nearTrash = false;
+                for (Entity trash : generatorTrashEntities) {
+                    if (trash != null && trash.isActive() && playerEntity != null
+                            && (playerEntity.distance(trash) < 48.0 || safelyCollides(playerEntity, trash))) {
+                        nearTrash = true;
+                        break;
+                    }
+                }
+                interactPromptText.setText("Press [E / Space] to Clean Waste (+10s, +50 pts)");
+                interactPromptText.setVisible(nearTrash);
+            } else if (generatorStage == GeneratorStage.QUESTION) {
+                interactPromptText.setText("Press [1, 2, or 3] to Answer Terminal Question");
+                interactPromptText.setVisible(playerNearQuestionPoint);
+            } else if (generatorStage == GeneratorStage.SORTING) {
+                if (outsideCarriedWaste != null) {
+                    boolean nearBin = false;
+                    for (Map.Entry<Entity, String> bin : sortingBins.entrySet()) {
+                        InteractionBox binBox = sortingBinBoxes.get(bin.getKey());
+                        if ((binBox != null && binBox.intersectsPlayer(playerEntity))
+                                || (playerEntity != null && playerEntity.distance(bin.getKey()) < 56.0)) {
+                            interactPromptText.setText("Press [E / Space] to Deposit in " + bin.getValue().toUpperCase() + " Bin");
+                            nearBin = true;
+                            break;
+                        }
+                    }
+                    if (!nearBin) {
+                        interactPromptText.setText("Deposit " + outsideCarriedWaste.name() + " -> " + outsideCarriedWaste.binId().toUpperCase() + " Bin");
+                    }
+                    interactPromptText.setVisible(true);
+                } else {
+                    boolean nearWaste = false;
+                    for (Map.Entry<Entity, WasteItem> entry : sortingWasteEntities.entrySet()) {
+                        InteractionBox pickupBox = sortingPickupBoxes.get(entry.getKey());
+                        if ((pickupBox != null && pickupBox.intersectsPlayer(playerEntity))
+                                || (playerEntity != null && playerEntity.distance(entry.getKey()) < 48.0)) {
+                            interactPromptText.setText("Press [E / Space] to Pick Up " + entry.getValue().name());
+                            nearWaste = true;
+                            break;
+                        }
+                    }
+                    interactPromptText.setVisible(nearWaste);
                 }
             }
-        }
-        if (interactPromptText != null && showStandardTrashPrompt) {
-            interactPromptText.setVisible(nearTrash);
-        } else if (interactPromptText != null) {
-            interactPromptText.setVisible(false);
+        } else {
+            boolean showStandardTrashPrompt = selectedGameMode != GameMode.SORTING_TEST
+                    && selectedGameMode != GameMode.SEQUENTIAL_DEMO
+                    && selectedGameMode != GameMode.QUESTION_TEST;
+            boolean nearTrash = false;
+            if (showStandardTrashPrompt) {
+                List<Entity> trashes = FXGL.getGameWorld().getEntitiesByType(EntityType.TRASH);
+                for (Entity trash : trashes) {
+                    if (safelyCollides(playerEntity, trash) || safelyCollides(playerEntity2, trash)) {
+                        nearTrash = true;
+                        break;
+                    }
+                }
+            }
+            if (interactPromptText != null && showStandardTrashPrompt) {
+                interactPromptText.setVisible(nearTrash);
+            } else if (interactPromptText != null) {
+                interactPromptText.setVisible(false);
+            }
         }
 
         refreshTimerLabel();

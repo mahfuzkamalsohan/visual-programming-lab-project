@@ -8,28 +8,95 @@
 
 <StackPane stylesheets="@../css/pixel_style.css" prefWidth="1280.0" prefHeight="720.0" xmlns="http://javafx.com/fxml/1" xmlns:fx="http://javafx.com/fxml/1">
     <children>
-        <!-- Main Menu Card -->
-        <VBox alignment="CENTER_LEFT" spacing="8.0" styleClass="pixel-panel" maxWidth="380.0" maxHeight="540.0" translateX="-240.0">
+        <!-- Top Level Main Menu Card -->
+        <VBox fx:id="mainMenuBox" alignment="CENTER_LEFT" spacing="12.0" styleClass="pixel-panel" maxWidth="380.0" maxHeight="540.0" translateX="-240.0">
+            <padding>
+                <Insets top="24.0" right="24.0" bottom="24.0" left="24.0" />
+            </padding>
+            <children>
+                <Label text="RESTORATION" styleClass="pixel-title" style="-fx-font-size: 32px;" />
+                <Label text="★ RETRO ADVENTURE ★" styleClass="pixel-subtitle" style="-fx-font-size: 12px;" />
+                
+                <VBox spacing="10.0" alignment="CENTER_LEFT">
+                    <VBox.margin>
+                        <Insets top="14.0" />
+                    </VBox.margin>
+                    <children>
+                        <Button fx:id="btnSingle" text="Single Player" prefWidth="310.0" prefHeight="40.0" styleClass="pixel-button" />
+                        <Button fx:id="btnMultiplayer" text="Multiplayer" prefWidth="310.0" prefHeight="40.0" styleClass="pixel-button" />
+                        <Button fx:id="btnSettings" text="Settings" prefWidth="310.0" prefHeight="40.0" styleClass="pixel-button" />
+                        <Button fx:id="btnAbout" text="About" prefWidth="310.0" prefHeight="40.0" styleClass="pixel-button" />
+                        <Button fx:id="btnExit" text="Exit" prefWidth="310.0" prefHeight="40.0" styleClass="pixel-button" />
+                    </children>
+                </VBox>
+            </children>
+        </VBox>
+
+        <!-- Multiplayer Sub-Menu Card -->
+        <VBox fx:id="multiplayerMenuBox" visible="false" managed="false" alignment="CENTER_LEFT" spacing="12.0" styleClass="pixel-panel" maxWidth="380.0" maxHeight="540.0" translateX="-240.0">
+            <padding>
+                <Insets top="24.0" right="24.0" bottom="24.0" left="24.0" />
+            </padding>
+            <children>
+                <Label text="MULTIPLAYER" styleClass="pixel-title" style="-fx-font-size: 28px;" />
+                <Label text="★ SELECT CO-OP MODE ★" styleClass="pixel-subtitle" style="-fx-font-size: 12px;" />
+                
+                <VBox spacing="10.0" alignment="CENTER_LEFT">
+                    <VBox.margin>
+                        <Insets top="14.0" />
+                    </VBox.margin>
+                    <children>
+                        <Button fx:id="btnHostCoop" text="Host Co-op" prefWidth="310.0" prefHeight="40.0" styleClass="pixel-button" />
+                        <Button fx:id="btnJoinCoop" text="Join Co-op" prefWidth="310.0" prefHeight="40.0" styleClass="pixel-button" />
+                        <Button fx:id="btnSharedScreenCoop" text="Shared-Screen Co-op" prefWidth="310.0" prefHeight="40.0" styleClass="pixel-button" />
+                        <Button fx:id="btnMultiplayerBack" text="Back" prefWidth="310.0" prefHeight="40.0" styleClass="pixel-button" />
+                    </children>
+                </VBox>
+            </children>
+        </VBox>
+
+        <!-- Settings Card -->
+        <VBox fx:id="settingsBox" visible="false" managed="false" alignment="CENTER_LEFT" spacing="12.0" styleClass="pixel-panel" maxWidth="400.0" maxHeight="540.0" translateX="-240.0">
+            <padding>
+                <Insets top="24.0" right="24.0" bottom="24.0" left="24.0" />
+            </padding>
+            <children>
+                <Label text="SETTINGS" styleClass="pixel-title" style="-fx-font-size: 28px;" />
+                <Label text="★ GAME OPTIONS ★" styleClass="pixel-subtitle" style="-fx-font-size: 12px;" />
+                
+                <VBox spacing="12.0" alignment="CENTER_LEFT">
+                    <VBox.margin>
+                        <Insets top="14.0" />
+                    </VBox.margin>
+                    <children>
+                        <Button fx:id="btnToggleFullscreen" text="Toggle Fullscreen" prefWidth="320.0" prefHeight="40.0" styleClass="pixel-button" />
+                        <Label text="Audio: FXGL Default Sound Engine" styleClass="pixel-label-yellow" wrapText="true" />
+                        <Label text="Resolution: 1280 x 720 (Retro Pixel)" styleClass="pixel-label-green" wrapText="true" />
+                        <Button fx:id="btnSettingsBack" text="Back" prefWidth="320.0" prefHeight="40.0" styleClass="pixel-button" />
+                    </children>
+                </VBox>
+            </children>
+        </VBox>
+
+        <!-- About Card -->
+        <VBox fx:id="aboutBox" visible="false" managed="false" alignment="CENTER_LEFT" spacing="10.0" styleClass="pixel-panel" maxWidth="440.0" maxHeight="540.0" translateX="-240.0">
             <padding>
                 <Insets top="20.0" right="24.0" bottom="20.0" left="24.0" />
             </padding>
             <children>
-                <Label text="RESTORATION" styleClass="pixel-title" style="-fx-font-size: 32px;" />
+                <Label text="ABOUT" styleClass="pixel-title" style="-fx-font-size: 28px;" />
+                <Label text="★ RESTORATION ADVENTURE ★" styleClass="pixel-subtitle" style="-fx-font-size: 12px;" />
                 
-                <VBox spacing="6.0" alignment="CENTER_LEFT">
+                <VBox spacing="8.0" alignment="CENTER_LEFT">
                     <VBox.margin>
                         <Insets top="10.0" />
                     </VBox.margin>
                     <children>
-                        <Button fx:id="btnSingle" text="Single Player" prefWidth="310.0" prefHeight="36.0" styleClass="pixel-button" />
-                        <Button fx:id="btnQuestionTest" text="Question Test Mode" prefWidth="310.0" prefHeight="36.0" styleClass="pixel-button" />
-                        <Button fx:id="btnSortingTest" text="Sorting Test Mode" prefWidth="310.0" prefHeight="36.0" styleClass="pixel-button" />
-                        <Button fx:id="btnSequentialDemo" text="3-Stage Demo Map" prefWidth="310.0" prefHeight="36.0" styleClass="pixel-button" />
-                        <Button fx:id="btnLocalCoop" text="Local Co-Op (2 Players)" prefWidth="310.0" prefHeight="36.0" styleClass="pixel-button" />
-                        <Button fx:id="btnHostLan" text="Host LAN Co-Op" prefWidth="310.0" prefHeight="36.0" styleClass="pixel-button" />
-                        <Button fx:id="btnJoinLan" text="Join LAN Co-Op" prefWidth="310.0" prefHeight="36.0" styleClass="pixel-button" />
-                        <Button fx:id="btnMapGenerator" text="Map Generator (Infinite)" prefWidth="310.0" prefHeight="36.0" styleClass="pixel-button" />
-                        <Button fx:id="btnExit" text="Exit" prefWidth="310.0" prefHeight="36.0" styleClass="pixel-button" />
+                        <Label text="Objective: Clean &amp; Restore polluted ecosystems by collecting trash &amp; answering questions." styleClass="pixel-question-text" wrapText="true" />
+                        <Label text="Player 1 Controls: WASD to Move, SPACE to Interact / Answer" styleClass="pixel-label-green" wrapText="true" />
+                        <Label text="Player 2 Controls: ARROW KEYS to Move, ENTER to Interact" styleClass="pixel-label-yellow" wrapText="true" />
+                        <Label text="Version: 1.0.0 (8-Bit Pixel Edition)" styleClass="pixel-label-white" wrapText="true" />
+                        <Button fx:id="btnAboutBack" text="Back" prefWidth="340.0" prefHeight="38.0" styleClass="pixel-button" />
                     </children>
                 </VBox>
             </children>

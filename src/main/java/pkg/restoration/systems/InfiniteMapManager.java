@@ -1,26 +1,31 @@
 package pkg.restoration.systems;
 
+import java.io.InputStream;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+
 import com.almasb.fxgl.dsl.FXGL;
 import com.almasb.fxgl.entity.Entity;
+import com.almasb.fxgl.entity.components.CollidableComponent;
 import com.almasb.fxgl.entity.level.tiled.Layer;
 import com.almasb.fxgl.entity.level.tiled.TMXLevelLoader;
 import com.almasb.fxgl.entity.level.tiled.TiledMap;
-import com.almasb.fxgl.entity.level.tiled.TilesetLoader;
 import com.almasb.fxgl.physics.BoundingShape;
-import com.almasb.fxgl.entity.components.CollidableComponent;
 import com.almasb.fxgl.physics.HitBox;
 
 import javafx.geometry.Point2D;
-import javafx.scene.Node;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
 import javafx.util.Duration;
 import pkg.EntityType;
-
-import java.io.InputStream;
-import java.net.URL;
-import java.util.*;
 
 public class InfiniteMapManager {
 
@@ -127,6 +132,7 @@ public class InfiniteMapManager {
         double chunkOriginY = (chunkX + chunkY) * (CHUNK_SIZE * TILE_HALF_HEIGHT);
 
         for (int i = 0; i < CHUNK_SIZE; i++) {
+            if (i >= 8 && i <= 11) continue; // Leave central gateway archways open for smooth transit
             spawnBoundaryTile(chunkOriginX, chunkOriginY, 0, i);
             spawnBoundaryTile(chunkOriginX, chunkOriginY, CHUNK_SIZE - 1, i);
             spawnBoundaryTile(chunkOriginX, chunkOriginY, i, 0);
