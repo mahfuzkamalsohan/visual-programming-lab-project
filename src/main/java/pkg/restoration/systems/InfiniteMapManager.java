@@ -54,6 +54,62 @@ public class InfiniteMapManager {
     private double rippleRadius = 10.0;
     private static final double MAX_RIPPLE_RADIUS = 52.0;
 
+    private double currentRestorationRatio = 1.0;
+    private int currentStage = 5;
+
+    public void update(double restorationRatio) {
+        this.currentRestorationRatio = restorationRatio;
+        int targetStage = calculateStage(restorationRatio);
+        if (targetStage != currentStage) {
+            currentStage = targetStage;
+            updateAllChunkViews();
+        }
+    }
+
+    private int calculateStage(double ratio) {
+        if (ratio > 0.75) {
+            return 5;
+        } else if (ratio > 0.50) {
+            return 4;
+        } else if (ratio > 0.25) {
+            return 3;
+        } else if (ratio > 0.10) {
+            return 2;
+        } else {
+            return 1;
+        }
+    }
+
+    private long transformGidByRatio(long originalGid, double ratio) {
+        long gid = originalGid;
+        if (originalGid == 35 || originalGid == 36 || originalGid == 37 || originalGid == 38) {
+            if (ratio <= 0.10) {
+                gid = 17;
+            } else if (ratio <= 0.50) {
+                gid = 18;
+            } else if (ratio <= 0.75) {
+                gid = 20;
+            }
+        } else if (originalGid == 20) {
+            if (ratio <= 0.10) {
+                gid = 17;
+            } else if (ratio <= 0.50) {
+                gid = 18;
+            }
+        } else if (originalGid == 19) {
+            if (ratio <= 0.10) {
+                gid = 17;
+            } else if (ratio <= 0.25) {
+                gid = 18;
+            }
+        } else if (originalGid == 18) {
+            if (ratio <= 0.10) {
+                gid = 17;
+            }
+        }
+        return gid;
+    }
+
     public void setFragmentedMode(boolean fragmented) {
         if (this.fragmentedMode != fragmented) {
             this.fragmentedMode = fragmented;
@@ -446,8 +502,9 @@ public class InfiniteMapManager {
         boolean isCurrentBoundedRegion = (state.chunkX == currentChunkX && state.chunkY == currentChunkY);
 
         for (int i = 0; i < state.template.gids.length; i++) {
-            long gid = state.template.gids[i];
-            if (gid <= 0) continue;
+            long originalGid = state.template.gids[i];
+            if (originalGid <= 0) continue;
+            long gid = transformGidByRatio(originalGid, currentRestorationRatio);
 
             boolean visible;
             if (!fragmentedMode || isCurrentBoundedRegion) {

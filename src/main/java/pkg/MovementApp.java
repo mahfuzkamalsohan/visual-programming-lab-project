@@ -2040,6 +2040,9 @@ public class MovementApp extends GameApplication {
         if (mapManager != null) {
             mapManager.update(timer.restorationRatio());
         }
+        if (infiniteMapManager != null && timer != null) {
+            infiniteMapManager.update(timer.restorationRatio());
+        }
 
         boolean activeQuestionStage = (selectedGameMode == GameMode.QUESTION_TEST
                 || (selectedGameMode == GameMode.SEQUENTIAL_DEMO && demoStage == DemoStage.QUESTION)
