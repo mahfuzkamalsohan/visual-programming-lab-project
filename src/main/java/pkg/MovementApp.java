@@ -26,6 +26,8 @@ import com.almasb.fxgl.input.UserAction;
 import com.almasb.fxgl.physics.BoundingShape;
 import com.almasb.fxgl.physics.HitBox;
 
+import javafx.animation.RotateTransition;
+import javafx.animation.ScaleTransition;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Point2D;
 import javafx.geometry.Pos;
@@ -37,8 +39,10 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextInputDialog;
+import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
@@ -593,7 +597,8 @@ public class MovementApp extends GameApplication {
 
             if (carriedItemLabel == null) {
                 carriedItemLabel = new Label();
-                carriedItemLabel.setStyle("-fx-text-fill:#ffd700;-fx-font-family:Monospaced;-fx-font-size:9px;-fx-font-weight:bold;-fx-background-color:rgba(0,0,0,0.75);-fx-padding:1px 4px;-fx-border-color:#ffd700;-fx-border-width:1px;");
+                carriedItemLabel.setStyle(
+                        "-fx-text-fill:#ffd700;-fx-font-family:Monospaced;-fx-font-size:9px;-fx-font-weight:bold;-fx-background-color:rgba(0,0,0,0.75);-fx-padding:1px 4px;-fx-border-color:#ffd700;-fx-border-width:1px;");
                 carriedItemLabel.setTranslateX(-30);
                 carriedItemLabel.setTranslateY(-28);
                 carriedItemLabel.setMouseTransparent(true);
@@ -823,9 +828,9 @@ public class MovementApp extends GameApplication {
         double originY = (chunkX + chunkY) * 160.0;
 
         int[][] tilePositions = {
-            {5, 5}, {9, 5}, {14, 5},
-            {6, 9}, {10, 9}, {14, 9},
-            {5, 14}, {9, 14}
+                { 5, 5 }, { 9, 5 }, { 14, 5 },
+                { 6, 9 }, { 10, 9 }, { 14, 9 },
+                { 5, 14 }, { 9, 14 }
         };
 
         for (int i = 0; i < GENERATOR_TARGET_TRASH && i < tilePositions.length; i++) {
@@ -847,7 +852,8 @@ public class MovementApp extends GameApplication {
         generatorStageCompleted = false;
         updateTrashCounter();
         if (selectedGameMode == GameMode.SINGLE_PLAYER) {
-            showTemporaryNotice("🌱 DISTRICT " + currentDistrict + " — PHASE 1: ECO-CLEANUP\nCollect scattered trash items to heal the soil! [E / Space]");
+            showTemporaryNotice("🌱 DISTRICT " + currentDistrict
+                    + " — PHASE 1: ECO-CLEANUP\nCollect scattered trash items to heal the soil! [E / Space]");
         }
     }
 
@@ -863,11 +869,13 @@ public class MovementApp extends GameApplication {
         double originY = (chunkX + chunkY) * 160.0;
 
         try {
-            List<EnvironmentalQuestion> allQuestions = new QuestionLoader().loadResource("assets/questions/environment.dat");
+            List<EnvironmentalQuestion> allQuestions = new QuestionLoader()
+                    .loadResource("assets/questions/environment.dat");
             testQuestions = QuestionSelector.randomUnique(allQuestions, GENERATOR_TARGET_QUESTIONS);
-        } catch (IOException ignored) {}
+        } catch (IOException ignored) {
+        }
 
-        int[][] tilePositions = { {7, 7}, {13, 11} };
+        int[][] tilePositions = { { 7, 7 }, { 13, 11 } };
         for (int i = 0; i < GENERATOR_TARGET_QUESTIONS && i < testQuestions.size(); i++) {
             int lx = tilePositions[i][0];
             int ly = tilePositions[i][1];
@@ -886,7 +894,8 @@ public class MovementApp extends GameApplication {
         createQuestionPanel();
         updateTrashCounter();
         if (selectedGameMode == GameMode.SINGLE_PLAYER) {
-            showTemporaryNotice("⚡ DISTRICT " + currentDistrict + " — PHASE 2: ECO-GRID\nApproach interactive terminals to resolve environmental queries! [1, 2, 3]");
+            showTemporaryNotice("⚡ DISTRICT " + currentDistrict
+                    + " — PHASE 2: ECO-GRID\nApproach interactive terminals to resolve environmental queries! [1, 2, 3]");
         }
     }
 
@@ -929,8 +938,7 @@ public class MovementApp extends GameApplication {
                 new WasteItem("newspaper", "Clean newspaper", "blue"),
                 new WasteItem("can", "Clean aluminium can", "blue"),
                 new WasteItem("peel", "Banana peel", "green"),
-                new WasteItem("battery", "Used battery", "red")
-        );
+                new WasteItem("battery", "Used battery", "red"));
 
         Map<String, String> expectedBins = new LinkedHashMap<>();
         for (WasteItem item : waste) {
@@ -938,7 +946,7 @@ public class MovementApp extends GameApplication {
         }
         sortingTask = new SortingTask(expectedBins, 15.0, 7.0, 8.0);
 
-        int[][] wasteTilePositions = { {4, 4}, {16, 4}, {4, 16}, {16, 16}, {5, 12}, {15, 8} };
+        int[][] wasteTilePositions = { { 4, 4 }, { 16, 4 }, { 4, 16 }, { 16, 16 }, { 5, 12 }, { 15, 8 } };
         for (int i = 0; i < waste.size(); i++) {
             WasteItem item = waste.get(i);
             int lx = wasteTilePositions[i][0];
@@ -966,23 +974,27 @@ public class MovementApp extends GameApplication {
         generatorStageCompleted = false;
         updateTrashCounter();
         if (selectedGameMode == GameMode.SINGLE_PLAYER) {
-            showTemporaryNotice("♻ DISTRICT " + currentDistrict + " — PHASE 3: ECO-SORTING\nPick up waste items & deposit into matching color bins! [E / Space]");
+            showTemporaryNotice("♻ DISTRICT " + currentDistrict
+                    + " — PHASE 3: ECO-SORTING\nPick up waste items & deposit into matching color bins! [E / Space]");
         }
     }
 
     private void clearGeneratorStageEntities() {
         for (Entity e : generatorTrashEntities) {
-            if (e != null && e.isActive()) e.removeFromWorld();
+            if (e != null && e.isActive())
+                e.removeFromWorld();
         }
         generatorTrashEntities.clear();
 
         for (Entity e : generatorQuestionEntities) {
-            if (e != null && e.isActive()) e.removeFromWorld();
+            if (e != null && e.isActive())
+                e.removeFromWorld();
         }
         generatorQuestionEntities.clear();
 
         for (Entity e : generatorSortingWasteEntities) {
-            if (e != null && e.isActive()) e.removeFromWorld();
+            if (e != null && e.isActive())
+                e.removeFromWorld();
         }
         generatorSortingWasteEntities.clear();
 
@@ -1014,7 +1026,8 @@ public class MovementApp extends GameApplication {
         label.setStyle("-fx-alignment:center;-fx-text-alignment:center;");
 
         StackPane banner = new StackPane(label);
-        banner.setStyle("-fx-background-color:rgba(11,23,14,0.92);-fx-border-color:#39ff14;-fx-border-width:3px;-fx-padding:10px 24px;-fx-effect:dropshadow(three-pass-box, rgba(0,0,0,0.85), 8, 0, 3, 3);");
+        banner.setStyle(
+                "-fx-background-color:rgba(11,23,14,0.92);-fx-border-color:#39ff14;-fx-border-width:3px;-fx-padding:10px 24px;-fx-effect:dropshadow(three-pass-box, rgba(0,0,0,0.85), 8, 0, 3, 3);");
         banner.setMaxWidth(680);
         banner.setLayoutX(FXGL.getAppWidth() / 2.0 - 340);
         banner.setLayoutY(75);
@@ -1152,7 +1165,8 @@ public class MovementApp extends GameApplication {
         if (selectedGameMode == GameMode.MAP_GENERATOR || selectedGameMode == GameMode.SINGLE_PLAYER) {
             if (generatorStage == GeneratorStage.TRASH_COLLECTION) {
                 for (Entity trash : List.copyOf(generatorTrashEntities)) {
-                    if (trash != null && trash.isActive() && playerEntity != null && playerEntity.distance(trash) < 48.0) {
+                    if (trash != null && trash.isActive() && playerEntity != null
+                            && playerEntity.distance(trash) < 48.0) {
                         trash.removeFromWorld();
                         generatorTrashEntities.remove(trash);
                         generatorTrashCollected++;
@@ -1161,16 +1175,20 @@ public class MovementApp extends GameApplication {
                         if (infiniteMapManager != null) {
                             infiniteMapManager.onBottleCollected(generatorTrashCollected, GENERATOR_TARGET_TRASH);
                         }
-                        if (timer != null) timer.applyDelta(10.0);
-                        spawnFloatingText(playerEntity.getX(), playerEntity.getY() - 16, "+10s Cleaned! (+50 pts)", Color.web("#39ff14"));
+                        if (timer != null)
+                            timer.applyDelta(10.0);
+                        spawnFloatingText(playerEntity.getX(), playerEntity.getY() - 16, "+10s Cleaned! (+50 pts)",
+                                Color.web("#39ff14"));
                         updateTrashCounter();
                         if (generatorTrashCollected >= GENERATOR_TARGET_TRASH) {
                             generatorStageCompleted = true;
-                            lastCompletedChunkKey = infiniteMapManager.getCurrentChunkX() + "," + infiniteMapManager.getCurrentChunkY();
+                            lastCompletedChunkKey = infiniteMapManager.getCurrentChunkX() + ","
+                                    + infiniteMapManager.getCurrentChunkY();
                             showTemporaryNotice("STAGE 1 CLEARED!\nSpreading world restoration wave...");
                             if (infiniteMapManager != null) {
                                 infiniteMapManager.startSpreadingRestoration(() -> {
-                                    showTemporaryNotice("WORLD RESTORED! Render distance expanded.\nWalk into next sector for Eco-Grid Challenge.");
+                                    showTemporaryNotice(
+                                            "WORLD RESTORED! Render distance expanded.\nWalk into next sector for Eco-Grid Challenge.");
                                 });
                             }
                         }
@@ -1211,7 +1229,8 @@ public class MovementApp extends GameApplication {
         if (selectedGameMode == GameMode.MAP_GENERATOR) {
             if (generatorStage == GeneratorStage.TRASH_COLLECTION) {
                 for (Entity trash : List.copyOf(generatorTrashEntities)) {
-                    if (trash != null && trash.isActive() && playerEntity2 != null && playerEntity2.distance(trash) < 48.0) {
+                    if (trash != null && trash.isActive() && playerEntity2 != null
+                            && playerEntity2.distance(trash) < 48.0) {
                         trash.removeFromWorld();
                         generatorTrashEntities.remove(trash);
                         generatorTrashCollected++;
@@ -1219,15 +1238,18 @@ public class MovementApp extends GameApplication {
                         if (infiniteMapManager != null) {
                             infiniteMapManager.onBottleCollected(generatorTrashCollected, GENERATOR_TARGET_TRASH);
                         }
-                        if (timer != null) timer.applyDelta(10.0);
+                        if (timer != null)
+                            timer.applyDelta(10.0);
                         updateTrashCounter();
                         if (generatorTrashCollected >= GENERATOR_TARGET_TRASH) {
                             generatorStageCompleted = true;
-                            lastCompletedChunkKey = infiniteMapManager.getCurrentChunkX() + "," + infiniteMapManager.getCurrentChunkY();
+                            lastCompletedChunkKey = infiniteMapManager.getCurrentChunkX() + ","
+                                    + infiniteMapManager.getCurrentChunkY();
                             showTemporaryNotice("STAGE 1 CLEARED!\nSpreading world restoration wave...");
                             if (infiniteMapManager != null) {
                                 infiniteMapManager.startSpreadingRestoration(() -> {
-                                    showTemporaryNotice("WORLD RESTORED! Render distance expanded.\nWalk to next region for Questions.");
+                                    showTemporaryNotice(
+                                            "WORLD RESTORED! Render distance expanded.\nWalk to next region for Questions.");
                                 });
                             }
                         }
@@ -1240,7 +1262,8 @@ public class MovementApp extends GameApplication {
                     generatorSortedCount = GENERATOR_TARGET_SORTING;
                     infiniteMapManager.unlockCurrentRegion();
                     generatorStageCompleted = true;
-                    lastCompletedChunkKey = infiniteMapManager.getCurrentChunkX() + "," + infiniteMapManager.getCurrentChunkY();
+                    lastCompletedChunkKey = infiniteMapManager.getCurrentChunkX() + ","
+                            + infiniteMapManager.getCurrentChunkY();
                     showTemporaryNotice("STAGE 3 (SORTING) CLEARED! Walk into a new region to restart cycle.");
                 }
             }
@@ -1268,7 +1291,8 @@ public class MovementApp extends GameApplication {
     }
 
     private void interactWithDemoCollection(Entity player) {
-        if (player == null || demoStage != DemoStage.COLLECTION) return;
+        if (player == null || demoStage != DemoStage.COLLECTION)
+            return;
         for (Map.Entry<Entity, String> entry : List.copyOf(demoCollectionItems.entrySet())) {
             InteractionBox pickup = new InteractionBox(
                     entry.getKey().getX() - 16, entry.getKey().getY() - 16,
@@ -1287,7 +1311,8 @@ public class MovementApp extends GameApplication {
     }
 
     private void collectNearbyTrashForPlayer(Entity player) {
-        if (player == null) return;
+        if (player == null)
+            return;
         for (Map.Entry<Integer, Entity> entry : List.copyOf(trashEntities.entrySet())) {
             int idx = entry.getKey();
             Entity trash = entry.getValue();
@@ -1306,13 +1331,15 @@ public class MovementApp extends GameApplication {
     }
 
     private void interactWithSoloSorting() {
-        if (playerEntity == null) return;
+        if (playerEntity == null)
+            return;
 
         // 1. If carrying waste: deposit into matching bin
         if (outsideCarriedWaste != null) {
             for (Map.Entry<Entity, String> bin : sortingBins.entrySet()) {
                 InteractionBox binBox = sortingBinBoxes.get(bin.getKey());
-                if ((binBox != null && binBox.intersectsPlayer(playerEntity)) || playerEntity.distance(bin.getKey()) < 56.0) {
+                if ((binBox != null && binBox.intersectsPlayer(playerEntity))
+                        || playerEntity.distance(bin.getKey()) < 56.0) {
                     String binId = bin.getValue();
                     if (binId.equalsIgnoreCase(outsideCarriedWaste.binId())) {
                         TaskResult result = sortingTask.sort(outsideCarriedWaste.id(), binId);
@@ -1320,9 +1347,12 @@ public class MovementApp extends GameApplication {
                         ecoScore += 100;
                         generatorSortedCount++;
                         updateTrashCounter();
-                        spawnFloatingText(playerEntity.getX(), playerEntity.getY() - 20, "✔ Correct Bin! +8s (+100 pts)", Color.web("#39ff14"));
-                        sortingFeedback = "Correct: " + outsideCarriedWaste.name() + " -> " + binId.toUpperCase() + " bin (+8s)!";
-                        showTemporaryNotice("CORRECT! " + outsideCarriedWaste.name() + "\nSorted into " + binId.toUpperCase() + " bin (+8s)");
+                        spawnFloatingText(playerEntity.getX(), playerEntity.getY() - 20,
+                                "✔ Correct Bin! +8s (+100 pts)", Color.web("#39ff14"));
+                        sortingFeedback = "Correct: " + outsideCarriedWaste.name() + " -> " + binId.toUpperCase()
+                                + " bin (+8s)!";
+                        showTemporaryNotice("CORRECT! " + outsideCarriedWaste.name() + "\nSorted into "
+                                + binId.toUpperCase() + " bin (+8s)");
                         outsideCarriedWaste = null;
                         if (collectorCarriedWasteView != null) {
                             collectorCarriedWasteView.setVisible(false);
@@ -1335,28 +1365,38 @@ public class MovementApp extends GameApplication {
                             generatorSortedCount = GENERATOR_TARGET_SORTING;
                             infiniteMapManager.unlockCurrentRegion();
                             generatorStageCompleted = true;
-                            lastCompletedChunkKey = infiniteMapManager.getCurrentChunkX() + "," + infiniteMapManager.getCurrentChunkY();
+                            lastCompletedChunkKey = infiniteMapManager.getCurrentChunkX() + ","
+                                    + infiniteMapManager.getCurrentChunkY();
                             ecoScore += 500;
-                            if (timer != null) timer.applyDelta(30.0);
-                            showTemporaryNotice("🎉 DISTRICT " + currentDistrict + " RESTORED! (+30s Bonus, +500 pts)\nWalk through gateway into District " + (currentDistrict + 1) + "!");
+                            if (timer != null)
+                                timer.applyDelta(30.0);
+                            showTemporaryNotice("🎉 DISTRICT " + currentDistrict
+                                    + " RESTORED! (+30s Bonus, +500 pts)\nWalk through gateway into District "
+                                    + (currentDistrict + 1) + "!");
                         }
                     } else {
-                        if (timer != null) timer.applyDelta(-6.0);
-                        spawnFloatingText(playerEntity.getX(), playerEntity.getY() - 20, "✘ Wrong Bin! -6s", Color.web("#ff3860"));
-                        showTemporaryNotice("WRONG BIN! (-6s)\n" + outsideCarriedWaste.name() + " belongs in " + outsideCarriedWaste.binId().toUpperCase() + " bin!");
-                        sortingFeedback = "Wrong bin! " + outsideCarriedWaste.name() + " belongs in " + outsideCarriedWaste.binId().toUpperCase();
+                        if (timer != null)
+                            timer.applyDelta(-6.0);
+                        spawnFloatingText(playerEntity.getX(), playerEntity.getY() - 20, "✘ Wrong Bin! -6s",
+                                Color.web("#ff3860"));
+                        showTemporaryNotice("WRONG BIN! (-6s)\n" + outsideCarriedWaste.name() + " belongs in "
+                                + outsideCarriedWaste.binId().toUpperCase() + " bin!");
+                        sortingFeedback = "Wrong bin! " + outsideCarriedWaste.name() + " belongs in "
+                                + outsideCarriedWaste.binId().toUpperCase();
                     }
                     return;
                 }
             }
-            showTemporaryNotice("Carrying: " + outsideCarriedWaste.name() + "\nDeposit into the " + outsideCarriedWaste.binId().toUpperCase() + " bin [Press E / Space]");
+            showTemporaryNotice("Carrying: " + outsideCarriedWaste.name() + "\nDeposit into the "
+                    + outsideCarriedWaste.binId().toUpperCase() + " bin [Press E / Space]");
             return;
         }
 
         // 2. Empty-handed: pick up nearby waste
         for (Map.Entry<Entity, WasteItem> entry : List.copyOf(sortingWasteEntities.entrySet())) {
             InteractionBox pickupBox = sortingPickupBoxes.get(entry.getKey());
-            if ((pickupBox != null && pickupBox.intersectsPlayer(playerEntity)) || playerEntity.distance(entry.getKey()) < 48.0) {
+            if ((pickupBox != null && pickupBox.intersectsPlayer(playerEntity))
+                    || playerEntity.distance(entry.getKey()) < 48.0) {
                 outsideCarriedWaste = entry.getValue();
                 entry.getKey().removeFromWorld();
                 sortingWasteEntities.remove(entry.getKey());
@@ -1368,16 +1408,20 @@ public class MovementApp extends GameApplication {
                     carriedItemLabel.setText(outsideCarriedWaste.name());
                     carriedItemLabel.setVisible(true);
                 }
-                spawnFloatingText(playerEntity.getX(), playerEntity.getY() - 20, "Picked up: " + outsideCarriedWaste.name(), Color.web("#d7e77f"));
-                sortingFeedback = "Picked up: " + outsideCarriedWaste.name() + " -> Sort into " + outsideCarriedWaste.binId().toUpperCase() + " bin";
-                showTemporaryNotice("PICKED UP: " + outsideCarriedWaste.name() + "\nSort into " + outsideCarriedWaste.binId().toUpperCase() + " BIN [Press E / Space]");
+                spawnFloatingText(playerEntity.getX(), playerEntity.getY() - 20,
+                        "Picked up: " + outsideCarriedWaste.name(), Color.web("#d7e77f"));
+                sortingFeedback = "Picked up: " + outsideCarriedWaste.name() + " -> Sort into "
+                        + outsideCarriedWaste.binId().toUpperCase() + " bin";
+                showTemporaryNotice("PICKED UP: " + outsideCarriedWaste.name() + "\nSort into "
+                        + outsideCarriedWaste.binId().toUpperCase() + " BIN [Press E / Space]");
                 return;
             }
         }
     }
 
     private void interactWithSortingP1() {
-        if (playerEntity == null) return;
+        if (playerEntity == null)
+            return;
         if (outsideCarriedWaste != null) {
             // Player 1 is carrying waste: must be physically at the intake point to deliver
             if (sortingIntakeBox.intersectsPlayer(playerEntity)) {
@@ -1408,14 +1452,16 @@ public class MovementApp extends GameApplication {
                     collectorCarriedWasteView.setVisible(true);
                 }
                 sortingFeedback = "P1 picked up: " + outsideCarriedWaste.name() + " -> Carry to INTAKE";
-                showTemporaryNotice("P1 picked up: " + outsideCarriedWaste.name() + "\nPhysically carry to INTAKE at center");
+                showTemporaryNotice(
+                        "P1 picked up: " + outsideCarriedWaste.name() + "\nPhysically carry to INTAKE at center");
                 return;
             }
         }
     }
 
     private void interactWithSortingP2() {
-        if (playerEntity2 == null) return;
+        if (playerEntity2 == null)
+            return;
         if (insideCarriedWaste != null) {
             for (Map.Entry<Entity, String> bin : sortingBins.entrySet()) {
                 if (sortingBinBoxes.get(bin.getKey()).intersectsPlayer(playerEntity2)) {
@@ -1431,7 +1477,8 @@ public class MovementApp extends GameApplication {
                         generatorSortedCount = GENERATOR_TARGET_SORTING;
                         infiniteMapManager.unlockCurrentRegion();
                         generatorStageCompleted = true;
-                        lastCompletedChunkKey = infiniteMapManager.getCurrentChunkX() + "," + infiniteMapManager.getCurrentChunkY();
+                        lastCompletedChunkKey = infiniteMapManager.getCurrentChunkX() + ","
+                                + infiniteMapManager.getCurrentChunkY();
                         showTemporaryNotice("STAGE 3 (SORTING) CLEARED! Walk into a new region to restart cycle.");
                     }
                     if (selectedGameMode == GameMode.SEQUENTIAL_DEMO && sortingTask.isComplete() && !gameEnded) {
@@ -1455,8 +1502,10 @@ public class MovementApp extends GameApplication {
             if (sorterCarriedWasteView != null) {
                 sorterCarriedWasteView.setVisible(true);
             }
-            sortingFeedback = "P2 identified: " + insideCarriedWaste.name() + " -> Sort into " + insideCarriedWaste.binId().toUpperCase() + " bin";
-            showTemporaryNotice("IDENTIFIED: " + insideCarriedWaste.name() + "\nSort into " + insideCarriedWaste.binId().toUpperCase() + " BIN");
+            sortingFeedback = "P2 identified: " + insideCarriedWaste.name() + " -> Sort into "
+                    + insideCarriedWaste.binId().toUpperCase() + " bin";
+            showTemporaryNotice("IDENTIFIED: " + insideCarriedWaste.name() + "\nSort into "
+                    + insideCarriedWaste.binId().toUpperCase() + " BIN");
             return;
         }
     }
@@ -1522,8 +1571,10 @@ public class MovementApp extends GameApplication {
     private void answerTestQuestion(int choiceIndex) {
         if ((selectedGameMode == GameMode.MAP_GENERATOR || selectedGameMode == GameMode.SINGLE_PLAYER)
                 && generatorStage == GeneratorStage.QUESTION) {
-            if (currentActiveQuestionEntity == null || currentActiveQuestion == null || questionAnswerLocked) return;
-            if (choiceIndex >= currentActiveQuestion.choices().size()) return;
+            if (currentActiveQuestionEntity == null || currentActiveQuestion == null || questionAnswerLocked)
+                return;
+            if (choiceIndex >= currentActiveQuestion.choices().size())
+                return;
             QuestionResult result = currentActiveQuestion.answer(choiceIndex);
             questionAnswerLocked = true;
             double appliedDelta = TaskTimer.apply(timer, result.asTaskResult());
@@ -1533,13 +1584,15 @@ public class MovementApp extends GameApplication {
             updateTrashCounter();
 
             Color fbColor = (result.quality() == pkg.restoration.questions.AnswerQuality.BEST) ? Color.web("#39ff14")
-                    : ((result.quality() == pkg.restoration.questions.AnswerQuality.SECOND_BEST) ? Color.web("#ffd700") : Color.web("#ff3860"));
+                    : ((result.quality() == pkg.restoration.questions.AnswerQuality.SECOND_BEST) ? Color.web("#ffd700")
+                            : Color.web("#ff3860"));
             if (playerEntity != null) {
                 spawnFloatingText(playerEntity.getX(), playerEntity.getY() - 20,
                         result.quality() + String.format(" (%+.0f s)", appliedDelta), fbColor);
             }
 
-            questionFeedbackLabel.setText(result.quality() + ": " + result.feedback() + String.format(" (%+.0f seconds)", appliedDelta));
+            questionFeedbackLabel.setText(
+                    result.quality() + ": " + result.feedback() + String.format(" (%+.0f seconds)", appliedDelta));
             Entity targetEntity = currentActiveQuestionEntity;
             currentActiveQuestionEntity = null;
             currentActiveQuestion = null;
@@ -1548,13 +1601,15 @@ public class MovementApp extends GameApplication {
                 if (targetEntity != null && targetEntity.isActive()) {
                     targetEntity.removeFromWorld();
                 }
-                if (questionPanel != null) questionPanel.setVisible(false);
+                if (questionPanel != null)
+                    questionPanel.setVisible(false);
                 questionAnswerLocked = false;
 
                 if (generatorQuestionsAnswered >= GENERATOR_TARGET_QUESTIONS) {
                     infiniteMapManager.unlockCurrentRegion();
                     generatorStageCompleted = true;
-                    lastCompletedChunkKey = infiniteMapManager.getCurrentChunkX() + "," + infiniteMapManager.getCurrentChunkY();
+                    lastCompletedChunkKey = infiniteMapManager.getCurrentChunkX() + ","
+                            + infiniteMapManager.getCurrentChunkY();
                     showTemporaryNotice("💡 ECO-GRID ONLINE!\nProceed into next sector for Eco-Sorting.");
                 }
             }, Duration.seconds(1.2));
@@ -1644,7 +1699,8 @@ public class MovementApp extends GameApplication {
                 || selectedGameMode == GameMode.SORTING_TEST
                 || selectedGameMode == GameMode.SEQUENTIAL_DEMO
                 || selectedGameMode == GameMode.MAP_GENERATOR) && playerEntity != null && playerEntity2 != null) {
-            // Shared Screen Local Co-Op: Fixed 1.8x crisp zoom tracking dual player midpoint
+            // Shared Screen Local Co-Op: Fixed 1.8x crisp zoom tracking dual player
+            // midpoint
             vp.setZoom(1.8);
             vp.unbind();
             updateCoopCamera();
@@ -1715,14 +1771,16 @@ public class MovementApp extends GameApplication {
             playerEntity.setPosition(packet.p1X, packet.p1Y);
             if (playerComponent != null) {
                 playerComponent.setRemoteState(
-                        Direction.values()[Math.min(packet.p1DirIndex, Direction.values().length - 1)], packet.p1Moving);
+                        Direction.values()[Math.min(packet.p1DirIndex, Direction.values().length - 1)],
+                        packet.p1Moving);
             }
         }
         if (playerEntity2 != null) {
             playerEntity2.setPosition(packet.p2X, packet.p2Y);
             if (playerComponent2 != null) {
                 playerComponent2.setRemoteState(
-                        Direction.values()[Math.min(packet.p2DirIndex, Direction.values().length - 1)], packet.p2Moving);
+                        Direction.values()[Math.min(packet.p2DirIndex, Direction.values().length - 1)],
+                        packet.p2Moving);
             }
         }
         if (timer != null) {
@@ -1853,11 +1911,14 @@ public class MovementApp extends GameApplication {
         if (trashCounterText != null) {
             if (selectedGameMode == GameMode.SINGLE_PLAYER) {
                 if (generatorStage == GeneratorStage.TRASH_COLLECTION) {
-                    trashCounterText.setText(String.format("Eco-Cleanup: %d / %d", generatorTrashCollected, GENERATOR_TARGET_TRASH));
+                    trashCounterText.setText(
+                            String.format("Eco-Cleanup: %d / %d", generatorTrashCollected, GENERATOR_TARGET_TRASH));
                 } else if (generatorStage == GeneratorStage.QUESTION) {
-                    trashCounterText.setText(String.format("Eco-Grid: %d / %d Restored", generatorQuestionsAnswered, GENERATOR_TARGET_QUESTIONS));
+                    trashCounterText.setText(String.format("Eco-Grid: %d / %d Restored", generatorQuestionsAnswered,
+                            GENERATOR_TARGET_QUESTIONS));
                 } else if (generatorStage == GeneratorStage.SORTING) {
-                    trashCounterText.setText(String.format("Recycling: %d / %d Sorted", generatorSortedCount, GENERATOR_TARGET_SORTING));
+                    trashCounterText.setText(
+                            String.format("Recycling: %d / %d Sorted", generatorSortedCount, GENERATOR_TARGET_SORTING));
                 }
             } else if (selectedGameMode == GameMode.MAP_GENERATOR) {
                 trashCounterText.setText(String.format("Trash Collected: %d (Infinite Mode)", collectedTrash));
@@ -1868,7 +1929,8 @@ public class MovementApp extends GameApplication {
     }
 
     private void checkLevelCompletion() {
-        if (selectedGameMode == GameMode.MAP_GENERATOR || selectedGameMode == GameMode.SINGLE_PLAYER) return;
+        if (selectedGameMode == GameMode.MAP_GENERATOR || selectedGameMode == GameMode.SINGLE_PLAYER)
+            return;
         if (collectedTrash >= TOTAL_TRASH) {
             if (levelNoticeText == null) {
                 levelNoticeText = new Text("LEVEL 1 CLEARED! AREA RESTORED");
@@ -1900,8 +1962,10 @@ public class MovementApp extends GameApplication {
 
         if (selectedGameMode == GameMode.MAP_GENERATOR || selectedGameMode == GameMode.SINGLE_PLAYER) {
             if (infiniteMapManager != null && playerEntity != null) {
-                double avgX = playerEntity2 != null ? (playerEntity.getX() + playerEntity2.getX()) / 2.0 : playerEntity.getX();
-                double avgY = playerEntity2 != null ? (playerEntity.getY() + playerEntity2.getY()) / 2.0 : playerEntity.getY();
+                double avgX = playerEntity2 != null ? (playerEntity.getX() + playerEntity2.getX()) / 2.0
+                        : playerEntity.getX();
+                double avgY = playerEntity2 != null ? (playerEntity.getY() + playerEntity2.getY()) / 2.0
+                        : playerEntity.getY();
                 infiniteMapManager.updatePlayerPosition(avgX, avgY);
 
                 double p1TileX = (playerEntity.getX() / 32.0) + (playerEntity.getY() / 16.0);
@@ -1912,8 +1976,10 @@ public class MovementApp extends GameApplication {
                 int p1LocalX = (int) Math.floor(p1TileX) - p1CurX * InfiniteMapManager.CHUNK_SIZE;
                 int p1LocalY = (int) Math.floor(p1TileY) - p1CurY * InfiniteMapManager.CHUNK_SIZE;
 
-                double p2TileX = playerEntity2 != null ? (playerEntity2.getX() / 32.0) + (playerEntity2.getY() / 16.0) : p1TileX;
-                double p2TileY = playerEntity2 != null ? (playerEntity2.getY() / 16.0) - (playerEntity2.getX() / 32.0) : p1TileY;
+                double p2TileX = playerEntity2 != null ? (playerEntity2.getX() / 32.0) + (playerEntity2.getY() / 16.0)
+                        : p1TileX;
+                double p2TileY = playerEntity2 != null ? (playerEntity2.getY() / 16.0) - (playerEntity2.getX() / 32.0)
+                        : p1TileY;
                 int p2CurX = (int) Math.floor(p2TileX / InfiniteMapManager.CHUNK_SIZE);
                 int p2CurY = (int) Math.floor(p2TileY / InfiniteMapManager.CHUNK_SIZE);
                 String p2Key = p2CurX + "," + p2CurY;
@@ -1961,8 +2027,10 @@ public class MovementApp extends GameApplication {
                     boundaryWallReenableCooldown -= tpf;
                 }
 
-                // Only enable walls once the player is at a significant distance inside the zone and cooldown has expired
-                if (boundaryWallReenableCooldown <= 0.0 && !generatorStageCompleted && infiniteMapManager != null && infiniteMapManager.isRegionLocked()) {
+                // Only enable walls once the player is at a significant distance inside the
+                // zone and cooldown has expired
+                if (boundaryWallReenableCooldown <= 0.0 && !generatorStageCompleted && infiniteMapManager != null
+                        && infiniteMapManager.isRegionLocked()) {
                     int lockedX = infiniteMapManager.getLockedChunkX();
                     int lockedY = infiniteMapManager.getLockedChunkY();
 
@@ -1997,11 +2065,16 @@ public class MovementApp extends GameApplication {
                     }
                 } else {
                     if (generatorStage == GeneratorStage.TRASH_COLLECTION) {
-                        modeStatusText.setText(String.format("MAP GENERATOR (2P CO-OP) — STAGE 1: TRASH COLLECTION (%d / 10)", generatorTrashCollected));
+                        modeStatusText
+                                .setText(String.format("MAP GENERATOR (2P CO-OP) — STAGE 1: TRASH COLLECTION (%d / 10)",
+                                        generatorTrashCollected));
                     } else if (generatorStage == GeneratorStage.QUESTION) {
-                        modeStatusText.setText(String.format("MAP GENERATOR (2P CO-OP) — STAGE 2: QUESTIONS ANSWERED (%d / 3)", generatorQuestionsAnswered));
+                        modeStatusText.setText(
+                                String.format("MAP GENERATOR (2P CO-OP) — STAGE 2: QUESTIONS ANSWERED (%d / 3)",
+                                        generatorQuestionsAnswered));
                     } else if (generatorStage == GeneratorStage.SORTING) {
-                        modeStatusText.setText(String.format("MAP GENERATOR (2P CO-OP) — STAGE 3: %s", sortingFeedback));
+                        modeStatusText
+                                .setText(String.format("MAP GENERATOR (2P CO-OP) — STAGE 3: %s", sortingFeedback));
                     }
                 }
             }
@@ -2114,13 +2187,15 @@ public class MovementApp extends GameApplication {
                         InteractionBox binBox = sortingBinBoxes.get(bin.getKey());
                         if ((binBox != null && binBox.intersectsPlayer(playerEntity))
                                 || (playerEntity != null && playerEntity.distance(bin.getKey()) < 56.0)) {
-                            interactPromptText.setText("Press [E / Space] to Deposit in " + bin.getValue().toUpperCase() + " Bin");
+                            interactPromptText.setText(
+                                    "Press [E / Space] to Deposit in " + bin.getValue().toUpperCase() + " Bin");
                             nearBin = true;
                             break;
                         }
                     }
                     if (!nearBin) {
-                        interactPromptText.setText("Deposit " + outsideCarriedWaste.name() + " -> " + outsideCarriedWaste.binId().toUpperCase() + " Bin");
+                        interactPromptText.setText("Deposit " + outsideCarriedWaste.name() + " -> "
+                                + outsideCarriedWaste.binId().toUpperCase() + " Bin");
                     }
                     interactPromptText.setVisible(true);
                 } else {
@@ -2441,7 +2516,8 @@ public class MovementApp extends GameApplication {
     }
 
     private static void bindWindowControls(Node root) {
-        if (root == null) return;
+        if (root == null)
+            return;
         Button btnMin = (Button) root.lookup("#btnMinimize");
         Button btnFS = (Button) root.lookup("#btnFullscreen");
         Button btnClose = (Button) root.lookup("#btnClose");
@@ -2452,7 +2528,8 @@ public class MovementApp extends GameApplication {
                     if (FXGL.getPrimaryStage() != null) {
                         FXGL.getPrimaryStage().setIconified(true);
                     }
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) {
+                }
             });
         }
         if (btnFS != null) {
@@ -2484,31 +2561,126 @@ public class MovementApp extends GameApplication {
 
     public static final class MainMenu extends FXGLMenu {
 
+        // =========================================================================
+        // MAIN MENU TABLET LAYOUT & PIXEL DISPLACEMENT CONFIGURATION
+        // Adjust these pixel displacement values (X, Y offsets) and tilt angles!
+        // =========================================================================
+
+        // Base starting coordinates for menu tablets (positioned slightly to the left)
+        private static final double MENU_BASE_X = 250.0;
+        private static final double MENU_BASE_Y = 350.0;
+        private static final double MENU_ITEM_SPACING = 70.0;
+        private static final double TABLET_WIDTH = 270.0; // Display width (maintains 505x110 aspect ratio)
+
+        // Individual pixel displacement offsets (X and Y) for manual fine-tuning:
+        private static final double SINGLEPLAYER_OFFSET_X = 0.0;
+        private static final double SINGLEPLAYER_OFFSET_Y = 0.0;
+
+        private static final double MULTIPLAYER_OFFSET_X = 12.0;
+        private static final double MULTIPLAYER_OFFSET_Y = 0.0;
+
+        private static final double SETTINGS_OFFSET_X = -8.0;
+        private static final double SETTINGS_OFFSET_Y = 0.0;
+
+        private static final double ABOUT_OFFSET_X = 8.0;
+        private static final double ABOUT_OFFSET_Y = 0.0;
+
+        private static final double EXIT_OFFSET_X = 0.0;
+        private static final double EXIT_OFFSET_Y = 0.0;
+
+        // Base rotation angles in degrees (negative = anticlockwise tilt, positive =
+        // clockwise tilt)
+        private static final double SINGLEPLAYER_BASE_TILT = -4.0; // Anticlockwise
+        private static final double MULTIPLAYER_BASE_TILT = 4.0; // Clockwise
+        private static final double SETTINGS_BASE_TILT = -3.0; // Anticlockwise
+        private static final double ABOUT_BASE_TILT = 3.0; // Clockwise
+        private static final double EXIT_BASE_TILT = -4.0; // Anticlockwise
+
+        // Additional tilt magnitude added on mouse hover (degrees)
+        private static final double HOVER_TILT_DELTA = 5.0;
+
         public MainMenu(MenuType type) {
             super(type);
 
             double w = FXGL.getAppWidth();
             double h = FXGL.getAppHeight();
 
-            Canvas bg = new Canvas(w, h);
-            drawBackground(bg.getGraphicsContext2D(), w, h);
+            // 1. Background image (mainmenu_bg.png)
+            Node bgNode;
+            try {
+                Image bgImg = new Image(getClass().getResourceAsStream("/assets/ui/menu/mainmenu_bg.png"));
+                ImageView bgIv = new ImageView(bgImg);
+                bgIv.setFitWidth(w);
+                bgIv.setFitHeight(h);
+                bgIv.setPreserveRatio(false);
+                bgNode = bgIv;
+            } catch (Exception ex) {
+                Canvas bgCanvas = new Canvas(w, h);
+                drawBackground(bgCanvas.getGraphicsContext2D(), w, h);
+                bgNode = bgCanvas;
+            }
 
             Node menuRoot;
             try {
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/assets/ui/fxml/main_menu.fxml"));
                 menuRoot = loader.load();
 
-                Node mainMenuBox = menuRoot.lookup("#mainMenuBox");
+                Node mainMenuBoxNode = menuRoot.lookup("#mainMenuBox");
                 Node multiplayerMenuBox = menuRoot.lookup("#multiplayerMenuBox");
                 Node settingsBox = menuRoot.lookup("#settingsBox");
                 Node aboutBox = menuRoot.lookup("#aboutBox");
 
-                Button btnSingle = (Button) menuRoot.lookup("#btnSingle");
-                Button btnMultiplayer = (Button) menuRoot.lookup("#btnMultiplayer");
-                Button btnSettings = (Button) menuRoot.lookup("#btnSettings");
-                Button btnAbout = (Button) menuRoot.lookup("#btnAbout");
-                Button btnExit = (Button) menuRoot.lookup("#btnExit");
+                Pane mainMenuBox;
+                if (mainMenuBoxNode instanceof Pane) {
+                    mainMenuBox = (Pane) mainMenuBoxNode;
+                } else {
+                    mainMenuBox = new Pane();
+                }
 
+                mainMenuBox.getChildren().clear();
+
+                // Create 5 tablet buttons with pixel displacement, tilt, and hover effects
+                Node btnSingleTablet = createTabletItem("/assets/ui/menu/singleplayer.png", "Single Player",
+                        MENU_BASE_X + SINGLEPLAYER_OFFSET_X,
+                        MENU_BASE_Y + 0 * MENU_ITEM_SPACING + SINGLEPLAYER_OFFSET_Y,
+                        SINGLEPLAYER_BASE_TILT,
+                        () -> {
+                            selectedGameMode = GameMode.SINGLE_PLAYER;
+                            fireNewGame();
+                        });
+
+                Node btnMultiTablet = createTabletItem("/assets/ui/menu/multiplayer.png", "Multiplayer",
+                        MENU_BASE_X + MULTIPLAYER_OFFSET_X,
+                        MENU_BASE_Y + 1 * MENU_ITEM_SPACING + MULTIPLAYER_OFFSET_Y,
+                        MULTIPLAYER_BASE_TILT,
+                        () -> showCard(multiplayerMenuBox, mainMenuBox, settingsBox, aboutBox));
+
+                Node btnSettingsTablet = createTabletItem("/assets/ui/menu/settings.png", "Settings",
+                        MENU_BASE_X + SETTINGS_OFFSET_X,
+                        MENU_BASE_Y + 2 * MENU_ITEM_SPACING + SETTINGS_OFFSET_Y,
+                        SETTINGS_BASE_TILT,
+                        () -> showCard(settingsBox, mainMenuBox, multiplayerMenuBox, aboutBox));
+
+                Node btnAboutTablet = createTabletItem("/assets/ui/menu/about.png", "About",
+                        MENU_BASE_X + ABOUT_OFFSET_X,
+                        MENU_BASE_Y + 3 * MENU_ITEM_SPACING + ABOUT_OFFSET_Y,
+                        ABOUT_BASE_TILT,
+                        () -> showCard(aboutBox, mainMenuBox, multiplayerMenuBox, settingsBox));
+
+                Node btnExitTablet = createTabletItem("/assets/ui/menu/exit.png", "Exit",
+                        MENU_BASE_X + EXIT_OFFSET_X,
+                        MENU_BASE_Y + 4 * MENU_ITEM_SPACING + EXIT_OFFSET_Y,
+                        EXIT_BASE_TILT,
+                        () -> showPixelExitConfirmation());
+
+                mainMenuBox.getChildren().addAll(
+                        btnSingleTablet,
+                        btnMultiTablet,
+                        btnSettingsTablet,
+                        btnAboutTablet,
+                        btnExitTablet);
+
+                // Multiplayer sub-menu button handlers
                 Button btnHostCoop = (Button) menuRoot.lookup("#btnHostCoop");
                 Button btnJoinCoop = (Button) menuRoot.lookup("#btnJoinCoop");
                 Button btnSharedScreenCoop = (Button) menuRoot.lookup("#btnSharedScreenCoop");
@@ -2516,30 +2688,8 @@ public class MovementApp extends GameApplication {
 
                 Button btnToggleFullscreen = (Button) menuRoot.lookup("#btnToggleFullscreen");
                 Button btnSettingsBack = (Button) menuRoot.lookup("#btnSettingsBack");
-
                 Button btnAboutBack = (Button) menuRoot.lookup("#btnAboutBack");
 
-                // Top level main menu button handlers
-                if (btnSingle != null) {
-                    btnSingle.setOnAction(e -> {
-                        selectedGameMode = GameMode.SINGLE_PLAYER;
-                        fireNewGame();
-                    });
-                }
-                if (btnMultiplayer != null) {
-                    btnMultiplayer.setOnAction(e -> showCard(multiplayerMenuBox, mainMenuBox, settingsBox, aboutBox));
-                }
-                if (btnSettings != null) {
-                    btnSettings.setOnAction(e -> showCard(settingsBox, mainMenuBox, multiplayerMenuBox, aboutBox));
-                }
-                if (btnAbout != null) {
-                    btnAbout.setOnAction(e -> showCard(aboutBox, mainMenuBox, multiplayerMenuBox, settingsBox));
-                }
-                if (btnExit != null) {
-                    btnExit.setOnAction(e -> showPixelExitConfirmation());
-                }
-
-                // Multiplayer sub-menu button handlers
                 if (btnHostCoop != null) {
                     btnHostCoop.setOnAction(e -> {
                         selectedGameMode = GameMode.LAN_HOST;
@@ -2572,12 +2722,14 @@ public class MovementApp extends GameApplication {
                     });
                 }
                 if (btnMultiplayerBack != null) {
-                    btnMultiplayerBack.setOnAction(e -> showCard(mainMenuBox, multiplayerMenuBox, settingsBox, aboutBox));
+                    btnMultiplayerBack
+                            .setOnAction(e -> showCard(mainMenuBox, multiplayerMenuBox, settingsBox, aboutBox));
                 }
 
                 // Settings button handlers
                 if (btnToggleFullscreen != null) {
-                    btnToggleFullscreen.setOnAction(e -> FXGL.getPrimaryStage().setFullScreen(!FXGL.getPrimaryStage().isFullScreen()));
+                    btnToggleFullscreen.setOnAction(
+                            e -> FXGL.getPrimaryStage().setFullScreen(!FXGL.getPrimaryStage().isFullScreen()));
                 }
                 if (btnSettingsBack != null) {
                     btnSettingsBack.setOnAction(e -> showCard(mainMenuBox, multiplayerMenuBox, settingsBox, aboutBox));
@@ -2592,10 +2744,76 @@ public class MovementApp extends GameApplication {
                 menuRoot = createFallbackMenu();
             }
 
-            StackPane root = new StackPane(bg, menuRoot);
+            StackPane root = new StackPane(bgNode, menuRoot);
             root.setPrefSize(w, h);
 
             getContentRoot().getChildren().add(root);
+        }
+
+        private static Node createTabletItem(String imagePath, String fallbackLabel, double posX, double posY,
+                double baseTilt, Runnable onClick) {
+            ImageView iv = null;
+            try {
+                java.io.InputStream stream = MainMenu.class.getResourceAsStream(imagePath);
+                if (stream != null) {
+                    Image img = new Image(stream);
+                    iv = new ImageView(img);
+                    if (TABLET_WIDTH > 0) {
+                        iv.setFitWidth(TABLET_WIDTH);
+                        iv.setPreserveRatio(true);
+                        iv.setSmooth(true);
+                    }
+                }
+            } catch (Exception ignored) {
+            }
+
+            StackPane container = new StackPane();
+            container.setPickOnBounds(true);
+            if (iv != null) {
+                container.getChildren().add(iv);
+            } else {
+                Button fallbackBtn = styledButton(fallbackLabel);
+                container.getChildren().add(fallbackBtn);
+            }
+
+            container.setLayoutX(posX);
+            container.setLayoutY(posY);
+            container.setRotate(baseTilt);
+            container.setCursor(javafx.scene.Cursor.HAND);
+
+            double hoverTilt = baseTilt < 0 ? (baseTilt - HOVER_TILT_DELTA) : (baseTilt + HOVER_TILT_DELTA);
+
+            RotateTransition rotateIn = new RotateTransition(Duration.millis(120), container);
+            rotateIn.setToAngle(hoverTilt);
+            ScaleTransition scaleIn = new ScaleTransition(Duration.millis(120), container);
+            scaleIn.setToX(1.06);
+            scaleIn.setToY(1.06);
+
+            RotateTransition rotateOut = new RotateTransition(Duration.millis(120), container);
+            rotateOut.setToAngle(baseTilt);
+            ScaleTransition scaleOut = new ScaleTransition(Duration.millis(120), container);
+            scaleOut.setToX(1.0);
+            scaleOut.setToY(1.0);
+
+            container.setOnMouseEntered(e -> {
+                rotateOut.stop();
+                scaleOut.stop();
+                rotateIn.playFromStart();
+                scaleIn.playFromStart();
+            });
+
+            container.setOnMouseExited(e -> {
+                rotateIn.stop();
+                scaleIn.stop();
+                rotateOut.playFromStart();
+                scaleOut.playFromStart();
+            });
+
+            if (onClick != null) {
+                container.setOnMouseClicked(e -> onClick.run());
+            }
+
+            return container;
         }
 
         private static void showCard(Node activeCard, Node... cardsToHide) {
@@ -2637,7 +2855,8 @@ public class MovementApp extends GameApplication {
             settingsInfo.setFill(Color.web("#d7e77f"));
             Button btnSettingsBack = styledButton("Back");
 
-            Text aboutInfo = new Text("Objective: Clean & Restore ecosystems by collecting trash & answering questions.\nP1: WASD + Space\nP2: Arrows + Enter\nVersion: 1.0.0");
+            Text aboutInfo = new Text(
+                    "Objective: Clean & Restore ecosystems by collecting trash & answering questions.\nP1: WASD + Space\nP2: Arrows + Enter\nVersion: 1.0.0");
             aboutInfo.setFont(Font.font("Monospaced", FontWeight.BOLD, 12));
             aboutInfo.setFill(Color.web("#f8f9fa"));
             Button btnAboutBack = styledButton("Back");
@@ -2705,7 +2924,8 @@ public class MovementApp extends GameApplication {
             });
             btnMultiBack.setOnAction(e -> showCard(mainBox, mpBox, stBox, abBox));
 
-            btnToggleFullscreen.setOnAction(e -> FXGL.getPrimaryStage().setFullScreen(!FXGL.getPrimaryStage().isFullScreen()));
+            btnToggleFullscreen
+                    .setOnAction(e -> FXGL.getPrimaryStage().setFullScreen(!FXGL.getPrimaryStage().isFullScreen()));
             btnSettingsBack.setOnAction(e -> showCard(mainBox, mpBox, stBox, abBox));
             btnAboutBack.setOnAction(e -> showCard(mainBox, mpBox, stBox, abBox));
 
@@ -2901,7 +3121,8 @@ public class MovementApp extends GameApplication {
 
     private record InteractionBox(double x, double y, double width, double height) {
         private boolean intersectsPlayer(Entity entity) {
-            if (entity == null) return false;
+            if (entity == null)
+                return false;
             double playerX = entity.getX();
             double playerY = entity.getY();
             boolean bboxOverlap = playerX + PLAYER_BOX_WIDTH >= x && playerX <= x + width

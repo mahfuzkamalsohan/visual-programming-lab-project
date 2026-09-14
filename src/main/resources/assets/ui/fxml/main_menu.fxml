@@ -3,34 +3,14 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.Pane?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
 <StackPane stylesheets="@../css/pixel_style.css" prefWidth="1280.0" prefHeight="720.0" xmlns="http://javafx.com/fxml/1" xmlns:fx="http://javafx.com/fxml/1">
     <children>
-        <!-- Top Level Main Menu Card -->
-        <VBox fx:id="mainMenuBox" alignment="CENTER_LEFT" spacing="12.0" styleClass="pixel-panel" maxWidth="380.0" maxHeight="540.0" translateX="-240.0">
-            <padding>
-                <Insets top="24.0" right="24.0" bottom="24.0" left="24.0" />
-            </padding>
-            <children>
-                <Label text="RESTORATION" styleClass="pixel-title" style="-fx-font-size: 32px;" />
-                <Label text="★ RETRO ADVENTURE ★" styleClass="pixel-subtitle" style="-fx-font-size: 12px;" />
-                
-                <VBox spacing="10.0" alignment="CENTER_LEFT">
-                    <VBox.margin>
-                        <Insets top="14.0" />
-                    </VBox.margin>
-                    <children>
-                        <Button fx:id="btnSingle" text="Single Player" prefWidth="310.0" prefHeight="40.0" styleClass="pixel-button" />
-                        <Button fx:id="btnMultiplayer" text="Multiplayer" prefWidth="310.0" prefHeight="40.0" styleClass="pixel-button" />
-                        <Button fx:id="btnSettings" text="Settings" prefWidth="310.0" prefHeight="40.0" styleClass="pixel-button" />
-                        <Button fx:id="btnAbout" text="About" prefWidth="310.0" prefHeight="40.0" styleClass="pixel-button" />
-                        <Button fx:id="btnExit" text="Exit" prefWidth="310.0" prefHeight="40.0" styleClass="pixel-button" />
-                    </children>
-                </VBox>
-            </children>
-        </VBox>
+        <!-- Top Level Main Menu Card (Pane holding tablet menu items) -->
+        <Pane fx:id="mainMenuBox" pickOnBounds="false" prefWidth="1280.0" prefHeight="720.0" />
 
         <!-- Multiplayer Sub-Menu Card -->
         <VBox fx:id="multiplayerMenuBox" visible="false" managed="false" alignment="CENTER_LEFT" spacing="12.0" styleClass="pixel-panel" maxWidth="380.0" maxHeight="540.0" translateX="-240.0">
