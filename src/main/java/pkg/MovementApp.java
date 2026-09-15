@@ -31,6 +31,7 @@ import javafx.animation.ScaleTransition;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Point2D;
 import javafx.geometry.Pos;
+import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -38,6 +39,7 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -2599,22 +2601,55 @@ public class MovementApp extends GameApplication {
         // Additional tilt magnitude added on mouse hover (degrees)
         private static final double HOVER_TILT_DELTA = 5.0;
 
+        // =========================================================================
+        // MULTIPLAYER SUB-MENU TABLET LAYOUT CONFIGURATION (CENTERED & LESS TILT)
+        // =========================================================================
+        private static final double MP_BASE_Y = 225.0;
+        private static final double MP_ITEM_SPACING = 72.0;
+
+        private static final double HOST_OFFSET_X = 0.0;
+        private static final double HOST_OFFSET_Y = 0.0;
+
+        private static final double JOIN_OFFSET_X = 4.0;
+        private static final double JOIN_OFFSET_Y = 0.0;
+
+        private static final double SHARED_OFFSET_X = -3.0;
+        private static final double SHARED_OFFSET_Y = 0.0;
+
+        private static final double BACK_OFFSET_X = 2.0;
+        private static final double BACK_OFFSET_Y = 0.0;
+
+        // Less tilt for multiplayer sub-menu tablets
+        private static final double HOST_BASE_TILT = -1.5;
+        private static final double JOIN_BASE_TILT = 1.5;
+        private static final double SHARED_BASE_TILT = -1.0;
+        private static final double BACK_BASE_TILT = 1.0;
+
+        private static final double MP_HOVER_TILT_DELTA = 2.5;
+
         public MainMenu(MenuType type) {
             super(type);
 
             double w = FXGL.getAppWidth();
             double h = FXGL.getAppHeight();
 
-            // 1. Background image (mainmenu_bg.png)
+            // Background images
+            Image mainBgImg = safeLoadImage("/assets/ui/menu/mainmenu_bg.png");
+            Image menuBgImg = safeLoadImage("/assets/ui/menu/menu.png");
+            if (menuBgImg == null) {
+                menuBgImg = safeLoadImage("/assets/ui/menu/menu_bg.png");
+            }
+
+            ImageView bgIv;
             Node bgNode;
-            try {
-                Image bgImg = new Image(getClass().getResourceAsStream("/assets/ui/menu/mainmenu_bg.png"));
-                ImageView bgIv = new ImageView(bgImg);
+            if (mainBgImg != null) {
+                bgIv = new ImageView(mainBgImg);
                 bgIv.setFitWidth(w);
                 bgIv.setFitHeight(h);
                 bgIv.setPreserveRatio(false);
                 bgNode = bgIv;
-            } catch (Exception ex) {
+            } else {
+                bgIv = null;
                 Canvas bgCanvas = new Canvas(w, h);
                 drawBackground(bgCanvas.getGraphicsContext2D(), w, h);
                 bgNode = bgCanvas;
@@ -2626,20 +2661,66 @@ public class MovementApp extends GameApplication {
                 menuRoot = loader.load();
 
                 Node mainMenuBoxNode = menuRoot.lookup("#mainMenuBox");
-                Node multiplayerMenuBox = menuRoot.lookup("#multiplayerMenuBox");
+                Node multiplayerMenuBoxNode = menuRoot.lookup("#multiplayerMenuBox");
+                Node joinCoopBox = menuRoot.lookup("#joinCoopBox");
                 Node settingsBox = menuRoot.lookup("#settingsBox");
                 Node aboutBox = menuRoot.lookup("#aboutBox");
 
-                Pane mainMenuBox;
-                if (mainMenuBoxNode instanceof Pane) {
-                    mainMenuBox = (Pane) mainMenuBoxNode;
-                } else {
-                    mainMenuBox = new Pane();
-                }
+                Pane mainMenuBox = (mainMenuBoxNode instanceof Pane) ? (Pane) mainMenuBoxNode : new Pane();
+                Pane multiplayerMenuBox = (multiplayerMenuBoxNode instanceof Pane) ? (Pane) multiplayerMenuBoxNode
+                        : new Pane();
 
                 mainMenuBox.getChildren().clear();
+                multiplayerMenuBox.getChildren().clear();
 
-                // Create 5 tablet buttons with pixel displacement, tilt, and hover effects
+                // Navigation runnables with background switching
+                final Image finalMainBgImg = mainBgImg;
+                final Image finalMenuBgImg = menuBgImg;
+                final ImageView finalBgIv = bgIv;
+
+                Runnable showMainCard = () -> {
+                    if (finalBgIv != null && finalMainBgImg != null) {
+                        finalBgIv.setImage(finalMainBgImg);
+                    }
+                    showCard(mainMenuBox, multiplayerMenuBox, joinCoopBox, settingsBox, aboutBox);
+                };
+
+                Runnable showMultiCard = () -> {
+                    if (finalBgIv != null && finalMenuBgImg != null) {
+                        finalBgIv.setImage(finalMenuBgImg);
+                    }
+                    showCard(multiplayerMenuBox, mainMenuBox, joinCoopBox, settingsBox, aboutBox);
+                };
+
+                Runnable showJoinCard = () -> {
+                    if (finalBgIv != null && finalMenuBgImg != null) {
+                        finalBgIv.setImage(finalMenuBgImg);
+                    }
+                    showCard(joinCoopBox, multiplayerMenuBox, mainMenuBox, settingsBox, aboutBox);
+                    if (joinCoopBox != null) {
+                        TextField txtHostIp = (TextField) joinCoopBox.lookup("#txtHostIp");
+                        if (txtHostIp != null) {
+                            txtHostIp.requestFocus();
+                            txtHostIp.selectAll();
+                        }
+                    }
+                };
+
+                Runnable showSettingsCard = () -> {
+                    if (finalBgIv != null && finalMainBgImg != null) {
+                        finalBgIv.setImage(finalMainBgImg);
+                    }
+                    showCard(settingsBox, mainMenuBox, multiplayerMenuBox, joinCoopBox, aboutBox);
+                };
+
+                Runnable showAboutCard = () -> {
+                    if (finalBgIv != null && finalMainBgImg != null) {
+                        finalBgIv.setImage(finalMainBgImg);
+                    }
+                    showCard(aboutBox, mainMenuBox, multiplayerMenuBox, joinCoopBox, settingsBox);
+                };
+
+                // 1. Create Main Menu tablet buttons
                 Node btnSingleTablet = createTabletItem("/assets/ui/menu/singleplayer.png", "Single Player",
                         MENU_BASE_X + SINGLEPLAYER_OFFSET_X,
                         MENU_BASE_Y + 0 * MENU_ITEM_SPACING + SINGLEPLAYER_OFFSET_Y,
@@ -2653,19 +2734,19 @@ public class MovementApp extends GameApplication {
                         MENU_BASE_X + MULTIPLAYER_OFFSET_X,
                         MENU_BASE_Y + 1 * MENU_ITEM_SPACING + MULTIPLAYER_OFFSET_Y,
                         MULTIPLAYER_BASE_TILT,
-                        () -> showCard(multiplayerMenuBox, mainMenuBox, settingsBox, aboutBox));
+                        showMultiCard);
 
                 Node btnSettingsTablet = createTabletItem("/assets/ui/menu/settings.png", "Settings",
                         MENU_BASE_X + SETTINGS_OFFSET_X,
                         MENU_BASE_Y + 2 * MENU_ITEM_SPACING + SETTINGS_OFFSET_Y,
                         SETTINGS_BASE_TILT,
-                        () -> showCard(settingsBox, mainMenuBox, multiplayerMenuBox, aboutBox));
+                        showSettingsCard);
 
                 Node btnAboutTablet = createTabletItem("/assets/ui/menu/about.png", "About",
                         MENU_BASE_X + ABOUT_OFFSET_X,
                         MENU_BASE_Y + 3 * MENU_ITEM_SPACING + ABOUT_OFFSET_Y,
                         ABOUT_BASE_TILT,
-                        () -> showCard(aboutBox, mainMenuBox, multiplayerMenuBox, settingsBox));
+                        showAboutCard);
 
                 Node btnExitTablet = createTabletItem("/assets/ui/menu/exit.png", "Exit",
                         MENU_BASE_X + EXIT_OFFSET_X,
@@ -2680,64 +2761,87 @@ public class MovementApp extends GameApplication {
                         btnAboutTablet,
                         btnExitTablet);
 
-                // Multiplayer sub-menu button handlers
-                Button btnHostCoop = (Button) menuRoot.lookup("#btnHostCoop");
-                Button btnJoinCoop = (Button) menuRoot.lookup("#btnJoinCoop");
-                Button btnSharedScreenCoop = (Button) menuRoot.lookup("#btnSharedScreenCoop");
-                Button btnMultiplayerBack = (Button) menuRoot.lookup("#btnMultiplayerBack");
+                // 2. Create Multiplayer Sub-Menu tablet buttons (Centered & Less Tilt)
+                double mpCenterX = (w - TABLET_WIDTH) / 2.0;
 
+                Node btnHostTablet = createTabletItem("/assets/ui/menu/host.png", "Host Co-op",
+                        mpCenterX + HOST_OFFSET_X,
+                        MP_BASE_Y + 0 * MP_ITEM_SPACING + HOST_OFFSET_Y,
+                        HOST_BASE_TILT,
+                        MP_HOVER_TILT_DELTA,
+                        () -> {
+                            selectedGameMode = GameMode.LAN_HOST;
+                            fireNewGame();
+                        });
+
+                Node btnJoinTablet = createTabletItem("/assets/ui/menu/join.png", "Join Co-op",
+                        mpCenterX + JOIN_OFFSET_X,
+                        MP_BASE_Y + 1 * MP_ITEM_SPACING + JOIN_OFFSET_Y,
+                        JOIN_BASE_TILT,
+                        MP_HOVER_TILT_DELTA,
+                        showJoinCard);
+
+                Node btnSharedTablet = createTabletItem("/assets/ui/menu/shared.png", "Shared-Screen Co-op",
+                        mpCenterX + SHARED_OFFSET_X,
+                        MP_BASE_Y + 2 * MP_ITEM_SPACING + SHARED_OFFSET_Y,
+                        SHARED_BASE_TILT,
+                        MP_HOVER_TILT_DELTA,
+                        () -> {
+                            selectedGameMode = GameMode.LOCAL_COOP_SPLITSCREEN;
+                            fireNewGame();
+                        });
+
+                Node btnBackTablet = createTabletItem("/assets/ui/menu/back.png", "Back",
+                        mpCenterX + BACK_OFFSET_X,
+                        MP_BASE_Y + 3 * MP_ITEM_SPACING + BACK_OFFSET_Y,
+                        BACK_BASE_TILT,
+                        MP_HOVER_TILT_DELTA,
+                        showMainCard);
+
+                multiplayerMenuBox.getChildren().addAll(
+                        btnHostTablet,
+                        btnJoinTablet,
+                        btnSharedTablet,
+                        btnBackTablet);
+
+                // Join Co-op card handlers
+                Button btnJoinConnect = (Button) menuRoot.lookup("#btnJoinConnect");
+                Button btnJoinCancel = (Button) menuRoot.lookup("#btnJoinCancel");
+                TextField txtHostIp = (TextField) menuRoot.lookup("#txtHostIp");
+
+                if (btnJoinConnect != null) {
+                    btnJoinConnect.setOnAction(e -> {
+                        String ip = (txtHostIp != null && txtHostIp.getText() != null) ? txtHostIp.getText().trim() : "";
+                        if (!ip.isEmpty()) {
+                            targetHostIp = ip;
+                            selectedGameMode = GameMode.LAN_JOIN;
+                            fireNewGame();
+                        }
+                    });
+                }
+                if (txtHostIp != null && btnJoinConnect != null) {
+                    txtHostIp.setOnAction(e -> btnJoinConnect.fire());
+                }
+                if (btnJoinCancel != null) {
+                    btnJoinCancel.setOnAction(e -> showMultiCard.run());
+                }
+
+                // Settings button handlers
                 Button btnToggleFullscreen = (Button) menuRoot.lookup("#btnToggleFullscreen");
                 Button btnSettingsBack = (Button) menuRoot.lookup("#btnSettingsBack");
                 Button btnAboutBack = (Button) menuRoot.lookup("#btnAboutBack");
 
-                if (btnHostCoop != null) {
-                    btnHostCoop.setOnAction(e -> {
-                        selectedGameMode = GameMode.LAN_HOST;
-                        fireNewGame();
-                    });
-                }
-                if (btnJoinCoop != null) {
-                    btnJoinCoop.setOnAction(e -> {
-                        TextInputDialog dialog = new TextInputDialog("127.0.0.1");
-                        dialog.setTitle("Join LAN Co-Op");
-                        dialog.setHeaderText("Enter Host IP Address:");
-                        dialog.setContentText("Host IP:");
-                        try {
-                            dialog.getDialogPane().getStylesheets()
-                                    .add(getClass().getResource("/assets/ui/css/pixel_style.css").toExternalForm());
-                        } catch (Exception ignored) {
-                        }
-                        Optional<String> result = dialog.showAndWait();
-                        result.ifPresent(ip -> {
-                            targetHostIp = ip.trim();
-                            selectedGameMode = GameMode.LAN_JOIN;
-                            fireNewGame();
-                        });
-                    });
-                }
-                if (btnSharedScreenCoop != null) {
-                    btnSharedScreenCoop.setOnAction(e -> {
-                        selectedGameMode = GameMode.LOCAL_COOP_SPLITSCREEN;
-                        fireNewGame();
-                    });
-                }
-                if (btnMultiplayerBack != null) {
-                    btnMultiplayerBack
-                            .setOnAction(e -> showCard(mainMenuBox, multiplayerMenuBox, settingsBox, aboutBox));
-                }
-
-                // Settings button handlers
                 if (btnToggleFullscreen != null) {
                     btnToggleFullscreen.setOnAction(
                             e -> FXGL.getPrimaryStage().setFullScreen(!FXGL.getPrimaryStage().isFullScreen()));
                 }
                 if (btnSettingsBack != null) {
-                    btnSettingsBack.setOnAction(e -> showCard(mainMenuBox, multiplayerMenuBox, settingsBox, aboutBox));
+                    btnSettingsBack.setOnAction(e -> showMainCard.run());
                 }
 
                 // About button handlers
                 if (btnAboutBack != null) {
-                    btnAboutBack.setOnAction(e -> showCard(mainMenuBox, multiplayerMenuBox, settingsBox, aboutBox));
+                    btnAboutBack.setOnAction(e -> showMainCard.run());
                 }
 
             } catch (Exception ex) {
@@ -2750,8 +2854,24 @@ public class MovementApp extends GameApplication {
             getContentRoot().getChildren().add(root);
         }
 
+        private static Image safeLoadImage(String path) {
+            try {
+                java.io.InputStream stream = MainMenu.class.getResourceAsStream(path);
+                if (stream != null) {
+                    return new Image(stream);
+                }
+            } catch (Exception ignored) {
+            }
+            return null;
+        }
+
         private static Node createTabletItem(String imagePath, String fallbackLabel, double posX, double posY,
                 double baseTilt, Runnable onClick) {
+            return createTabletItem(imagePath, fallbackLabel, posX, posY, baseTilt, HOVER_TILT_DELTA, onClick);
+        }
+
+        private static Node createTabletItem(String imagePath, String fallbackLabel, double posX, double posY,
+                double baseTilt, double hoverTiltDelta, Runnable onClick) {
             ImageView iv = null;
             try {
                 java.io.InputStream stream = MainMenu.class.getResourceAsStream(imagePath);
@@ -2781,7 +2901,7 @@ public class MovementApp extends GameApplication {
             container.setRotate(baseTilt);
             container.setCursor(javafx.scene.Cursor.HAND);
 
-            double hoverTilt = baseTilt < 0 ? (baseTilt - HOVER_TILT_DELTA) : (baseTilt + HOVER_TILT_DELTA);
+            double hoverTilt = baseTilt < 0 ? (baseTilt - hoverTiltDelta) : (baseTilt + hoverTiltDelta);
 
             RotateTransition rotateIn = new RotateTransition(Duration.millis(120), container);
             rotateIn.setToAngle(hoverTilt);
@@ -2971,39 +3091,153 @@ public class MovementApp extends GameApplication {
 
     public static final class PauseMenu extends FXGLMenu {
 
+        private static final double TABLET_WIDTH = 270.0;
+        private static final double PAUSE_BASE_Y = 265.0;
+        private static final double PAUSE_ITEM_SPACING = 75.0;
+
+        private static final double RESUME_BASE_TILT = -1.5;
+        private static final double MAINMENU_BASE_TILT = 1.5;
+        private static final double EXIT_BASE_TILT = -1.0;
+        private static final double HOVER_TILT_DELTA = 2.5;
+
         public PauseMenu(MenuType type) {
             super(type);
 
             double w = FXGL.getAppWidth();
             double h = FXGL.getAppHeight();
 
-            Canvas bg = new Canvas(w, h);
-            GraphicsContext gc = bg.getGraphicsContext2D();
-            gc.setFill(Color.web("#0b170e", 0.85));
-            gc.fillRect(0, 0, w, h);
+            // 1. Dark backdrop to darken the live gameplay behind the menu
+            Rectangle darkOverlay = new Rectangle(w, h, Color.rgb(0, 0, 0, 0.65));
+
+            // 2. stick.png overlay background
+            ImageView stickIv = null;
+            try {
+                java.io.InputStream stream = PauseMenu.class.getResourceAsStream("/assets/ui/menu/stick.png");
+                if (stream != null) {
+                    Image stickImg = new Image(stream);
+                    stickIv = new ImageView(stickImg);
+                    stickIv.setFitWidth(w);
+                    stickIv.setFitHeight(h);
+                    stickIv.setPreserveRatio(false);
+                }
+            } catch (Exception ignored) {
+            }
+
+            Group bgGroup = new Group();
+            bgGroup.getChildren().add(darkOverlay);
+            if (stickIv != null) {
+                bgGroup.getChildren().add(stickIv);
+            }
 
             Node menuRoot;
             try {
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/assets/ui/fxml/pause_menu.fxml"));
                 menuRoot = loader.load();
 
-                Button btnResume = (Button) menuRoot.lookup("#btnResume");
-                Button btnMainMenu = (Button) menuRoot.lookup("#btnMainMenu");
-                Button btnExit = (Button) menuRoot.lookup("#btnExit");
+                Node pauseMenuBoxNode = menuRoot.lookup("#pauseMenuBox");
+                Pane pauseMenuBox = (pauseMenuBoxNode instanceof Pane) ? (Pane) pauseMenuBoxNode : new Pane();
+                pauseMenuBox.getChildren().clear();
 
-                if (btnResume != null)
-                    btnResume.setOnAction(e -> fireResume());
-                if (btnMainMenu != null)
-                    btnMainMenu.setOnAction(e -> fireExitToMainMenu());
-                if (btnExit != null)
-                    btnExit.setOnAction(e -> showPixelExitConfirmation());
+                double centerX = (w - TABLET_WIDTH) / 2.0;
+
+                Node btnResumeTablet = createTabletItem("/assets/ui/menu/resume.png", "Resume Game",
+                        centerX,
+                        PAUSE_BASE_Y + 0 * PAUSE_ITEM_SPACING,
+                        RESUME_BASE_TILT,
+                        HOVER_TILT_DELTA,
+                        () -> fireResume());
+
+                Node btnMainMenuTablet = createTabletItem("/assets/ui/menu/main_menu.png", "Main Menu",
+                        centerX,
+                        PAUSE_BASE_Y + 1 * PAUSE_ITEM_SPACING,
+                        MAINMENU_BASE_TILT,
+                        HOVER_TILT_DELTA,
+                        () -> fireExitToMainMenu());
+
+                Node btnExitTablet = createTabletItem("/assets/ui/menu/exit.png", "Exit Game",
+                        centerX,
+                        PAUSE_BASE_Y + 2 * PAUSE_ITEM_SPACING,
+                        EXIT_BASE_TILT,
+                        HOVER_TILT_DELTA,
+                        () -> showPixelExitConfirmation());
+
+                pauseMenuBox.getChildren().addAll(btnResumeTablet, btnMainMenuTablet, btnExitTablet);
             } catch (Exception ex) {
                 menuRoot = createFallbackPauseMenu();
             }
 
-            StackPane root = new StackPane(bg, menuRoot);
+            StackPane root = new StackPane(bgGroup, menuRoot);
             root.setPrefSize(w, h);
             getContentRoot().getChildren().add(root);
+        }
+
+        private static Node createTabletItem(String imagePath, String fallbackLabel, double posX, double posY,
+                double baseTilt, double hoverTiltDelta, Runnable onClick) {
+            ImageView iv = null;
+            try {
+                java.io.InputStream stream = PauseMenu.class.getResourceAsStream(imagePath);
+                if (stream == null && imagePath.contains("main_menu.png")) {
+                    stream = PauseMenu.class.getResourceAsStream("/assets/ui/menu/mainmenu.png");
+                }
+                if (stream != null) {
+                    Image img = new Image(stream);
+                    iv = new ImageView(img);
+                    if (TABLET_WIDTH > 0) {
+                        iv.setFitWidth(TABLET_WIDTH);
+                        iv.setPreserveRatio(true);
+                        iv.setSmooth(true);
+                    }
+                }
+            } catch (Exception ignored) {
+            }
+
+            StackPane container = new StackPane();
+            container.setPickOnBounds(true);
+            if (iv != null) {
+                container.getChildren().add(iv);
+            } else {
+                Button fallbackBtn = styledButton(fallbackLabel);
+                container.getChildren().add(fallbackBtn);
+            }
+
+            container.setLayoutX(posX);
+            container.setLayoutY(posY);
+            container.setRotate(baseTilt);
+            container.setCursor(javafx.scene.Cursor.HAND);
+
+            double hoverTilt = baseTilt < 0 ? (baseTilt - hoverTiltDelta) : (baseTilt + hoverTiltDelta);
+
+            RotateTransition rotateIn = new RotateTransition(Duration.millis(120), container);
+            rotateIn.setToAngle(hoverTilt);
+            ScaleTransition scaleIn = new ScaleTransition(Duration.millis(120), container);
+            scaleIn.setToX(1.06);
+            scaleIn.setToY(1.06);
+
+            RotateTransition rotateOut = new RotateTransition(Duration.millis(120), container);
+            rotateOut.setToAngle(baseTilt);
+            ScaleTransition scaleOut = new ScaleTransition(Duration.millis(120), container);
+            scaleOut.setToX(1.0);
+            scaleOut.setToY(1.0);
+
+            container.setOnMouseEntered(e -> {
+                rotateOut.stop();
+                scaleOut.stop();
+                rotateIn.playFromStart();
+                scaleIn.playFromStart();
+            });
+
+            container.setOnMouseExited(e -> {
+                rotateIn.stop();
+                scaleIn.stop();
+                rotateOut.playFromStart();
+                scaleOut.playFromStart();
+            });
+
+            if (onClick != null) {
+                container.setOnMouseClicked(e -> onClick.run());
+            }
+
+            return container;
         }
 
         private VBox createFallbackPauseMenu() {

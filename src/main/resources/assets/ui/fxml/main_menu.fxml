@@ -12,26 +12,24 @@
         <!-- Top Level Main Menu Card (Pane holding tablet menu items) -->
         <Pane fx:id="mainMenuBox" pickOnBounds="false" prefWidth="1280.0" prefHeight="720.0" />
 
-        <!-- Multiplayer Sub-Menu Card -->
-        <VBox fx:id="multiplayerMenuBox" visible="false" managed="false" alignment="CENTER_LEFT" spacing="12.0" styleClass="pixel-panel" maxWidth="380.0" maxHeight="540.0" translateX="-240.0">
+        <!-- Multiplayer Sub-Menu Card (Pane holding tablet menu items) -->
+        <Pane fx:id="multiplayerMenuBox" pickOnBounds="false" prefWidth="1280.0" prefHeight="720.0" visible="false" managed="false" />
+
+        <!-- Join Co-op Input Card Overlay -->
+        <VBox fx:id="joinCoopBox" visible="false" managed="false" alignment="CENTER" spacing="16.0" styleClass="pixel-panel" maxWidth="420.0" maxHeight="320.0">
             <padding>
-                <Insets top="24.0" right="24.0" bottom="24.0" left="24.0" />
+                <Insets top="24.0" right="28.0" bottom="24.0" left="28.0" />
             </padding>
             <children>
-                <Label text="MULTIPLAYER" styleClass="pixel-title" style="-fx-font-size: 28px;" />
-                <Label text="★ SELECT CO-OP MODE ★" styleClass="pixel-subtitle" style="-fx-font-size: 12px;" />
-                
-                <VBox spacing="10.0" alignment="CENTER_LEFT">
-                    <VBox.margin>
-                        <Insets top="14.0" />
-                    </VBox.margin>
+                <Label text="JOIN LAN CO-OP" styleClass="pixel-title" style="-fx-font-size: 24px; -fx-text-fill: #ffd700;" />
+                <Label text="★ ENTER HOST IP ADDRESS ★" styleClass="pixel-subtitle" style="-fx-font-size: 12px; -fx-text-fill: #d7e77f;" />
+                <javafx.scene.control.TextField fx:id="txtHostIp" text="127.0.0.1" prefWidth="320.0" styleClass="pixel-button" style="-fx-alignment: CENTER; -fx-font-size: 16px; -fx-text-fill: #39ff14;" />
+                <javafx.scene.layout.HBox spacing="16.0" alignment="CENTER">
                     <children>
-                        <Button fx:id="btnHostCoop" text="Host Co-op" prefWidth="310.0" prefHeight="40.0" styleClass="pixel-button" />
-                        <Button fx:id="btnJoinCoop" text="Join Co-op" prefWidth="310.0" prefHeight="40.0" styleClass="pixel-button" />
-                        <Button fx:id="btnSharedScreenCoop" text="Shared-Screen Co-op" prefWidth="310.0" prefHeight="40.0" styleClass="pixel-button" />
-                        <Button fx:id="btnMultiplayerBack" text="Back" prefWidth="310.0" prefHeight="40.0" styleClass="pixel-button" />
+                        <Button fx:id="btnJoinConnect" text="Connect" prefWidth="140.0" prefHeight="40.0" styleClass="pixel-button" />
+                        <Button fx:id="btnJoinCancel" text="Cancel" prefWidth="140.0" prefHeight="40.0" styleClass="pixel-button" />
                     </children>
-                </VBox>
+                </javafx.scene.layout.HBox>
             </children>
         </VBox>
 

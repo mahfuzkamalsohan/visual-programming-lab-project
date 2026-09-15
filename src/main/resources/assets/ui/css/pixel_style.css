@@ -106,33 +106,33 @@
     -fx-border-radius: 0px;
 }
 
-/* Dialog & Confirm Page Styling - Pixel Green Theme */
+/* Dialog & Confirm Page Styling - Forest & Warm Wood Pixel Theme */
 .dialog-pane {
-    -fx-background-color: #0b170e;
-    -fx-border-color: #39ff14 #144517 #144517 #39ff14;
+    -fx-background-color: #122016;
+    -fx-border-color: #c89658 #2d5a27 #2d5a27 #c89658;
     -fx-border-width: 4px;
     -fx-border-style: solid;
     -fx-background-radius: 0px;
     -fx-border-radius: 0px;
-    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.85), 10, 0, 4, 4);
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.88), 12, 0, 4, 4);
 }
 
 .dialog-pane > .header-panel {
-    -fx-background-color: #142918;
-    -fx-border-color: #39ff14;
+    -fx-background-color: #1a3020;
+    -fx-border-color: #c89658;
     -fx-border-width: 0 0 2px 0;
 }
 
 .dialog-pane > .header-panel > .label {
-    -fx-text-fill: #39ff14;
+    -fx-text-fill: #ffd700;
     -fx-font-family: "Monospaced", "Courier New", monospace;
-    -fx-font-size: 15px;
+    -fx-font-size: 16px;
     -fx-font-weight: bold;
 }
 
 .dialog-pane > .content {
-    -fx-background-color: #0b170e;
-    -fx-padding: 14px;
+    -fx-background-color: #122016;
+    -fx-padding: 16px;
 }
 
 .dialog-pane .label {
@@ -143,20 +143,22 @@
 }
 
 .dialog-pane .text-field {
-    -fx-background-color: #142918;
-    -fx-border-color: #39ff14 #0c4d18 #0c4d18 #39ff14;
+    -fx-background-color: #0c170f;
+    -fx-border-color: #c89658 #39ff14 #39ff14 #c89658;
     -fx-border-width: 2px;
     -fx-text-fill: #39ff14;
     -fx-font-family: "Monospaced", "Courier New", monospace;
-    -fx-font-size: 13px;
+    -fx-font-size: 14px;
     -fx-font-weight: bold;
     -fx-background-radius: 0px;
     -fx-border-radius: 0px;
+    -fx-alignment: center;
+    -fx-padding: 6px 10px;
 }
 
 .dialog-pane .button {
-    -fx-background-color: #142918;
-    -fx-border-color: #39ff14 #0c4d18 #0c4d18 #39ff14;
+    -fx-background-color: #1a3020;
+    -fx-border-color: #c89658 #0c4d18 #0c4d18 #c89658;
     -fx-border-width: 3px;
     -fx-text-fill: #f8f9fa;
     -fx-font-family: "Monospaced", "Courier New", monospace;
@@ -164,14 +166,14 @@
     -fx-font-size: 12px;
     -fx-background-radius: 0px;
     -fx-border-radius: 0px;
-    -fx-padding: 6px 14px;
+    -fx-padding: 8px 16px;
     -fx-cursor: hand;
 }
 
 .dialog-pane .button:hover {
-    -fx-background-color: #214227;
-    -fx-border-color: #d7e77f #687522 #687522 #d7e77f;
-    -fx-text-fill: #39ff14;
+    -fx-background-color: #274730;
+    -fx-border-color: #ffd700 #687522 #687522 #ffd700;
+    -fx-text-fill: #ffd700;
 }
 
 .dialog-pane .button:pressed {
