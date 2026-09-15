@@ -44,6 +44,7 @@ import javafx.scene.control.TextInputDialog;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -1873,12 +1874,44 @@ public class MovementApp extends GameApplication {
 
         if (selectedGameMode != GameMode.SORTING_TEST
                 && selectedGameMode != GameMode.SEQUENTIAL_DEMO) {
-            trashCounterText = new Text();
-            trashCounterText.setFont(Font.font("Monospaced", FontWeight.BOLD, 16));
+            
+            // 1. Overlapped bottle.png and trash.png visual container
+            Pane iconOverlayPane = new Pane();
+            iconOverlayPane.setPrefSize(44, 32);
+
+            ImageView bottleIv = safeImageView("/assets/textures/bottle.png", 28, 28);
+            if (bottleIv == null) {
+                bottleIv = safeImageView("/assets/ui/menu/bottle.png", 28, 28);
+            }
+            if (bottleIv != null) {
+                bottleIv.setLayoutX(0);
+                bottleIv.setLayoutY(2);
+                bottleIv.setRotate(-12.0);
+                iconOverlayPane.getChildren().add(bottleIv);
+            }
+
+            ImageView trashIv = safeImageView("/assets/textures/trash.png", 28, 28);
+            if (trashIv == null) {
+                trashIv = safeImageView("/assets/textures/trashbag.png", 28, 28);
+            }
+            if (trashIv != null) {
+                trashIv.setLayoutX(14);
+                trashIv.setLayoutY(4);
+                trashIv.setRotate(12.0);
+                iconOverlayPane.getChildren().add(trashIv);
+            }
+
+            // 2. Count numbers beside the overlapped icons
+            trashCounterText = new Text("0/10");
+            trashCounterText.setFont(Font.font("Monospaced", FontWeight.BOLD, 22));
             trashCounterText.setFill(Color.web("#39ff14"));
-            trashCounterText.setX(20);
-            trashCounterText.setY(FXGL.getAppHeight() - 30);
-            FXGL.addUINode(trashCounterText);
+
+            HBox trashHUDBox = new HBox(8, iconOverlayPane, trashCounterText);
+            trashHUDBox.setAlignment(Pos.CENTER_LEFT);
+            trashHUDBox.setTranslateX(20);
+            trashHUDBox.setTranslateY(FXGL.getAppHeight() - 50);
+
+            FXGL.addUINode(trashHUDBox);
             updateTrashCounter();
         }
 
@@ -1909,23 +1942,42 @@ public class MovementApp extends GameApplication {
         refreshTimerLabel();
     }
 
+    private static ImageView safeImageView(String path, double width, double height) {
+        try {
+            java.io.InputStream stream = MovementApp.class.getResourceAsStream(path);
+            if (stream != null) {
+                Image img = new Image(stream);
+                ImageView iv = new ImageView(img);
+                if (width > 0) {
+                    iv.setFitWidth(width);
+                    iv.setFitHeight(height);
+                    iv.setPreserveRatio(true);
+                    iv.setSmooth(true);
+                }
+                return iv;
+            }
+        } catch (Exception ignored) {
+        }
+        return null;
+    }
+
     private void updateTrashCounter() {
         if (trashCounterText != null) {
             if (selectedGameMode == GameMode.SINGLE_PLAYER) {
                 if (generatorStage == GeneratorStage.TRASH_COLLECTION) {
                     trashCounterText.setText(
-                            String.format("Eco-Cleanup: %d / %d", generatorTrashCollected, GENERATOR_TARGET_TRASH));
+                            String.format("%d/%d", generatorTrashCollected, GENERATOR_TARGET_TRASH));
                 } else if (generatorStage == GeneratorStage.QUESTION) {
-                    trashCounterText.setText(String.format("Eco-Grid: %d / %d Restored", generatorQuestionsAnswered,
+                    trashCounterText.setText(String.format("%d/%d", generatorQuestionsAnswered,
                             GENERATOR_TARGET_QUESTIONS));
                 } else if (generatorStage == GeneratorStage.SORTING) {
                     trashCounterText.setText(
-                            String.format("Recycling: %d / %d Sorted", generatorSortedCount, GENERATOR_TARGET_SORTING));
+                            String.format("%d/%d", generatorSortedCount, GENERATOR_TARGET_SORTING));
                 }
             } else if (selectedGameMode == GameMode.MAP_GENERATOR) {
-                trashCounterText.setText(String.format("Trash Collected: %d (Infinite Mode)", collectedTrash));
+                trashCounterText.setText(String.format("%d", collectedTrash));
             } else {
-                trashCounterText.setText(String.format("Trash Collected: %d / %d", collectedTrash, TOTAL_TRASH));
+                trashCounterText.setText(String.format("%d/%d", collectedTrash, TOTAL_TRASH));
             }
         }
     }
@@ -1944,7 +1996,7 @@ public class MovementApp extends GameApplication {
             }
             if (trashCounterText != null) {
                 trashCounterText
-                        .setText(String.format("Trash Collected: %d / %d (COMPLETE!)", collectedTrash, TOTAL_TRASH));
+                        .setText(String.format("%d/%d", collectedTrash, TOTAL_TRASH));
                 trashCounterText.setFill(Color.web("#ffd700"));
             }
         }
