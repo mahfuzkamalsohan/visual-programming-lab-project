@@ -290,6 +290,10 @@ public final class AudioManager {
         }
     }
 
+    public static double getMusicVolume() {
+        return musicVolume;
+    }
+
     public static void setSfxVolume(double volume) {
         sfxVolume = Math.max(0.0, Math.min(1.0, volume));
     }

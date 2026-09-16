@@ -3,6 +3,7 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Slider?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Pane?>
@@ -48,28 +49,33 @@
 
         <!-- Settings Card -->
         <VBox id="settingsBox" fx:id="settingsBox" visible="false" managed="false"
-            alignment="CENTER_LEFT" spacing="12.0" styleClass="pixel-panel" maxWidth="400.0"
+            alignment="CENTER_LEFT" spacing="12.0" styleClass="pixel-settings-panel" maxWidth="400.0"
             maxHeight="540.0" translateX="-240.0">
             <padding>
                 <Insets top="24.0" right="24.0" bottom="24.0" left="24.0" />
             </padding>
             <children>
-                <Label text="SETTINGS" styleClass="pixel-title" style="-fx-font-size: 28px;" />
+                <Label text="SETTINGS" styleClass="pixel-title" style="-fx-font-size: 28px; -fx-text-fill: #6c5139;" />
                 <Label text="★ GAME OPTIONS ★" styleClass="pixel-subtitle"
-                    style="-fx-font-size: 12px;" />
+                    style="-fx-font-size: 12px; -fx-text-fill: #6c5139;" />
 
-                <VBox spacing="12.0" alignment="CENTER_LEFT">
+                <VBox spacing="14.0" alignment="CENTER_LEFT">
                     <VBox.margin>
                         <Insets top="14.0" />
                     </VBox.margin>
                     <children>
+                        <!-- Music Volume Slider Controls -->
+                        <VBox spacing="6.0" alignment="CENTER_LEFT">
+                            <children>
+                                <Label id="lblMusicVolume" fx:id="lblMusicVolume" text="MUSIC VOLUME: 50%"
+                                    styleClass="pixel-subtitle" style="-fx-font-size: 11px; -fx-text-fill: #6c5139;" />
+                                <Slider id="sliderMusicVolume" fx:id="sliderMusicVolume" min="0.0" max="100.0"
+                                    value="50.0" prefWidth="320.0" styleClass="pixel-slider" />
+                            </children>
+                        </VBox>
                         <Button id="btnToggleFullscreen" fx:id="btnToggleFullscreen"
                             text="Toggle Fullscreen" prefWidth="320.0" prefHeight="40.0"
                             styleClass="pixel-button" />
-                        <Label text="Audio: FXGL Default Sound Engine"
-                            styleClass="pixel-label-yellow" wrapText="true" />
-                        <Label text="Resolution: 1280 x 720 (Retro Pixel)"
-                            styleClass="pixel-label-green" wrapText="true" />
                         <Button id="btnSettingsBack" fx:id="btnSettingsBack" text="Back"
                             prefWidth="320.0" prefHeight="40.0" styleClass="pixel-button" />
                     </children>
@@ -79,32 +85,47 @@
 
         <!-- About Card -->
         <VBox id="aboutBox" fx:id="aboutBox" visible="false" managed="false" alignment="CENTER_LEFT"
-            spacing="10.0" styleClass="pixel-panel" maxWidth="440.0" maxHeight="540.0"
+            spacing="14.0" styleClass="pixel-about-panel" maxWidth="480.0" maxHeight="540.0"
             translateX="-240.0">
             <padding>
-                <Insets top="20.0" right="24.0" bottom="20.0" left="24.0" />
+                <Insets top="24.0" right="24.0" bottom="24.0" left="24.0" />
             </padding>
             <children>
-                <Label text="ABOUT" styleClass="pixel-title" style="-fx-font-size: 28px;" />
-                <Label text="★ RESTORATION ADVENTURE ★" styleClass="pixel-subtitle"
-                    style="-fx-font-size: 12px;" />
+                <Label text="ABOUT" styleClass="pixel-title"
+                    style="-fx-font-size: 28px; -fx-text-fill: #6c5139; -fx-font-family: 'Press Start 2P', 'Monospaced', monospace;" />
+                <Label text="★ ECO RESTORATION ★" styleClass="pixel-subtitle"
+                    style="-fx-font-size: 13px; -fx-text-fill: #523c28; -fx-font-family: 'Press Start 2P', 'Monospaced', monospace;" />
 
-                <VBox spacing="8.0" alignment="CENTER_LEFT">
+                <VBox spacing="14.0" alignment="CENTER_LEFT">
                     <VBox.margin>
                         <Insets top="10.0" />
                     </VBox.margin>
                     <children>
-                        <Label
-                            text="Objective: Clean &amp; Restore polluted ecosystems by collecting trash &amp; answering questions."
-                            styleClass="pixel-question-text" wrapText="true" />
-                        <Label text="Player 1 Controls: WASD to Move, SPACE to Interact / Answer"
-                            styleClass="pixel-label-green" wrapText="true" />
-                        <Label text="Player 2 Controls: ARROW KEYS to Move, ENTER to Interact"
-                            styleClass="pixel-label-yellow" wrapText="true" />
-                        <Label text="Version: 1.0.0 (8-Bit Pixel Edition)"
-                            styleClass="pixel-label-white" wrapText="true" />
-                        <Button id="btnAboutBack" fx:id="btnAboutBack" text="Back" prefWidth="340.0"
-                            prefHeight="38.0" styleClass="pixel-button" />
+                        <VBox spacing="6.0">
+                            <children>
+                                <Label text="[ OBJECTIVE ]"
+                                    style="-fx-font-size: 13px; -fx-text-fill: #6c5139; -fx-font-weight: bold; -fx-font-family: 'Press Start 2P', 'Monospaced', monospace;" />
+                                <Label text="Clean &amp; restore polluted ecosystems by collecting trash and answering eco quizzes."
+                                    style="-fx-font-size: 11px; -fx-text-fill: #361e0b; -fx-font-family: 'Press Start 2P', 'Monospaced', monospace;" wrapText="true" />
+                            </children>
+                        </VBox>
+
+                        <VBox spacing="6.0">
+                            <children>
+                                <Label text="[ CONTROLS ]"
+                                    style="-fx-font-size: 13px; -fx-text-fill: #6c5139; -fx-font-weight: bold; -fx-font-family: 'Press Start 2P', 'Monospaced', monospace;" />
+                                <Label text="• Player 1: WASD to Move | SPACE to Interact"
+                                    style="-fx-font-size: 11px; -fx-text-fill: #523c28; -fx-font-family: 'Press Start 2P', 'Monospaced', monospace;" wrapText="true" />
+                                <Label text="• Player 2: ARROWS to Move | ENTER to Interact"
+                                    style="-fx-font-size: 11px; -fx-text-fill: #523c28; -fx-font-family: 'Press Start 2P', 'Monospaced', monospace;" wrapText="true" />
+                            </children>
+                        </VBox>
+
+                        <Label text="Version: 1.0.0"
+                            style="-fx-font-size: 11px; -fx-text-fill: #6c5139; -fx-font-family: 'Press Start 2P', 'Monospaced', monospace;" wrapText="true" />
+
+                        <Button id="btnAboutBack" fx:id="btnAboutBack" text="Back" prefWidth="430.0"
+                            prefHeight="40.0" styleClass="pixel-button" />
                     </children>
                 </VBox>
             </children>

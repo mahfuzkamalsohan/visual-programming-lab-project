@@ -39,6 +39,7 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
+import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.image.Image;
@@ -3255,10 +3256,27 @@ public class MovementApp extends GameApplication {
                     });
                 }
 
-                // Settings button handlers
+                // Settings button and slider handlers
                 Button btnToggleFullscreen = (Button) findFxmlNode(menuRoot, loader, "btnToggleFullscreen");
                 Button btnSettingsBack = (Button) findFxmlNode(menuRoot, loader, "btnSettingsBack");
                 Button btnAboutBack = (Button) findFxmlNode(menuRoot, loader, "btnAboutBack");
+                Slider sliderMusicVolume = (Slider) findFxmlNode(menuRoot, loader, "sliderMusicVolume");
+                Label lblMusicVolume = (Label) findFxmlNode(menuRoot, loader, "lblMusicVolume");
+
+                if (sliderMusicVolume != null) {
+                    double initVol = AudioManager.getMusicVolume() * 100.0;
+                    sliderMusicVolume.setValue(initVol);
+                    if (lblMusicVolume != null) {
+                        lblMusicVolume.setText(String.format("MUSIC VOLUME: %d%%", Math.round(initVol)));
+                    }
+                    sliderMusicVolume.valueProperty().addListener((obs, oldVal, newVal) -> {
+                        double volPercent = newVal.doubleValue();
+                        AudioManager.setMusicVolume(volPercent / 100.0);
+                        if (lblMusicVolume != null) {
+                            lblMusicVolume.setText(String.format("MUSIC VOLUME: %d%%", Math.round(volPercent)));
+                        }
+                    });
+                }
 
                 if (btnToggleFullscreen != null) {
                     btnToggleFullscreen.setOnAction(e -> {
@@ -3466,15 +3484,12 @@ public class MovementApp extends GameApplication {
             Button btnMultiBack = styledButton("Back");
 
             Button btnToggleFullscreen = styledButton("Toggle Fullscreen");
-            Text settingsInfo = new Text("Audio: FXGL Default Sound Engine\nResolution: 1280 x 720");
-            settingsInfo.setFont(Font.font("Monospaced", FontWeight.BOLD, 12));
-            settingsInfo.setFill(Color.web("#d7e77f"));
             Button btnSettingsBack = styledButton("Back");
 
             Text aboutInfo = new Text(
-                    "Objective: Clean & Restore ecosystems by collecting trash & answering questions.\nP1: WASD + Space\nP2: Arrows + Enter\nVersion: 1.0.0");
+                    "Objective: Clean & Restore ecosystems by collecting trash & answering questions.\nP1: WASD + Space | P2: Arrows + Enter\nVersion: 1.0.0");
             aboutInfo.setFont(Font.font("Monospaced", FontWeight.BOLD, 12));
-            aboutInfo.setFill(Color.web("#f8f9fa"));
+            aboutInfo.setFill(Color.web("#6c5139"));
             Button btnAboutBack = styledButton("Back");
 
             VBox mainBox = new VBox(10, title, subtitle, btnSingle, btnMultiplayer, btnSettings, btnAbout, btnExit);
@@ -3490,15 +3505,28 @@ public class MovementApp extends GameApplication {
 
             Text stTitle = new Text("SETTINGS");
             stTitle.setFont(Font.font("Monospaced", FontWeight.BOLD, 32));
-            stTitle.setFill(Color.web("#39ff14"));
-            VBox stBox = new VBox(10, stTitle, btnToggleFullscreen, settingsInfo, btnSettingsBack);
+            stTitle.setFill(Color.web("#6c5139"));
+            
+            Text lblFallbackVol = new Text(String.format("MUSIC VOLUME: %d%%", Math.round(AudioManager.getMusicVolume() * 100.0)));
+            lblFallbackVol.setFont(Font.font("Monospaced", FontWeight.BOLD, 12));
+            lblFallbackVol.setFill(Color.web("#6c5139"));
+            
+            Slider sliderFallbackVol = new Slider(0.0, 100.0, AudioManager.getMusicVolume() * 100.0);
+            sliderFallbackVol.setMaxWidth(300);
+            sliderFallbackVol.valueProperty().addListener((obs, oldVal, newVal) -> {
+                double v = newVal.doubleValue();
+                AudioManager.setMusicVolume(v / 100.0);
+                lblFallbackVol.setText(String.format("MUSIC VOLUME: %d%%", Math.round(v)));
+            });
+
+            VBox stBox = new VBox(10, stTitle, lblFallbackVol, sliderFallbackVol, btnToggleFullscreen, btnSettingsBack);
             stBox.setAlignment(Pos.CENTER_LEFT);
             stBox.setVisible(false);
             stBox.setManaged(false);
 
             Text abTitle = new Text("ABOUT");
             abTitle.setFont(Font.font("Monospaced", FontWeight.BOLD, 32));
-            abTitle.setFill(Color.web("#39ff14"));
+            abTitle.setFill(Color.web("#6c5139"));
             VBox abBox = new VBox(10, abTitle, aboutInfo, btnAboutBack);
             abBox.setAlignment(Pos.CENTER_LEFT);
             abBox.setVisible(false);
