@@ -1,7 +1,5 @@
 package pkg;
 
-import pkg.audio.AudioManager;
-
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -59,6 +57,7 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.util.Duration;
+import pkg.audio.AudioManager;
 import pkg.net.GameStatePacket;
 import pkg.net.InputPacket;
 import pkg.net.NetworkManager;
