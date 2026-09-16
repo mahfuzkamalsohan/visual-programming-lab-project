@@ -11,8 +11,8 @@ import org.junit.jupiter.api.Test;
 class AudioManagerTest {
 
     private static final List<String> REQUIRED_AUDIO_ASSETS = List.of(
-            "/assets/music/Game_Music.mp3",
-            "/assets/music/Menu_Music.mp3",
+            "/assets/music/Game_Music.wav",
+            "/assets/music/Menu_Music.wav",
             "/assets/sounds/Correct_Answer.wav",
             "/assets/sounds/Menu_Button_Click.wav",
             "/assets/sounds/Wrong_Answer.wav",
@@ -64,4 +64,3 @@ class AudioManagerTest {
         AudioManager.setFootstepVolume(2.0);
     }
 }
-

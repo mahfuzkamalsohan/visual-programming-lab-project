@@ -1148,14 +1148,6 @@ public class MovementApp extends GameApplication {
         }, Duration.seconds(1.25));
     }
 
-    private Rectangle debugRectangle(double width, double height) {
-        Rectangle rectangle = new Rectangle(width, height, Color.web("#ff2020", 0.08));
-        rectangle.setStroke(Color.web("#ff2020"));
-        rectangle.setStrokeWidth(2);
-        rectangle.setMouseTransparent(true);
-        return rectangle;
-    }
-
     private Label worldLabel(String text) {
         Label label = new Label(text);
         label.setStyle(
@@ -1605,7 +1597,7 @@ public class MovementApp extends GameApplication {
             for (Map.Entry<Entity, String> bin : sortingBins.entrySet()) {
                 if (sortingBinBoxes.get(bin.getKey()).intersectsPlayer(playerEntity2)) {
                     TaskResult result = sortingTask.sort(insideCarriedWaste.id(), bin.getValue());
-                    double applied = TaskTimer.apply(timer, result);
+                    TaskTimer.apply(timer, result);
                     boolean retryableWrongBin = result.status() == pkg.restoration.tasks.TaskStatus.REJECTED
                             && "Wrong bin".equals(result.message());
                     if (!retryableWrongBin) {
@@ -1884,7 +1876,7 @@ public class MovementApp extends GameApplication {
             java.lang.reflect.Field fy = Viewport.class.getDeclaredField("boundY");
             fy.setAccessible(true);
             fy.set(vp, null);
-        } catch (Throwable ignored) {
+        } catch (ReflectiveOperationException | RuntimeException ignored) {
         }
     }
 
@@ -3301,7 +3293,6 @@ public class MovementApp extends GameApplication {
 
             } catch (IOException | RuntimeException ex) {
                 System.err.println("[MainMenu] FXML load failed: " + ex.getMessage());
-                ex.printStackTrace();
                 menuRoot = createFallbackMenu();
             }
 
@@ -3352,7 +3343,7 @@ public class MovementApp extends GameApplication {
             } catch (Exception ignored) {
             }
 
-            double tabletHeight = (TABLET_WIDTH > 0) ? (TABLET_WIDTH * 110.0 / 505.0) : 58.0;
+            double tabletHeight = TABLET_WIDTH * 110.0 / 505.0;
 
             StackPane container = new StackPane();
             container.setPickOnBounds(true);
@@ -3730,7 +3721,7 @@ public class MovementApp extends GameApplication {
             } catch (Exception ignored) {
             }
 
-            double tabletHeight = (TABLET_WIDTH > 0) ? (TABLET_WIDTH * 110.0 / 505.0) : 58.0;
+            double tabletHeight = TABLET_WIDTH * 110.0 / 505.0;
 
             StackPane container = new StackPane();
             container.setPickOnBounds(true);
@@ -3878,9 +3869,7 @@ public class MovementApp extends GameApplication {
     private static void showPixelExitConfirmation() {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         try {
-            if (FXGL.getPrimaryStage() != null) {
-                alert.initOwner(FXGL.getPrimaryStage());
-            }
+            alert.initOwner(FXGL.getPrimaryStage());
         } catch (Exception ignored) {
         }
         alert.setTitle("Exit Game");

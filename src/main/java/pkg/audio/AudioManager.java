@@ -25,8 +25,8 @@ import javafx.scene.media.MediaPlayer;
 public final class AudioManager {
 
     // Relative asset paths matching src/main/resources/assets/...
-    private static final String PATH_MENU_MUSIC   = "/assets/music/Menu_Music.mp3";
-    private static final String PATH_GAME_MUSIC   = "/assets/music/Game_Music.mp3";
+    private static final String PATH_MENU_MUSIC   = "/assets/music/Menu_Music.wav";
+    private static final String PATH_GAME_MUSIC   = "/assets/music/Game_Music.wav";
 
     private static final String PATH_SFX_CLICK    = "/assets/sounds/Menu_Button_Click.wav";
     private static final String PATH_SFX_CORRECT  = "/assets/sounds/Correct_Answer.wav";
