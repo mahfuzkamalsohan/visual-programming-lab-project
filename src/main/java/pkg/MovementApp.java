@@ -1175,17 +1175,9 @@ public class MovementApp extends GameApplication {
                 + "-fx-font-weight: bold;"
                 + "-fx-alignment: center;");
 
-        Label acceptsLabel = new Label("Accepts:\n" + info.accepts);
-        acceptsLabel.setStyle(
-                "-fx-text-fill: #f0fdf4;"
-                + "-fx-font-family: 'Monospaced';"
-                + "-fx-font-size: 7.2px;"
-                + "-fx-alignment: center;"
-                + "-fx-text-alignment: center;");
-        acceptsLabel.setWrapText(true);
-        acceptsLabel.setMaxWidth(115);
 
-        plaque.getChildren().addAll(catLabel, acceptsLabel);
+
+        plaque.getChildren().addAll(catLabel);
         plaque.setMouseTransparent(true);
         plaque.setTranslateX(-23);
         plaque.setTranslateY(-36);
