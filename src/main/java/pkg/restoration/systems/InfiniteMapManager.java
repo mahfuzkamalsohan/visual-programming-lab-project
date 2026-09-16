@@ -30,7 +30,8 @@ import pkg.EntityType;
 public class InfiniteMapManager {
 
     public static final int CHUNK_SIZE = 20; // 20x20 tiles per region (spacious 640x320 area)
-    public static final int ACTIVE_RADIUS = 1; // 3x3 active grid (center chunk + 8 surrounding neighbors = 9 chunks total)
+    public static final int ACTIVE_RADIUS = 1; // 3x3 active grid (center chunk + 8 surrounding neighbors = 9 chunks
+                                               // total)
 
     // Isometric tile dimensions matching project TMX maps
     public static final double TILE_HALF_WIDTH = 16.0;
@@ -81,7 +82,13 @@ public class InfiniteMapManager {
         }
     }
 
-    private long transformGidByRatio(long originalGid, double ratio) {
+    private long transformGidByRatio(long originalGid, double ratio, int layerIdx) {
+        if (ratio < 1.0) {
+            if ((originalGid >= 41 && originalGid <= 60) ||
+                    (layerIdx > 0 && originalGid >= 35 && originalGid <= 38)) {
+                return 0L;
+            }
+        }
         long gid = originalGid;
         if (originalGid == 35 || originalGid == 36 || originalGid == 37 || originalGid == 38) {
             if (ratio <= 0.10) {
@@ -187,7 +194,8 @@ public class InfiniteMapManager {
         double chunkOriginY = (chunkX + chunkY) * (CHUNK_SIZE * TILE_HALF_HEIGHT);
 
         for (int i = 0; i < CHUNK_SIZE; i++) {
-            if (i >= 8 && i <= 11) continue; // Leave central gateway archways open for smooth transit
+            if (i >= 8 && i <= 11)
+                continue; // Leave central gateway archways open for smooth transit
             spawnBoundaryTile(chunkOriginX, chunkOriginY, 0, i);
             spawnBoundaryTile(chunkOriginX, chunkOriginY, CHUNK_SIZE - 1, i);
             spawnBoundaryTile(chunkOriginX, chunkOriginY, i, 0);
@@ -240,12 +248,12 @@ public class InfiniteMapManager {
     }
 
     public static class ChunkTemplate {
-        public final long[] gids;
+        public final List<long[]> layersGids;
         public final boolean[] walls;
         public final List<Point2D> trashCandidates;
 
-        public ChunkTemplate(long[] gids, boolean[] walls, List<Point2D> trashCandidates) {
-            this.gids = gids;
+        public ChunkTemplate(List<long[]> layersGids, boolean[] walls, List<Point2D> trashCandidates) {
+            this.layersGids = layersGids;
             this.walls = walls;
             this.trashCandidates = trashCandidates;
         }
@@ -314,61 +322,73 @@ public class InfiniteMapManager {
         for (String relativePath : mapFiles) {
             try {
                 URL resourceURL = getClass().getClassLoader().getResource("assets/levels/" + relativePath);
-                if (resourceURL == null) continue;
+                if (resourceURL == null)
+                    continue;
                 TiledMap map;
                 try (InputStream is = resourceURL.openStream()) {
                     map = new TMXLevelLoader().parse(is);
                 }
-                if (map == null || map.getLayers().isEmpty()) continue;
+                if (map == null || map.getLayers().isEmpty())
+                    continue;
 
-                Layer tileLayer = null;
+                List<Layer> tileLayers = new ArrayList<>();
                 for (Layer l : map.getLayers()) {
                     if ("tilelayer".equalsIgnoreCase(l.getType()) || !l.getData().isEmpty()) {
-                        tileLayer = l;
-                        break;
+                        tileLayers.add(l);
                     }
                 }
-                if (tileLayer == null) continue;
+                if (tileLayers.isEmpty())
+                    continue;
 
                 int mw = map.getWidth();
                 int mh = map.getHeight();
-                List<Long> data = tileLayer.getData();
 
                 int chunksX = mw / CHUNK_SIZE;
                 int chunksY = mh / CHUNK_SIZE;
 
                 for (int cy = 0; cy < chunksY; cy++) {
                     for (int cx = 0; cx < chunksX; cx++) {
-                        long[] gids = new long[CHUNK_SIZE * CHUNK_SIZE];
+                        List<long[]> layersGids = new ArrayList<>();
                         boolean[] walls = new boolean[CHUNK_SIZE * CHUNK_SIZE];
                         List<Point2D> trashCandidates = new ArrayList<>();
 
-                        for (int ly = 0; ly < CHUNK_SIZE; ly++) {
-                            for (int lx = 0; lx < CHUNK_SIZE; lx++) {
-                                int gx = cx * CHUNK_SIZE + lx;
-                                int gy = cy * CHUNK_SIZE + ly;
-                                int srcIdx = gy * mw + gx;
-                                int dstIdx = ly * CHUNK_SIZE + lx;
+                        for (int layerIdx = 0; layerIdx < tileLayers.size(); layerIdx++) {
+                            long[] gids = new long[CHUNK_SIZE * CHUNK_SIZE];
+                            List<Long> data = tileLayers.get(layerIdx).getData();
+                            for (int ly = 0; ly < CHUNK_SIZE; ly++) {
+                                for (int lx = 0; lx < CHUNK_SIZE; lx++) {
+                                    int gx = cx * CHUNK_SIZE + lx;
+                                    int gy = cy * CHUNK_SIZE + ly;
+                                    int srcIdx = gy * mw + gx;
+                                    int dstIdx = ly * CHUNK_SIZE + lx;
 
-                                long gid = (srcIdx >= 0 && srcIdx < data.size()) ? data.get(srcIdx) : 36L;
-                                if (gid <= 0) {
-                                    gid = 36L;
-                                }
-                                gids[dstIdx] = gid;
+                                    long gid = (srcIdx >= 0 && srcIdx < data.size()) ? data.get(srcIdx) : 0L;
+                                    if (layerIdx == 0 && gid <= 0) {
+                                        gid = 36L;
+                                    }
+                                    gids[dstIdx] = gid;
 
-                                // Impassable water or deep hole obstacle tiles
-                                if (gid == 111 || gid == 112 || gid == 113 || gid == 118) {
-                                    walls[dstIdx] = true;
-                                }
+                                    if (layerIdx == 0) {
+                                        // Impassable water or deep hole obstacle tiles
+                                        if (gid == 111 || gid == 112 || gid == 113 || gid == 118) {
+                                            walls[dstIdx] = true;
+                                        }
+                                        // Ensure central roaming and spawn area is completely clear
+                                        if (lx >= 6 && lx <= 14 && ly >= 6 && ly <= 14) {
+                                            walls[dstIdx] = false;
+                                        }
 
-                                // Candidate positions for trash spawn in open walking areas
-                                if ((gid == 35 || gid == 36 || gid == 37 || gid == 38 || gid == 25 || gid == 15)
-                                        && (lx == 3 || lx == 7) && (ly == 3 || ly == 7)) {
-                                    trashCandidates.add(new Point2D(lx, ly));
+                                        // Candidate positions for trash spawn in open walking areas
+                                        if ((gid == 35 || gid == 36 || gid == 37 || gid == 38 || gid == 25 || gid == 15)
+                                                && (lx == 3 || lx == 7) && (ly == 3 || ly == 7)) {
+                                            trashCandidates.add(new Point2D(lx, ly));
+                                        }
+                                    }
                                 }
                             }
+                            layersGids.add(gids);
                         }
-                        templates.add(new ChunkTemplate(gids, walls, trashCandidates));
+                        templates.add(new ChunkTemplate(layersGids, walls, trashCandidates));
                     }
                 }
             } catch (Exception e) {
@@ -381,8 +401,10 @@ public class InfiniteMapManager {
             long[] gids = new long[CHUNK_SIZE * CHUNK_SIZE];
             boolean[] walls = new boolean[CHUNK_SIZE * CHUNK_SIZE];
             Arrays.fill(gids, 36L);
+            List<long[]> layersGids = new ArrayList<>();
+            layersGids.add(gids);
             List<Point2D> candidates = List.of(new Point2D(4, 4));
-            templates.add(new ChunkTemplate(gids, walls, candidates));
+            templates.add(new ChunkTemplate(layersGids, walls, candidates));
         }
     }
 
@@ -436,7 +458,7 @@ public class InfiniteMapManager {
             }
         }
     }
-    
+
     public void unlockLayer(int radius) {
         if (radius == 0) {
             unlockedChunks.add("0,0");
@@ -478,7 +500,9 @@ public class InfiniteMapManager {
         return state;
     }
 
-    /** Returns whether a local tile can be occupied by players and spawned items. */
+    /**
+     * Returns whether a local tile can be occupied by players and spawned items.
+     */
     public boolean isWalkableTile(int chunkX, int chunkY, int localX, int localY) {
         if (localX < 0 || localX >= CHUNK_SIZE || localY < 0 || localY >= CHUNK_SIZE) {
             return false;
@@ -498,7 +522,8 @@ public class InfiniteMapManager {
         Canvas canvas = new Canvas(CHUNK_SIZE * TILE_HALF_WIDTH * 2, CHUNK_SIZE * TILE_HALF_HEIGHT * 2 + 32);
         drawChunkToCanvas(state, canvas);
 
-        // Depth-sorting zIndex to ensure lower chunks render in front and prevent occlusion
+        // Depth-sorting zIndex to ensure lower chunks render in front and prevent
+        // occlusion
         int zIndex = -1000 + (chunkX + chunkY) * 10;
 
         Entity mapEntity = FXGL.entityBuilder()
@@ -535,33 +560,44 @@ public class InfiniteMapManager {
     }
 
     private void drawChunkToCanvas(ChunkState state, Canvas canvas) {
-        if (spritesheetImage == null) return;
+        if (spritesheetImage == null)
+            return;
         GraphicsContext gc = canvas.getGraphicsContext2D();
         gc.setImageSmoothing(false);
         gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
 
         double ratio = state.isRestored ? 1.0 : currentRestorationRatio;
 
-        // Draw in isometric depth order (lx + ly) to guarantee proper painter's algorithm
+        // Draw in isometric depth order (lx + ly) to guarantee proper painter's
+        // algorithm
         for (int depth = 0; depth <= (CHUNK_SIZE - 1) * 2; depth++) {
             for (int lx = 0; lx < CHUNK_SIZE; lx++) {
                 int ly = depth - lx;
-                if (ly < 0 || ly >= CHUNK_SIZE) continue;
+                if (ly < 0 || ly >= CHUNK_SIZE)
+                    continue;
 
                 int i = ly * CHUNK_SIZE + lx;
-                long originalGid = state.template.gids[i];
-                if (originalGid <= 0) {
-                    originalGid = 36L;
+                for (int layerIdx = 0; layerIdx < state.template.layersGids.size(); layerIdx++) {
+                    long[] gids = state.template.layersGids.get(layerIdx);
+                    long originalGid = gids[i];
+                    if (originalGid <= 0) {
+                        if (layerIdx == 0)
+                            originalGid = 36L;
+                        else
+                            continue;
+                    }
+                    long gid = transformGidByRatio(originalGid, ratio, layerIdx);
+                    if (gid <= 0)
+                        continue;
+
+                    int tileIdx = (int) (gid - 1);
+                    int sx = (tileIdx % 11) * 32;
+                    int sy = (tileIdx / 11) * 32;
+                    double dx = (lx - ly) * TILE_HALF_WIDTH + (CHUNK_SIZE * TILE_HALF_WIDTH) - 16.0;
+                    double dy = (lx + ly) * TILE_HALF_HEIGHT;
+
+                    gc.drawImage(spritesheetImage, sx, sy, 32, 32, dx, dy, 32, 32);
                 }
-                long gid = transformGidByRatio(originalGid, ratio);
-
-                int tileIdx = (int) (gid - 1);
-                int sx = (tileIdx % 11) * 32;
-                int sy = (tileIdx / 11) * 32;
-                double dx = (lx - ly) * TILE_HALF_WIDTH + (CHUNK_SIZE * TILE_HALF_WIDTH) - 16.0;
-                double dy = (lx + ly) * TILE_HALF_HEIGHT;
-
-                gc.drawImage(spritesheetImage, sx, sy, 32, 32, dx, dy, 32, 32);
             }
         }
     }
@@ -587,7 +623,8 @@ public class InfiniteMapManager {
     }
 
     public boolean tryCollectTrashNearPlayer(Entity player) {
-        if (player == null) return false;
+        if (player == null)
+            return false;
 
         for (LoadedChunk loaded : loadedActiveChunks.values()) {
             for (TrashItemState trashState : loaded.state.trashItems) {
