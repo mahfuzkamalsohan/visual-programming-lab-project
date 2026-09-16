@@ -3,11 +3,15 @@ package pkg;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 
 import com.almasb.fxgl.app.GameApplication;
 import com.almasb.fxgl.app.GameSettings;
@@ -80,6 +84,39 @@ public class MovementApp extends GameApplication {
     private static final double INITIAL_TIME = 120.0;
     private static final double MAX_TIME = 120.0;
     private static final int DEMO_QUESTION_COUNT = 6;
+    private static final List<WasteItem> SORTING_WASTE_CATALOG = List.of(
+            new WasteItem("snack_wrapper", "Greasy snack wrapper", "black"),
+            new WasteItem("foam_box", "Used foam food box", "black"),
+            new WasteItem("soiled_tissue", "Soiled tissue", "black"),
+            new WasteItem("plastic_straw", "Plastic drinking straw", "black"),
+            new WasteItem("chip_bag", "Crisp packet", "black"),
+            new WasteItem("coffee_cup", "Used paper coffee cup", "black"),
+            new WasteItem("broken_ceramic", "Broken ceramic cup", "black"),
+            new WasteItem("toothbrush", "Worn toothbrush", "black"),
+            new WasteItem("newspaper", "Clean newspaper", "blue"),
+            new WasteItem("aluminium_can", "Clean aluminium can", "blue"),
+            new WasteItem("water_bottle", "Empty water bottle", "blue"),
+            new WasteItem("cardboard_box", "Flattened cardboard box", "blue"),
+            new WasteItem("glass_jar", "Rinsed glass jar", "blue"),
+            new WasteItem("food_tin", "Clean food tin", "blue"),
+            new WasteItem("office_paper", "Clean office paper", "blue"),
+            new WasteItem("detergent_bottle", "Empty detergent bottle", "blue"),
+            new WasteItem("banana_peel", "Banana peel", "green"),
+            new WasteItem("apple_core", "Apple core", "green"),
+            new WasteItem("tea_bag", "Used tea bag", "green"),
+            new WasteItem("eggshells", "Eggshells", "green"),
+            new WasteItem("coffee_grounds", "Coffee grounds", "green"),
+            new WasteItem("vegetable_scraps", "Vegetable scraps", "green"),
+            new WasteItem("yard_leaves", "Dry yard leaves", "green"),
+            new WasteItem("orange_peel", "Orange peel", "green"),
+            new WasteItem("used_battery", "Used battery", "red"),
+            new WasteItem("broken_phone", "Broken mobile phone", "red"),
+            new WasteItem("medicine_blister", "Expired medicine blister pack", "red"),
+            new WasteItem("light_bulb", "Burnt light bulb", "red"),
+            new WasteItem("ink_cartridge", "Empty ink cartridge", "red"),
+            new WasteItem("phone_charger", "Damaged phone charger", "red"),
+            new WasteItem("aerosol_can", "Empty aerosol can", "red"),
+            new WasteItem("button_cell", "Button-cell battery", "red"));
 
     public static GameMode selectedGameMode = GameMode.SINGLE_PLAYER;
     public static String targetHostIp = "127.0.0.1";
@@ -129,7 +166,7 @@ public class MovementApp extends GameApplication {
 
     private final List<Entity> generatorSortingWasteEntities = new ArrayList<>();
     private int generatorSortedCount = 0;
-    private final int GENERATOR_TARGET_SORTING = 6;
+    private final int GENERATOR_TARGET_SORTING = 8;
 
     private int currentDistrict = 1;
     private int ecoScore = 0;
@@ -630,30 +667,24 @@ public class MovementApp extends GameApplication {
         createSortingBin("green", 545, 275, "#3e914c");
         createSortingBin("red", 675, 275, "#bd4545");
 
-        List<WasteItem> waste = List.of(
-                new WasteItem("wrapper", "Greasy snack wrapper", "black"),
-                new WasteItem("foam", "Used foam food box", "black"),
-                new WasteItem("newspaper", "Clean newspaper", "blue"),
-                new WasteItem("can", "Clean aluminium can", "blue"),
-                new WasteItem("peel", "Banana peel", "green"),
-                new WasteItem("leaves", "Dry yard leaves", "green"),
-                new WasteItem("battery", "Used battery", "red"),
-                new WasteItem("phone", "Broken mobile phone", "red"));
+        List<WasteItem> waste = randomBalancedSortingWaste(8);
         Map<String, String> expectedBins = new LinkedHashMap<>();
-        double[][] positions = { { 180, 150 }, { 280, 255 }, { 390, 160 }, { 205, 280 },
-                { 350, 265 }, { 440, 75 }, { 155, 75 }, { 410, 305 } };
+        List<int[]> positions = randomTilePositions(waste.size(), 4, 17);
         for (int i = 0; i < waste.size(); i++) {
             WasteItem item = waste.get(i);
             expectedBins.put(item.id(), item.binId());
-            Entity entity = FXGL.entityBuilder().at(positions[i][0], positions[i][1])
+            int[] position = positions.get(i);
+            double x = 120 + position[0] * 20.0;
+            double y = 55 + position[1] * 15.0;
+            Entity entity = FXGL.entityBuilder().at(x, y)
                     .type(EntityType.TRASH)
                     .viewWithBBox("trashbag.png")
                     .with(new CollidableComponent(true))
                     .buildAndAttach();
             sortingWasteEntities.put(entity, item);
             InteractionBox pickupBox = new InteractionBox(
-                    positions[i][0] - 8,
-                    positions[i][1] - 8,
+                    x - 8,
+                    y - 8,
                     PICKUP_BOX_WIDTH,
                     PICKUP_BOX_HEIGHT);
             sortingPickupBoxes.put(entity, pickupBox);
@@ -872,13 +903,50 @@ public class MovementApp extends GameApplication {
     }
 
     private void hideSortingBins() {
-        for (Entity bin : sortingBins.keySet()) {
-            if (bin.isActive()) {
+        for (Entity bin : List.copyOf(sortingBins.keySet())) {
+            if (bin != null && bin.isActive()) {
                 bin.removeFromWorld();
             }
         }
         sortingBins.clear();
         sortingBinBoxes.clear();
+    }
+
+    private List<WasteItem> randomBalancedSortingWaste(int count) {
+        List<String> binIds = List.of("black", "blue", "green", "red");
+        if (count % binIds.size() != 0) {
+            throw new IllegalArgumentException("Sorting item count must be divisible by the number of bins");
+        }
+
+        int itemsPerBin = count / binIds.size();
+        List<WasteItem> selected = new ArrayList<>(count);
+        for (String binId : binIds) {
+            List<WasteItem> choices = SORTING_WASTE_CATALOG.stream()
+                    .filter(item -> item.binId().equals(binId))
+                    .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
+            Collections.shuffle(choices);
+            selected.addAll(choices.subList(0, itemsPerBin));
+        }
+        Collections.shuffle(selected);
+        return List.copyOf(selected);
+    }
+
+    private List<int[]> randomTilePositions(int count, int minTile, int maxTileExclusive) {
+        int availableTiles = (maxTileExclusive - minTile) * (maxTileExclusive - minTile);
+        if (count > availableTiles) {
+            throw new IllegalArgumentException("Not enough tiles for unique waste positions");
+        }
+
+        List<int[]> positions = new ArrayList<>(count);
+        Set<String> occupied = new HashSet<>();
+        while (positions.size() < count) {
+            int x = ThreadLocalRandom.current().nextInt(minTile, maxTileExclusive);
+            int y = ThreadLocalRandom.current().nextInt(minTile, maxTileExclusive);
+            if (occupied.add(x + ":" + y)) {
+                positions.add(new int[] { x, y });
+            }
+        }
+        return positions;
     }
 
     private void setupGeneratorStage1(int chunkX, int chunkY) {
@@ -892,14 +960,9 @@ public class MovementApp extends GameApplication {
         double originX = (chunkX - chunkY) * 320.0;
         double originY = (chunkX + chunkY) * 160.0;
 
-        int[][] tilePositions = {
-                { 5, 5 }, { 9, 5 }, { 14, 5 },
-                { 6, 9 }, { 10, 9 }, { 14, 9 },
-                { 5, 14 }, { 9, 14 }
-        };
-
-        for (int i = 0; i < GENERATOR_TARGET_TRASH && i < tilePositions.length; i++) {
-            int[] pos = tilePositions[i];
+        List<int[]> tilePositions = randomTilePositions(GENERATOR_TARGET_TRASH, 4, 17);
+        for (int i = 0; i < tilePositions.size(); i++) {
+            int[] pos = tilePositions.get(i);
             int lx = pos[0];
             int ly = pos[1];
             double isoX = originX + (lx - ly) * 16.0 + 8;
@@ -997,13 +1060,7 @@ public class MovementApp extends GameApplication {
         createSortingBin("green", originX + (6 - 10) * 16.0, originY + (6 + 10) * 8.0, "#3e914c");
         createSortingBin("red", originX + (10 - 14) * 16.0, originY + (10 + 14) * 8.0, "#bd4545");
 
-        List<WasteItem> waste = List.of(
-                new WasteItem("wrapper", "Greasy snack wrapper", "black"),
-                new WasteItem("foam", "Used foam food box", "black"),
-                new WasteItem("newspaper", "Clean newspaper", "blue"),
-                new WasteItem("can", "Clean aluminium can", "blue"),
-                new WasteItem("peel", "Banana peel", "green"),
-                new WasteItem("battery", "Used battery", "red"));
+        List<WasteItem> waste = randomBalancedSortingWaste(GENERATOR_TARGET_SORTING);
 
         Map<String, String> expectedBins = new LinkedHashMap<>();
         for (WasteItem item : waste) {
@@ -1011,11 +1068,12 @@ public class MovementApp extends GameApplication {
         }
         sortingTask = new SortingTask(expectedBins, 15.0, 7.0, 8.0);
 
-        int[][] wasteTilePositions = { { 4, 4 }, { 16, 4 }, { 4, 16 }, { 16, 16 }, { 5, 12 }, { 15, 8 } };
+        List<int[]> wasteTilePositions = randomTilePositions(waste.size(), 3, 18);
         for (int i = 0; i < waste.size(); i++) {
             WasteItem item = waste.get(i);
-            int lx = wasteTilePositions[i][0];
-            int ly = wasteTilePositions[i][1];
+            int[] position = wasteTilePositions.get(i);
+            int lx = position[0];
+            int ly = position[1];
             double wX = originX + (lx - ly) * 16.0;
             double wY = originY + (lx + ly) * 8.0;
 
@@ -1634,6 +1692,9 @@ public class MovementApp extends GameApplication {
                         showTemporaryNotice("WRONG BIN! (-6s)\n" + insideCarriedWaste.name() + " does not belong here!\nRead bin accepted items.");
                         sortingFeedback = "Wrong bin! " + insideCarriedWaste.name() + " rejected (-6s)";
                     }
+                    if (sortingTask.isComplete()) {
+                        hideSortingBins();
+                    }
                     if (isInfiniteCoopMode() && sortingTask.isComplete()) {
                         hideSortingBins();
                         generatorSortedCount = GENERATOR_TARGET_SORTING;
@@ -1835,20 +1896,11 @@ public class MovementApp extends GameApplication {
         collectedTrash = 0;
         trashMask = (1 << TOTAL_TRASH) - 1;
         trashEntities.clear();
-        double[][] spawnPositions = {
-                { 200, 180 },
-                { 320, 240 },
-                { 450, 180 },
-                { 150, 300 },
-                { 520, 280 },
-                { 280, 350 },
-                { 400, 320 },
-                { 600, 220 }
-        };
-
+        List<int[]> positions = randomTilePositions(TOTAL_TRASH, 0, 20);
         for (int i = 0; i < TOTAL_TRASH; i++) {
-            double x = (i < spawnPositions.length) ? spawnPositions[i][0] : 150 + Math.random() * 450;
-            double y = (i < spawnPositions.length) ? spawnPositions[i][1] : 150 + Math.random() * 200;
+            int[] position = positions.get(i);
+            double x = 150 + position[0] * 25.0;
+            double y = 150 + position[1] * 12.0;
             Entity trash = FXGL.spawn("trash", new SpawnData(x, y));
             trash.setRotation(FXGL.random(0, 360));
             trash.setProperty("trashIndex", i);
