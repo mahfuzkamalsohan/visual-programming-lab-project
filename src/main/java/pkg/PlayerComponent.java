@@ -1,5 +1,9 @@
 package pkg;
 
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
+
 import com.almasb.fxgl.dsl.FXGL;
 import com.almasb.fxgl.entity.Entity;
 import com.almasb.fxgl.entity.component.Component;
@@ -10,11 +14,6 @@ import javafx.scene.image.Image;
 import javafx.scene.image.PixelReader;
 import javafx.scene.image.WritableImage;
 import javafx.util.Duration;
-
-
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
 
 public class PlayerComponent extends Component {
 
