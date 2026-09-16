@@ -1,5 +1,7 @@
 package pkg;
 
+import pkg.audio.AudioManager;
+
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -204,6 +206,12 @@ public class MovementApp extends GameApplication {
     private double activeSortZoneHeight = SORT_ZONE_HEIGHT;
 
     @Override
+    protected void onPreInit() {
+        AudioManager.init();
+        AudioManager.playMenuMusic();
+    }
+
+    @Override
     protected void initSettings(GameSettings settings) {
         settings.setWidth(1280);
         settings.setHeight(720);
@@ -365,6 +373,7 @@ public class MovementApp extends GameApplication {
         playerComponent = null;
         playerComponent2 = null;
 
+        AudioManager.playGameMusic();
         FXGL.getGameScene().setBackgroundColor(Color.web("#17231e"));
         timer = new RestorationTimer(INITIAL_TIME, MAX_TIME);
         gameEnded = false;
@@ -1219,6 +1228,7 @@ public class MovementApp extends GameApplication {
                         generatorTrashCollected++;
                         collectedTrash++;
                         ecoScore += 50;
+                        AudioManager.playTrashPickup();
                         if (infiniteMapManager != null) {
                             infiniteMapManager.onBottleCollected(generatorTrashCollected, GENERATOR_TARGET_TRASH);
                         }
@@ -1283,6 +1293,7 @@ public class MovementApp extends GameApplication {
                         generatorTrashCollected++;
                         collectedTrash++;
                         ecoScore += 50;
+                        AudioManager.playTrashPickup();
                         if (infiniteMapManager != null) {
                             infiniteMapManager.onBottleCollected(generatorTrashCollected, GENERATOR_TARGET_TRASH);
                         }
@@ -1357,6 +1368,7 @@ public class MovementApp extends GameApplication {
                 TaskTimer.apply(timer, result);
                 entry.getKey().removeFromWorld();
                 demoCollectionItems.remove(entry.getKey());
+                AudioManager.playTrashPickup();
                 if (result.completedNow()) {
                     activateDemoQuestionStage();
                 }
@@ -1375,6 +1387,7 @@ public class MovementApp extends GameApplication {
                 trash.removeFromWorld();
                 trashMask &= ~(1 << idx);
                 collectedTrash++;
+                AudioManager.playTrashPickup();
                 if (timer != null) {
                     timer.applyDelta(10.0);
                 }
@@ -1402,6 +1415,7 @@ public class MovementApp extends GameApplication {
                         ecoScore += 100;
                         generatorSortedCount++;
                         updateTrashCounter();
+                        AudioManager.playCorrectAnswer();
                         spawnFloatingText(playerEntity.getX(), playerEntity.getY() - 20,
                                 "✔ Correct Bin! +8s (+100 pts)", Color.web("#39ff14"));
                         BinInfo info = getBinInfo(binId);
@@ -1433,6 +1447,7 @@ public class MovementApp extends GameApplication {
                     } else {
                         if (timer != null)
                             timer.applyDelta(-6.0);
+                        AudioManager.playWrongAnswer();
                         spawnFloatingText(playerEntity.getX(), playerEntity.getY() - 20, "✘ Wrong Bin! -6s",
                                 Color.web("#ff3860"));
                         showTemporaryNotice("WRONG BIN! (-6s)\n" + outsideCarriedWaste.name() + " does not belong here!\nRead bin accepted items.");
@@ -1454,6 +1469,7 @@ public class MovementApp extends GameApplication {
                 entry.getKey().removeFromWorld();
                 sortingWasteEntities.remove(entry.getKey());
                 sortingPickupBoxes.remove(entry.getKey());
+                AudioManager.playTrashPickup();
                 if (collectorCarriedWasteView != null) {
                     collectorCarriedWasteView.setVisible(true);
                 }
@@ -1484,6 +1500,7 @@ public class MovementApp extends GameApplication {
                 if (intakeWasteView != null) {
                     intakeWasteView.setVisible(true);
                 }
+                AudioManager.playTrashPickup();
                 sortingFeedback = "Waste delivered. P2: press / at the intake to identify it";
                 showTemporaryNotice("Delivered to INTAKE!\nP2: press [/] at INTAKE to retrieve & identify");
             } else {
@@ -1502,6 +1519,7 @@ public class MovementApp extends GameApplication {
                 if (collectorCarriedWasteView != null) {
                     collectorCarriedWasteView.setVisible(true);
                 }
+                AudioManager.playTrashPickup();
                 sortingFeedback = "P1 picked up: " + outsideCarriedWaste.name() + " -> Carry to INTAKE";
                 showTemporaryNotice(
                         "P1 picked up: " + outsideCarriedWaste.name() + "\nPhysically carry to INTAKE at center");
@@ -1521,6 +1539,7 @@ public class MovementApp extends GameApplication {
                     boolean retryableWrongBin = result.status() == pkg.restoration.tasks.TaskStatus.REJECTED
                             && "Wrong bin".equals(result.message());
                     if (!retryableWrongBin) {
+                        AudioManager.playCorrectAnswer();
                         spawnFloatingText(playerEntity2.getX(), playerEntity2.getY() - 20,
                                 "✔ Correct Bin! +8s (+100 pts)", Color.web("#39ff14"));
                         BinInfo info = getBinInfo(bin.getValue());
@@ -1528,6 +1547,7 @@ public class MovementApp extends GameApplication {
                         sortingFeedback = "Correct: " + insideCarriedWaste.name() + " -> " + info.category + " (+8s)!";
                         clearInsideCarriedWaste();
                     } else {
+                        AudioManager.playWrongAnswer();
                         spawnFloatingText(playerEntity2.getX(), playerEntity2.getY() - 20, "✘ Wrong Bin! -6s", Color.web("#ff3860"));
                         showTemporaryNotice("WRONG BIN! (-6s)\n" + insideCarriedWaste.name() + " does not belong here!\nRead bin accepted items.");
                         sortingFeedback = "Wrong bin! " + insideCarriedWaste.name() + " rejected (-6s)";
@@ -1566,6 +1586,7 @@ public class MovementApp extends GameApplication {
             if (sorterCarriedWasteView != null) {
                 sorterCarriedWasteView.setVisible(true);
             }
+            AudioManager.playTrashPickup();
             sortingFeedback = "P2 retrieved: " + insideCarriedWaste.name() + " — Check bin labels to sort";
             showTemporaryNotice("RETRIEVED: " + insideCarriedWaste.name() + "\nExamine the bins and sort into the matching category!");
         }
@@ -1637,6 +1658,11 @@ public class MovementApp extends GameApplication {
                 return;
             QuestionResult result = currentActiveQuestion.answer(choiceIndex);
             questionAnswerLocked = true;
+            if (result.quality() == pkg.restoration.questions.AnswerQuality.WRONG) {
+                AudioManager.playWrongAnswer();
+            } else {
+                AudioManager.playCorrectAnswer();
+            }
             double appliedDelta = TaskTimer.apply(timer, result.asTaskResult());
             generatorQuestionsAnswered++;
             ecoScore += (result.quality() == pkg.restoration.questions.AnswerQuality.BEST) ? 100
@@ -1687,6 +1713,11 @@ public class MovementApp extends GameApplication {
         }
         QuestionResult result = currentActiveQuestion.answer(choiceIndex);
         questionAnswerLocked = true;
+        if (result.quality() == pkg.restoration.questions.AnswerQuality.WRONG) {
+            AudioManager.playWrongAnswer();
+        } else {
+            AudioManager.playCorrectAnswer();
+        }
         double appliedDelta = TaskTimer.apply(timer, result.asTaskResult());
         testQuestionIndex++;
         questionFeedbackLabel.setText(result.quality() + ": " + result.feedback()
@@ -1997,7 +2028,7 @@ public class MovementApp extends GameApplication {
 
         if (selectedGameMode != GameMode.SORTING_TEST
                 && selectedGameMode != GameMode.SEQUENTIAL_DEMO) {
-            
+
             // 1. Overlapped bottle.png and trash.png visual container
             Pane iconOverlayPane = new Pane();
             iconOverlayPane.setPrefSize(44, 32);
@@ -2495,10 +2526,16 @@ public class MovementApp extends GameApplication {
                 : Color.web("#d7e77f"));
     }
 
-    public void onStop() {
+    private void stopNetworking() {
         if (netManager != null) {
             netManager.stop();
+            netManager = null;
         }
+    }
+
+    public void onStop() {
+        stopNetworking();
+        AudioManager.stopAll();
     }
 
     public static void main(String[] args) {
@@ -2773,6 +2810,7 @@ public class MovementApp extends GameApplication {
 
         public MainMenu(MenuType type) {
             super(type);
+            AudioManager.playMenuMusic();
 
             double w = FXGL.getAppWidth();
             double h = FXGL.getAppHeight();
@@ -2965,7 +3003,9 @@ public class MovementApp extends GameApplication {
 
                 if (btnJoinConnect != null) {
                     btnJoinConnect.setOnAction(e -> {
-                        String ip = (txtHostIp != null && txtHostIp.getText() != null) ? txtHostIp.getText().trim() : "";
+                        AudioManager.playButtonClick();
+                        String ip = (txtHostIp != null && txtHostIp.getText() != null) ? txtHostIp.getText().trim()
+                                : "";
                         if (!ip.isEmpty()) {
                             targetHostIp = ip;
                             selectedGameMode = GameMode.LAN_JOIN;
@@ -2977,7 +3017,10 @@ public class MovementApp extends GameApplication {
                     txtHostIp.setOnAction(e -> btnJoinConnect.fire());
                 }
                 if (btnJoinCancel != null) {
-                    btnJoinCancel.setOnAction(e -> showMultiCard.run());
+                    btnJoinCancel.setOnAction(e -> {
+                        AudioManager.playButtonClick();
+                        showMultiCard.run();
+                    });
                 }
 
                 // Settings button handlers
@@ -2986,16 +3029,24 @@ public class MovementApp extends GameApplication {
                 Button btnAboutBack = (Button) findFxmlNode(menuRoot, loader, "btnAboutBack");
 
                 if (btnToggleFullscreen != null) {
-                    btnToggleFullscreen.setOnAction(
-                            e -> FXGL.getPrimaryStage().setFullScreen(!FXGL.getPrimaryStage().isFullScreen()));
+                    btnToggleFullscreen.setOnAction(e -> {
+                        AudioManager.playButtonClick();
+                        FXGL.getPrimaryStage().setFullScreen(!FXGL.getPrimaryStage().isFullScreen());
+                    });
                 }
                 if (btnSettingsBack != null) {
-                    btnSettingsBack.setOnAction(e -> showMainCard.run());
+                    btnSettingsBack.setOnAction(e -> {
+                        AudioManager.playButtonClick();
+                        showMainCard.run();
+                    });
                 }
 
                 // About button handlers
                 if (btnAboutBack != null) {
-                    btnAboutBack.setOnAction(e -> showMainCard.run());
+                    btnAboutBack.setOnAction(e -> {
+                        AudioManager.playButtonClick();
+                        showMainCard.run();
+                    });
                 }
 
             } catch (IOException | RuntimeException ex) {
@@ -3105,6 +3156,7 @@ public class MovementApp extends GameApplication {
                 long now = System.currentTimeMillis();
                 if (now - lastClickTime[0] > 250) {
                     lastClickTime[0] = now;
+                    AudioManager.playButtonClick();
                     if (onClick != null) {
                         onClick.run();
                     }
@@ -3368,7 +3420,10 @@ public class MovementApp extends GameApplication {
                         PAUSE_BASE_Y + 1 * PAUSE_ITEM_SPACING,
                         MAINMENU_BASE_TILT,
                         HOVER_TILT_DELTA,
-                        () -> fireExitToMainMenu());
+                        () -> {
+                            AudioManager.playMenuMusic();
+                            fireExitToMainMenu();
+                        });
 
                 Node btnExitTablet = createTabletItem("/assets/ui/menu/exit.png", "Exit Game",
                         centerX,
@@ -3468,6 +3523,7 @@ public class MovementApp extends GameApplication {
                 long now = System.currentTimeMillis();
                 if (now - lastClickTime[0] > 250) {
                     lastClickTime[0] = now;
+                    AudioManager.playButtonClick();
                     if (onClick != null) {
                         onClick.run();
                     }
@@ -3517,9 +3573,19 @@ public class MovementApp extends GameApplication {
             Button btnMainMenu = styledButton("Main Menu");
             Button btnExit = styledButton("Exit Game");
 
-            btnResume.setOnAction(e -> fireResume());
-            btnMainMenu.setOnAction(e -> fireExitToMainMenu());
-            btnExit.setOnAction(e -> showPixelExitConfirmation());
+            btnResume.setOnAction(e -> {
+                AudioManager.playButtonClick();
+                fireResume();
+            });
+            btnMainMenu.setOnAction(e -> {
+                AudioManager.playButtonClick();
+                AudioManager.playMenuMusic();
+                fireExitToMainMenu();
+            });
+            btnExit.setOnAction(e -> {
+                AudioManager.playButtonClick();
+                showPixelExitConfirmation();
+            });
 
             VBox vbox = new VBox(10, title, btnResume, btnMainMenu, btnExit);
             vbox.setAlignment(Pos.CENTER);
@@ -3593,6 +3659,7 @@ public class MovementApp extends GameApplication {
             }
             if (btnRetry != null) {
                 btnRetry.setOnAction(e -> {
+                    AudioManager.playButtonClick();
                     if (endGameOverlayNode != null) {
                         FXGL.removeUINode(endGameOverlayNode);
                         endGameOverlayNode = null;
@@ -3603,11 +3670,13 @@ public class MovementApp extends GameApplication {
             }
             if (btnMainMenu != null) {
                 btnMainMenu.setOnAction(e -> {
+                    AudioManager.playButtonClick();
                     if (endGameOverlayNode != null) {
                         FXGL.removeUINode(endGameOverlayNode);
                         endGameOverlayNode = null;
                     }
                     gameEnded = false;
+                    AudioManager.playMenuMusic();
                     FXGL.getGameController().gotoMainMenu();
                 });
             }
