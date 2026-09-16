@@ -81,13 +81,6 @@ public class InfiniteMapManager {
     }
 
     private long transformGidByRatio(long originalGid, double ratio) {
-        // Fully restored: map barren/dead tiles upward to lush grass
-        if (ratio <= 0.0) {
-            if (originalGid == 17 || originalGid == 18) return 35;
-            if (originalGid == 19) return 36;
-            if (originalGid == 20) return 37;
-            return originalGid;
-        }
         long gid = originalGid;
         if (originalGid == 35 || originalGid == 36 || originalGid == 37 || originalGid == 38) {
             if (ratio <= 0.10) {
@@ -141,17 +134,11 @@ public class InfiniteMapManager {
     }
 
     public void startSpreadingRestoration(Runnable onComplete) {
-        // Mark the center chunk and all 8 neighbors as permanently restored
-        for (int dy = -ACTIVE_RADIUS; dy <= ACTIVE_RADIUS; dy++) {
-            for (int dx = -ACTIVE_RADIUS; dx <= ACTIVE_RADIUS; dx++) {
-                String neighborKey = (currentChunkX + dx) + "," + (currentChunkY + dy);
-                ChunkState neighborState = chunkStateCache.get(neighborKey);
-                if (neighborState == null) {
-                    neighborState = getOrCreateChunkState(currentChunkX + dx, currentChunkY + dy);
-                }
-                neighborState.isRestored = true;
-                neighborState.restorationRatio = 0.0;
-            }
+        String key = currentChunkX + "," + currentChunkY;
+        ChunkState state = chunkStateCache.get(key);
+        if (state != null) {
+            state.isRestored = true;
+            state.restorationRatio = 0.0;
         }
 
         int steps = 10;
@@ -525,41 +512,6 @@ public class InfiniteMapManager {
                 double dy = (lx + ly) * TILE_HALF_HEIGHT;
 
                 gc.drawImage(spritesheetImage, sx, sy, 32, 32, dx, dy, 32, 32);
-            }
-        }
-
-        // Overlay trees/bushes on restored chunks for a lush forest look
-        if (state.isRestored) {
-            long treeSeed = worldSeed ^ (state.chunkX * 48271L ^ state.chunkY * 31337L);
-            Random treeRng = new Random(treeSeed);
-            // Vegetation decoration GIDs: bush (39), flowering bush (40), dense hedge (44)
-            long[] treeGids = {39, 40, 44};
-
-            for (int depth = 0; depth <= (CHUNK_SIZE - 1) * 2; depth++) {
-                for (int lx = 0; lx < CHUNK_SIZE; lx++) {
-                    int ly = depth - lx;
-                    if (ly < 0 || ly >= CHUNK_SIZE) continue;
-
-                    // Skip central walkway area and edges to keep paths clear
-                    if (lx >= 6 && lx <= 14 && ly >= 6 && ly <= 14) continue;
-                    if (lx <= 1 || lx >= CHUNK_SIZE - 2 || ly <= 1 || ly >= CHUNK_SIZE - 2) continue;
-
-                    // Skip wall tiles
-                    int i = ly * CHUNK_SIZE + lx;
-                    if (state.template.walls[i]) continue;
-
-                    // ~18% chance to place a tree decoration
-                    if (treeRng.nextDouble() < 0.18) {
-                        long treeGid = treeGids[treeRng.nextInt(treeGids.length)];
-                        int treeTileIdx = (int) (treeGid - 1);
-                        int tsx = (treeTileIdx % 11) * 32;
-                        int tsy = (treeTileIdx / 11) * 32;
-                        double tdx = (lx - ly) * TILE_HALF_WIDTH + (CHUNK_SIZE * TILE_HALF_WIDTH) - 16.0;
-                        double tdy = (lx + ly) * TILE_HALF_HEIGHT;
-
-                        gc.drawImage(spritesheetImage, tsx, tsy, 32, 32, tdx, tdy, 32, 32);
-                    }
-                }
             }
         }
     }
