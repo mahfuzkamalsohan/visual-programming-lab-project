@@ -1,7 +1,12 @@
-/* Green Pixel Art Theme CSS */
+/* Green Pixel Art Theme CSS - Press Start 2P Font */
+
+@font-face {
+    font-family: "Press Start 2P";
+    src: url("../fonts/PressStart2P-Regular.ttf");
+}
 
 .root {
-    -fx-font-family: "Monospaced", "Courier New", "Verdana", monospace;
+    -fx-font-family: "Press Start 2P", "Monospaced", "Courier New", monospace;
 }
 
 /* Pixel Card / Panel Container */
@@ -13,7 +18,7 @@
     -fx-background-radius: 0px;
     -fx-border-radius: 0px;
     -fx-padding: 14px;
-    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.85), 8, 0, 4, 4);
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.85), 8, 0, 4, 4);
 }
 
 .pixel-panel-header {
@@ -30,9 +35,9 @@
     -fx-border-width: 3px;
     -fx-border-style: solid;
     -fx-text-fill: #f8f9fa;
-    -fx-font-family: "Monospaced", "Courier New", monospace;
+    -fx-font-family: "Press Start 2P", "Monospaced", monospace;
     -fx-font-weight: bold;
-    -fx-font-size: 13px;
+    -fx-font-size: 11px;
     -fx-background-radius: 0px;
     -fx-border-radius: 0px;
     -fx-padding: 8px 16px;
@@ -54,46 +59,46 @@
 /* Retro Titles & Labels - Eco Green Theme */
 .pixel-title {
     -fx-text-fill: #39ff14;
-    -fx-font-family: "Monospaced", "Courier New", monospace;
+    -fx-font-family: "Press Start 2P", "Monospaced", monospace;
     -fx-font-weight: bold;
-    -fx-font-size: 42px;
+    -fx-font-size: 32px;
     -fx-effect: dropshadow(one-pass-box, #000000, 0, 0, 3, 3);
 }
 
 .pixel-subtitle {
     -fx-text-fill: #d7e77f;
-    -fx-font-family: "Monospaced", "Courier New", monospace;
+    -fx-font-family: "Press Start 2P", "Monospaced", monospace;
     -fx-font-weight: bold;
-    -fx-font-size: 14px;
+    -fx-font-size: 12px;
     -fx-effect: dropshadow(one-pass-box, #000000, 0, 0, 2, 2);
 }
 
 .pixel-label-green {
     -fx-text-fill: #39ff14;
-    -fx-font-family: "Monospaced", "Courier New", monospace;
+    -fx-font-family: "Press Start 2P", "Monospaced", monospace;
     -fx-font-weight: bold;
-    -fx-font-size: 12px;
+    -fx-font-size: 10px;
 }
 
 .pixel-label-yellow {
     -fx-text-fill: #d7e77f;
-    -fx-font-family: "Monospaced", "Courier New", monospace;
+    -fx-font-family: "Press Start 2P", "Monospaced", monospace;
     -fx-font-weight: bold;
-    -fx-font-size: 12px;
+    -fx-font-size: 10px;
 }
 
 .pixel-label-white {
     -fx-text-fill: #ffffff;
-    -fx-font-family: "Monospaced", "Courier New", monospace;
+    -fx-font-family: "Press Start 2P", "Monospaced", monospace;
     -fx-font-weight: bold;
-    -fx-font-size: 12px;
+    -fx-font-size: 20px;
 }
 
 .pixel-question-text {
     -fx-text-fill: #f8f9fa;
-    -fx-font-family: "Monospaced", "Courier New", monospace;
+    -fx-font-family: "Press Start 2P", "Monospaced", monospace;
     -fx-font-weight: bold;
-    -fx-font-size: 13px;
+    -fx-font-size: 11px;
 }
 
 /* HUD Banner Styling - Green Theme */
@@ -114,31 +119,31 @@
     -fx-border-style: solid;
     -fx-background-radius: 0px;
     -fx-border-radius: 0px;
-    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.88), 12, 0, 4, 4);
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.88), 12, 0, 4, 4);
 }
 
-.dialog-pane > .header-panel {
+.dialog-pane>.header-panel {
     -fx-background-color: #1a3020;
     -fx-border-color: #c89658;
     -fx-border-width: 0 0 2px 0;
 }
 
-.dialog-pane > .header-panel > .label {
+.dialog-pane>.header-panel>.label {
     -fx-text-fill: #ffd700;
-    -fx-font-family: "Monospaced", "Courier New", monospace;
-    -fx-font-size: 16px;
+    -fx-font-family: "Press Start 2P", "Monospaced", monospace;
+    -fx-font-size: 13px;
     -fx-font-weight: bold;
 }
 
-.dialog-pane > .content {
+.dialog-pane>.content {
     -fx-background-color: #122016;
     -fx-padding: 16px;
 }
 
 .dialog-pane .label {
     -fx-text-fill: #d7e77f;
-    -fx-font-family: "Monospaced", "Courier New", monospace;
-    -fx-font-size: 13px;
+    -fx-font-family: "Press Start 2P", "Monospaced", monospace;
+    -fx-font-size: 11px;
     -fx-font-weight: bold;
 }
 
@@ -147,8 +152,8 @@
     -fx-border-color: #c89658 #39ff14 #39ff14 #c89658;
     -fx-border-width: 2px;
     -fx-text-fill: #39ff14;
-    -fx-font-family: "Monospaced", "Courier New", monospace;
-    -fx-font-size: 14px;
+    -fx-font-family: "Press Start 2P", "Monospaced", monospace;
+    -fx-font-size: 11px;
     -fx-font-weight: bold;
     -fx-background-radius: 0px;
     -fx-border-radius: 0px;
@@ -161,9 +166,9 @@
     -fx-border-color: #c89658 #0c4d18 #0c4d18 #c89658;
     -fx-border-width: 3px;
     -fx-text-fill: #f8f9fa;
-    -fx-font-family: "Monospaced", "Courier New", monospace;
+    -fx-font-family: "Press Start 2P", "Monospaced", monospace;
     -fx-font-weight: bold;
-    -fx-font-size: 12px;
+    -fx-font-size: 10px;
     -fx-background-radius: 0px;
     -fx-border-radius: 0px;
     -fx-padding: 8px 16px;

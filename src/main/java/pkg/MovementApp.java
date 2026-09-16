@@ -58,6 +58,7 @@ import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.util.Duration;
 import pkg.audio.AudioManager;
+import pkg.ui.CutsceneOverlay;
 import pkg.net.GameStatePacket;
 import pkg.net.InputPacket;
 import pkg.net.NetworkManager;
@@ -163,6 +164,21 @@ public class MovementApp extends GameApplication {
     private EnvironmentalQuestion currentActiveQuestion;
     private boolean gameEnded;
     private Node endGameOverlayNode;
+    private boolean isCutsceneActive = false;
+    private CutsceneOverlay cutsceneOverlayNode;
+    private final List<Node> hudNodes = new ArrayList<>();
+
+    private void addHudNode(Node node) {
+        if (node == null) return;
+        hudNodes.add(node);
+        if (isCutsceneActive) {
+            if (!node.visibleProperty().isBound()) {
+                node.setVisible(false);
+            }
+        } else {
+            FXGL.addUINode(node);
+        }
+    }
 
     private static final double SORT_ZONE_X = 500;
     private static final double SORT_ZONE_Y = 105;
@@ -307,6 +323,10 @@ public class MovementApp extends GameApplication {
     }
 
     private void handleMovement(int playerNum, Direction dir, boolean pressed) {
+        if (isCutsceneActive) {
+            return;
+        }
+
         if (selectedGameMode == GameMode.LAN_JOIN) {
             // Client inputs control Player 2 and send packet to Host
             switch (dir) {
@@ -382,6 +402,30 @@ public class MovementApp extends GameApplication {
             FXGL.removeUINode(endGameOverlayNode);
             endGameOverlayNode = null;
         }
+
+        if (cutsceneOverlayNode != null) {
+            FXGL.removeUINode(cutsceneOverlayNode);
+            cutsceneOverlayNode = null;
+        }
+
+        hudNodes.clear();
+        isCutsceneActive = true;
+        cutsceneOverlayNode = new CutsceneOverlay(FXGL.getAppWidth(), FXGL.getAppHeight(), () -> {
+            if (cutsceneOverlayNode != null) {
+                FXGL.removeUINode(cutsceneOverlayNode);
+                cutsceneOverlayNode = null;
+            }
+            isCutsceneActive = false;
+            for (Node hudNode : hudNodes) {
+                if (hudNode != null) {
+                    if (!hudNode.visibleProperty().isBound()) {
+                        hudNode.setVisible(true);
+                    }
+                    FXGL.addUINode(hudNode);
+                }
+            }
+        });
+        FXGL.addUINode(cutsceneOverlayNode);
 
         if (infiniteMapManager != null) {
             infiniteMapManager.clearAll();
@@ -1023,6 +1067,9 @@ public class MovementApp extends GameApplication {
     }
 
     private void showTemporaryNotice(String msg) {
+        if (isCutsceneActive) {
+            return;
+        }
         if (currentNoticeNode != null) {
             FXGL.removeUINode(currentNoticeNode);
             currentNoticeNode = null;
@@ -1235,6 +1282,10 @@ public class MovementApp extends GameApplication {
     }
 
     private void tryCollectTrashP1() {
+        if (isCutsceneActive) {
+            return;
+        }
+
         if (isInfiniteGameMode()) {
             if (generatorStage == GeneratorStage.TRASH_COLLECTION) {
                 for (Entity trash : List.copyOf(generatorTrashEntities)) {
@@ -1299,6 +1350,10 @@ public class MovementApp extends GameApplication {
     }
 
     private void tryCollectTrashP2() {
+        if (isCutsceneActive) {
+            return;
+        }
+
         if (isInfiniteCoopMode()) {
             if (generatorStage == GeneratorStage.TRASH_COLLECTION) {
                 for (Entity trash : List.copyOf(generatorTrashEntities)) {
@@ -2114,10 +2169,10 @@ public class MovementApp extends GameApplication {
             topBarRightCard.setTranslateX(FXGL.getAppWidth() - 326);
             topBarRightCard.setTranslateY(14);
             topBarRightCard.setMouseTransparent(true);
-            FXGL.addUINode(topBarRightCard);
+            addHudNode(topBarRightCard);
         }
 
-        FXGL.addUINode(topBarLeftCard);
+        addHudNode(topBarLeftCard);
 
         if (selectedGameMode != GameMode.SORTING_TEST
                 && selectedGameMode != GameMode.SEQUENTIAL_DEMO) {
@@ -2178,7 +2233,7 @@ public class MovementApp extends GameApplication {
             trashHUDBox.setTranslateY(FXGL.getAppHeight() - 62);
             trashHUDBox.setMouseTransparent(true);
 
-            FXGL.addUINode(trashHUDBox);
+            addHudNode(trashHUDBox);
             updateTrashCounter();
         }
 
@@ -2219,7 +2274,7 @@ public class MovementApp extends GameApplication {
         promptCenterer.visibleProperty().bind(interactPromptText.visibleProperty());
 
         interactPromptText.setVisible(false);
-        FXGL.addUINode(promptCenterer);
+        addHudNode(promptCenterer);
 
         if (selectedGameMode == GameMode.SORTING_TEST) {
             sortingStatusText = new Text();
@@ -2341,7 +2396,7 @@ public class MovementApp extends GameApplication {
 
     @Override
     protected void onUpdate(double tpf) {
-        if (timer == null)
+        if (isCutsceneActive || timer == null)
             return;
 
         if (selectedGameMode == GameMode.LOCAL_COOP_SPLITSCREEN
