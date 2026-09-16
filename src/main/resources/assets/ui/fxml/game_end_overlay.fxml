@@ -8,13 +8,14 @@
 
 <StackPane stylesheets="@../css/pixel_style.css" prefWidth="1280.0" prefHeight="720.0" xmlns="http://javafx.com/fxml/1" xmlns:fx="http://javafx.com/fxml/1">
     <children>
-        <VBox alignment="CENTER" spacing="12.0" styleClass="pixel-panel" maxWidth="440.0" maxHeight="340.0">
+        <VBox alignment="CENTER" spacing="12.0" styleClass="pixel-panel" maxWidth="480.0" maxHeight="380.0">
             <padding>
                 <Insets top="24.0" right="24.0" bottom="24.0" left="24.0" />
             </padding>
             <children>
                 <Label fx:id="endTitleLabel" text="WORLD RESTORED" styleClass="pixel-title" style="-fx-font-size: 28px;" />
                 <Label fx:id="endSubtitleLabel" text="All 3 stages completed successfully!" styleClass="pixel-subtitle" wrapText="true" alignment="CENTER" />
+                <Label fx:id="endScoreLabel" text="Earned Eco-Score: 0" styleClass="pixel-subtitle" style="-fx-text-fill: #ffd700; -fx-font-size: 15px; -fx-font-weight: bold;" alignment="CENTER" />
                 <VBox spacing="10.0" alignment="CENTER">
                     <VBox.margin>
                         <Insets top="14.0" />

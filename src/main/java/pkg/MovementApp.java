@@ -421,7 +421,9 @@ public class MovementApp extends GameApplication {
                     if (!hudNode.visibleProperty().isBound()) {
                         hudNode.setVisible(true);
                     }
-                    FXGL.addUINode(hudNode);
+                    if (hudNode.getParent() == null) {
+                        FXGL.addUINode(hudNode);
+                    }
                 }
             }
         });
@@ -3877,6 +3879,7 @@ public class MovementApp extends GameApplication {
             endGameOverlayNode = loader.load();
             Label titleLabel = (Label) endGameOverlayNode.lookup("#endTitleLabel");
             Label subtitleLabel = (Label) endGameOverlayNode.lookup("#endSubtitleLabel");
+            Label scoreLabel = (Label) endGameOverlayNode.lookup("#endScoreLabel");
             Button btnRetry = (Button) endGameOverlayNode.lookup("#btnRetry");
             Button btnMainMenu = (Button) endGameOverlayNode.lookup("#btnMainMenu");
 
@@ -3892,6 +3895,9 @@ public class MovementApp extends GameApplication {
             }
             if (subtitleLabel != null) {
                 subtitleLabel.setText(subtitleText);
+            }
+            if (scoreLabel != null) {
+                scoreLabel.setText("⭐ Earned Eco-Score: " + ecoScore);
             }
             if (btnRetry != null) {
                 btnRetry.setOnAction(e -> {
