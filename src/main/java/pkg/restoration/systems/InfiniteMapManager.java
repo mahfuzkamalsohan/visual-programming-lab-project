@@ -285,11 +285,13 @@ public class InfiniteMapManager {
         final Entity mapEntity;
         final Canvas canvas;
         final ChunkState state;
+        final List<Entity> waterWalls;
 
-        LoadedChunk(Entity mapEntity, Canvas canvas, ChunkState state) {
+        LoadedChunk(Entity mapEntity, Canvas canvas, ChunkState state, List<Entity> waterWalls) {
             this.mapEntity = mapEntity;
             this.canvas = canvas;
             this.state = state;
+            this.waterWalls = waterWalls;
         }
     }
 
@@ -357,10 +359,6 @@ public class InfiniteMapManager {
                                 // Impassable water or deep hole obstacle tiles
                                 if (gid == 111 || gid == 112 || gid == 113 || gid == 118) {
                                     walls[dstIdx] = true;
-                                }
-                                // Ensure central roaming and spawn area is completely clear
-                                if (lx >= 6 && lx <= 14 && ly >= 6 && ly <= 14) {
-                                    walls[dstIdx] = false;
                                 }
 
                                 // Candidate positions for trash spawn in open walking areas
@@ -480,6 +478,15 @@ public class InfiniteMapManager {
         return state;
     }
 
+    /** Returns whether a local tile can be occupied by players and spawned items. */
+    public boolean isWalkableTile(int chunkX, int chunkY, int localX, int localY) {
+        if (localX < 0 || localX >= CHUNK_SIZE || localY < 0 || localY >= CHUNK_SIZE) {
+            return false;
+        }
+        ChunkState state = getOrCreateChunkState(chunkX, chunkY);
+        return !state.template.walls[localY * CHUNK_SIZE + localX];
+    }
+
     private void loadChunk(int chunkX, int chunkY) {
         String key = chunkX + "," + chunkY;
         ChunkState state = getOrCreateChunkState(chunkX, chunkY);
@@ -500,7 +507,30 @@ public class InfiniteMapManager {
                 .zIndex(zIndex)
                 .buildAndAttach();
 
-        LoadedChunk loadedChunk = new LoadedChunk(mapEntity, canvas, state);
+        List<Entity> waterWalls = new ArrayList<>();
+        for (int ly = 0; ly < CHUNK_SIZE; ly++) {
+            for (int lx = 0; lx < CHUNK_SIZE; lx++) {
+                if (!state.template.walls[ly * CHUNK_SIZE + lx]) {
+                    continue;
+                }
+
+                // Keep the collision inset from the diamond edges so adjacent land tiles
+                // remain smoothly traversable instead of producing phantom barriers.
+                double wallX = (chunkX - chunkY) * (CHUNK_SIZE * TILE_HALF_WIDTH)
+                        + (lx - ly) * TILE_HALF_WIDTH - 6;
+                double wallY = (chunkX + chunkY) * (CHUNK_SIZE * TILE_HALF_HEIGHT)
+                        + (lx + ly) * TILE_HALF_HEIGHT + 6;
+                Entity waterWall = FXGL.entityBuilder()
+                        .at(wallX, wallY)
+                        .type(EntityType.WALL)
+                        .bbox(new HitBox(BoundingShape.box(12, 6)))
+                        .with(new CollidableComponent(true))
+                        .buildAndAttach();
+                waterWalls.add(waterWall);
+            }
+        }
+
+        LoadedChunk loadedChunk = new LoadedChunk(mapEntity, canvas, state, waterWalls);
         loadedActiveChunks.put(key, loadedChunk);
     }
 
@@ -541,6 +571,11 @@ public class InfiniteMapManager {
         if (loaded != null) {
             if (loaded.mapEntity != null && loaded.mapEntity.isActive()) {
                 loaded.mapEntity.removeFromWorld();
+            }
+            for (Entity waterWall : loaded.waterWalls) {
+                if (waterWall != null && waterWall.isActive()) {
+                    waterWall.removeFromWorld();
+                }
             }
             for (TrashItemState trash : loaded.state.trashItems) {
                 if (trash.entity != null && trash.entity.isActive()) {

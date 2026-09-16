@@ -949,6 +949,33 @@ public class MovementApp extends GameApplication {
         return positions;
     }
 
+    private List<int[]> randomWalkableGeneratorTilePositions(int count, int chunkX, int chunkY,
+            int minTile, int maxTileExclusive) {
+        List<int[]> candidates = new ArrayList<>();
+        for (int x = minTile; x < maxTileExclusive; x++) {
+            for (int y = minTile; y < maxTileExclusive; y++) {
+                if (infiniteMapManager != null && infiniteMapManager.isWalkableTile(chunkX, chunkY, x, y)) {
+                    candidates.add(new int[] { x, y });
+                }
+            }
+        }
+        Collections.shuffle(candidates);
+
+        List<int[]> positions = new ArrayList<>(count);
+        for (int[] candidate : candidates) {
+            boolean isWellSpaced = positions.stream()
+                    .allMatch(existing -> Math.abs(existing[0] - candidate[0])
+                            + Math.abs(existing[1] - candidate[1]) >= 3);
+            if (isWellSpaced) {
+                positions.add(candidate);
+                if (positions.size() == count) {
+                    return positions;
+                }
+            }
+        }
+        throw new IllegalStateException("Not enough walkable, well-spaced tiles for spawned items");
+    }
+
     private void setupGeneratorStage1(int chunkX, int chunkY) {
         clearGeneratorStageEntities();
         if (infiniteMapManager != null) {
@@ -960,7 +987,8 @@ public class MovementApp extends GameApplication {
         double originX = (chunkX - chunkY) * 320.0;
         double originY = (chunkX + chunkY) * 160.0;
 
-        List<int[]> tilePositions = randomTilePositions(GENERATOR_TARGET_TRASH, 4, 17);
+        List<int[]> tilePositions = randomWalkableGeneratorTilePositions(
+                GENERATOR_TARGET_TRASH, chunkX, chunkY, 3, 18);
         for (int i = 0; i < tilePositions.size(); i++) {
             int[] pos = tilePositions.get(i);
             int lx = pos[0];
@@ -1068,7 +1096,8 @@ public class MovementApp extends GameApplication {
         }
         sortingTask = new SortingTask(expectedBins, 15.0, 7.0, 8.0);
 
-        List<int[]> wasteTilePositions = randomTilePositions(waste.size(), 3, 18);
+        List<int[]> wasteTilePositions = randomWalkableGeneratorTilePositions(
+                waste.size(), chunkX, chunkY, 3, 18);
         for (int i = 0; i < waste.size(); i++) {
             WasteItem item = waste.get(i);
             int[] position = wasteTilePositions.get(i);
