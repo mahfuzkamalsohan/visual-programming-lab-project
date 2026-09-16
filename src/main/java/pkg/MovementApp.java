@@ -3225,6 +3225,8 @@ public class MovementApp extends GameApplication {
                 }
 
             } catch (IOException | RuntimeException ex) {
+                System.err.println("[MainMenu] FXML load failed: " + ex.getMessage());
+                ex.printStackTrace();
                 menuRoot = createFallbackMenu();
             }
 

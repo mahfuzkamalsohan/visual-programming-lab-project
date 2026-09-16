@@ -52,6 +52,7 @@ public final class AudioManager {
     private static final Map<String, AudioClip> sfxCache = new ConcurrentHashMap<>();
 
     private static MediaPlayer currentMusicPlayer;
+    private static AudioClip currentMusicClip;
     private static String currentMusicPath = "";
     private static String pendingMusicPath = "";
     private static double musicVolume = 0.50; // 50% default
@@ -114,6 +115,12 @@ public final class AudioManager {
                         } catch (Throwable ignored) {}
                         currentMusicPlayer = null;
                     }
+                    if (currentMusicClip != null) {
+                        try {
+                            currentMusicClip.stop();
+                        } catch (Throwable ignored) {}
+                        currentMusicClip = null;
+                    }
 
                     if (!resourcePath.equals(pendingMusicPath)) {
                         return;
@@ -129,8 +136,21 @@ public final class AudioManager {
                         currentMusicPlayer = player;
                         currentMusicPath = resourcePath;
                         pendingMusicPath = "";
+                        return;
                     } catch (Throwable ex) {
-                        System.err.println("[AudioManager] Failed to play music " + resourcePath + ": " + ex.getMessage());
+                        System.err.println("[AudioManager] MediaPlayer failed for " + resourcePath + ": " + ex.getMessage() + ". Attempting AudioClip fallback...");
+                    }
+
+                    try {
+                        AudioClip clip = new AudioClip(resource.toExternalForm());
+                        clip.setCycleCount(AudioClip.INDEFINITE);
+                        clip.play(isMuted ? 0.0 : musicVolume);
+
+                        currentMusicClip = clip;
+                        currentMusicPath = resourcePath;
+                        pendingMusicPath = "";
+                    } catch (Throwable clipEx) {
+                        System.err.println("[AudioManager] Failed to play music " + resourcePath + ": " + clipEx.getMessage());
                         pendingMusicPath = "";
                     }
                 });
@@ -151,8 +171,14 @@ public final class AudioManager {
                         currentMusicPlayer.dispose();
                     } catch (Throwable ignored) {}
                     currentMusicPlayer = null;
-                    currentMusicPath = "";
                 }
+                if (currentMusicClip != null) {
+                    try {
+                        currentMusicClip.stop();
+                    } catch (Throwable ignored) {}
+                    currentMusicClip = null;
+                }
+                currentMusicPath = "";
             });
         });
     }
@@ -230,8 +256,17 @@ public final class AudioManager {
 
     public static void setMuted(boolean mute) {
         isMuted = mute;
-        if (currentMusicPlayer != null) {
-            Platform.runLater(() -> currentMusicPlayer.setVolume(isMuted ? 0.0 : musicVolume));
+        if (currentMusicPlayer != null || currentMusicClip != null) {
+            try {
+                Platform.runLater(() -> {
+                    if (currentMusicPlayer != null) {
+                        currentMusicPlayer.setVolume(isMuted ? 0.0 : musicVolume);
+                    }
+                    if (currentMusicClip != null) {
+                        currentMusicClip.setVolume(isMuted ? 0.0 : musicVolume);
+                    }
+                });
+            } catch (Throwable ignored) {}
         }
     }
 
@@ -241,8 +276,17 @@ public final class AudioManager {
 
     public static void setMusicVolume(double volume) {
         musicVolume = Math.max(0.0, Math.min(1.0, volume));
-        if (currentMusicPlayer != null && !isMuted) {
-            Platform.runLater(() -> currentMusicPlayer.setVolume(musicVolume));
+        if (!isMuted && (currentMusicPlayer != null || currentMusicClip != null)) {
+            try {
+                Platform.runLater(() -> {
+                    if (currentMusicPlayer != null) {
+                        currentMusicPlayer.setVolume(musicVolume);
+                    }
+                    if (currentMusicClip != null) {
+                        currentMusicClip.setVolume(musicVolume);
+                    }
+                });
+            } catch (Throwable ignored) {}
         }
     }
 

@@ -3,6 +3,8 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Pane?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
@@ -30,17 +32,17 @@
                     style="-fx-font-size: 24px; -fx-text-fill: #ffd700;" />
                 <Label text="★ ENTER HOST IP ADDRESS ★" styleClass="pixel-subtitle"
                     style="-fx-font-size: 12px; -fx-text-fill: #d7e77f;" />
-                <javafx.scene.control.TextField id="txtHostIp" fx:id="txtHostIp" text="127.0.0.1"
+                <TextField id="txtHostIp" fx:id="txtHostIp" text="127.0.0.1"
                     prefWidth="320.0" styleClass="pixel-button"
                     style="-fx-alignment: CENTER; -fx-font-size: 16px; -fx-text-fill: #39ff14;" />
-                <javafx.scene.layout.HBox spacing="16.0" alignment="CENTER">
+                <HBox spacing="16.0" alignment="CENTER">
                     <children>
                         <Button id="btnJoinConnect" fx:id="btnJoinConnect" text="Connect"
                             prefWidth="140.0" prefHeight="40.0" styleClass="pixel-button" />
                         <Button id="btnJoinCancel" fx:id="btnJoinCancel" text="Cancel"
                             prefWidth="140.0" prefHeight="40.0" styleClass="pixel-button" />
                     </children>
-                </javafx.scene.layout.HBox>
+                </HBox>
             </children>
         </VBox>
 
