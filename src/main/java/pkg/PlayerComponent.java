@@ -33,6 +33,9 @@ public class PlayerComponent extends Component {
     private Direction currentDirection = Direction.NORTH;
     private int playerIndex = 1;
 
+    private double footstepTimer = 0.35;
+    private static final double FOOTSTEP_INTERVAL = 0.35;
+
     public PlayerComponent() {
         this(1);
     }
@@ -152,7 +155,14 @@ public class PlayerComponent extends Component {
             if (texture.getAnimationChannel() != walk) {
                 texture.loopAnimationChannel(walk);
             }
+
+            footstepTimer += tpf;
+            if (footstepTimer >= FOOTSTEP_INTERVAL) {
+                footstepTimer = 0.0;
+                pkg.audio.AudioManager.playFootstep();
+            }
         } else {
+            footstepTimer = FOOTSTEP_INTERVAL;
             AnimationChannel idle = idleAnimations.get(currentDirection);
             if (texture.getAnimationChannel() != idle) {
                 texture.loopAnimationChannel(idle);

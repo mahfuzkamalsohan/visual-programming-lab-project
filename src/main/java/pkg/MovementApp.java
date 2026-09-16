@@ -1,5 +1,7 @@
 package pkg;
 
+import pkg.audio.AudioManager;
+
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -189,6 +191,12 @@ public class MovementApp extends GameApplication {
     private double activeSortZoneHeight = SORT_ZONE_HEIGHT;
 
     @Override
+    protected void onPreInit() {
+        AudioManager.init();
+        AudioManager.playMenuMusic();
+    }
+
+    @Override
     protected void initSettings(GameSettings settings) {
         settings.setWidth(1280);
         settings.setHeight(720);
@@ -343,6 +351,7 @@ public class MovementApp extends GameApplication {
         playerComponent = null;
         playerComponent2 = null;
 
+        AudioManager.playGameMusic();
         FXGL.getGameScene().setBackgroundColor(Color.web("#17231e"));
         timer = new RestorationTimer(INITIAL_TIME, MAX_TIME);
         gameEnded = false;
@@ -1175,6 +1184,7 @@ public class MovementApp extends GameApplication {
                         generatorTrashCollected++;
                         collectedTrash++;
                         ecoScore += 50;
+                        AudioManager.playTrashPickup();
                         if (infiniteMapManager != null) {
                             infiniteMapManager.onBottleCollected(generatorTrashCollected, GENERATOR_TARGET_TRASH);
                         }
@@ -1238,6 +1248,7 @@ public class MovementApp extends GameApplication {
                         generatorTrashEntities.remove(trash);
                         generatorTrashCollected++;
                         collectedTrash++;
+                        AudioManager.playTrashPickup();
                         if (infiniteMapManager != null) {
                             infiniteMapManager.onBottleCollected(generatorTrashCollected, GENERATOR_TARGET_TRASH);
                         }
@@ -1305,6 +1316,7 @@ public class MovementApp extends GameApplication {
                 TaskTimer.apply(timer, result);
                 entry.getKey().removeFromWorld();
                 demoCollectionItems.remove(entry.getKey());
+                AudioManager.playTrashPickup();
                 if (result.completedNow()) {
                     activateDemoQuestionStage();
                 }
@@ -1323,6 +1335,7 @@ public class MovementApp extends GameApplication {
                 trash.removeFromWorld();
                 trashMask &= ~(1 << idx);
                 collectedTrash++;
+                AudioManager.playTrashPickup();
                 if (timer != null) {
                     timer.applyDelta(10.0);
                 }
@@ -1580,6 +1593,11 @@ public class MovementApp extends GameApplication {
                 return;
             QuestionResult result = currentActiveQuestion.answer(choiceIndex);
             questionAnswerLocked = true;
+            if (result.quality() == pkg.restoration.questions.AnswerQuality.WRONG) {
+                AudioManager.playWrongAnswer();
+            } else {
+                AudioManager.playCorrectAnswer();
+            }
             double appliedDelta = TaskTimer.apply(timer, result.asTaskResult());
             generatorQuestionsAnswered++;
             ecoScore += (result.quality() == pkg.restoration.questions.AnswerQuality.BEST) ? 100
@@ -1630,6 +1648,11 @@ public class MovementApp extends GameApplication {
         }
         QuestionResult result = currentActiveQuestion.answer(choiceIndex);
         questionAnswerLocked = true;
+        if (result.quality() == pkg.restoration.questions.AnswerQuality.WRONG) {
+            AudioManager.playWrongAnswer();
+        } else {
+            AudioManager.playCorrectAnswer();
+        }
         double appliedDelta = TaskTimer.apply(timer, result.asTaskResult());
         testQuestionIndex++;
         questionFeedbackLabel.setText(result.quality() + ": " + result.feedback()
@@ -1874,7 +1897,7 @@ public class MovementApp extends GameApplication {
 
         if (selectedGameMode != GameMode.SORTING_TEST
                 && selectedGameMode != GameMode.SEQUENTIAL_DEMO) {
-            
+
             // 1. Overlapped bottle.png and trash.png visual container
             Pane iconOverlayPane = new Pane();
             iconOverlayPane.setPrefSize(44, 32);
@@ -2375,7 +2398,10 @@ public class MovementApp extends GameApplication {
                 : Color.web("#d7e77f"));
     }
 
-    public void onStop() {
+    protected void onStop() {
+        stopNetworking();
+        AudioManager.stopAll();
+
         if (netManager != null) {
             netManager.stop();
         }
@@ -2681,6 +2707,7 @@ public class MovementApp extends GameApplication {
 
         public MainMenu(MenuType type) {
             super(type);
+            AudioManager.playMenuMusic();
 
             double w = FXGL.getAppWidth();
             double h = FXGL.getAppHeight();
@@ -2863,7 +2890,9 @@ public class MovementApp extends GameApplication {
 
                 if (btnJoinConnect != null) {
                     btnJoinConnect.setOnAction(e -> {
-                        String ip = (txtHostIp != null && txtHostIp.getText() != null) ? txtHostIp.getText().trim() : "";
+                        AudioManager.playButtonClick();
+                        String ip = (txtHostIp != null && txtHostIp.getText() != null) ? txtHostIp.getText().trim()
+                                : "";
                         if (!ip.isEmpty()) {
                             targetHostIp = ip;
                             selectedGameMode = GameMode.LAN_JOIN;
@@ -2875,7 +2904,10 @@ public class MovementApp extends GameApplication {
                     txtHostIp.setOnAction(e -> btnJoinConnect.fire());
                 }
                 if (btnJoinCancel != null) {
-                    btnJoinCancel.setOnAction(e -> showMultiCard.run());
+                    btnJoinCancel.setOnAction(e -> {
+                        AudioManager.playButtonClick();
+                        showMultiCard.run();
+                    });
                 }
 
                 // Settings button handlers
@@ -2884,16 +2916,24 @@ public class MovementApp extends GameApplication {
                 Button btnAboutBack = (Button) menuRoot.lookup("#btnAboutBack");
 
                 if (btnToggleFullscreen != null) {
-                    btnToggleFullscreen.setOnAction(
-                            e -> FXGL.getPrimaryStage().setFullScreen(!FXGL.getPrimaryStage().isFullScreen()));
+                    btnToggleFullscreen.setOnAction(e -> {
+                        AudioManager.playButtonClick();
+                        FXGL.getPrimaryStage().setFullScreen(!FXGL.getPrimaryStage().isFullScreen());
+                    });
                 }
                 if (btnSettingsBack != null) {
-                    btnSettingsBack.setOnAction(e -> showMainCard.run());
+                    btnSettingsBack.setOnAction(e -> {
+                        AudioManager.playButtonClick();
+                        showMainCard.run();
+                    });
                 }
 
                 // About button handlers
                 if (btnAboutBack != null) {
-                    btnAboutBack.setOnAction(e -> showMainCard.run());
+                    btnAboutBack.setOnAction(e -> {
+                        AudioManager.playButtonClick();
+                        showMainCard.run();
+                    });
                 }
 
             } catch (Exception ex) {
@@ -2982,7 +3022,10 @@ public class MovementApp extends GameApplication {
             });
 
             if (onClick != null) {
-                container.setOnMouseClicked(e -> onClick.run());
+                container.setOnMouseClicked(e -> {
+                    AudioManager.playButtonClick();
+                    onClick.run();
+                });
             }
 
             return container;
@@ -3204,7 +3247,10 @@ public class MovementApp extends GameApplication {
                         PAUSE_BASE_Y + 1 * PAUSE_ITEM_SPACING,
                         MAINMENU_BASE_TILT,
                         HOVER_TILT_DELTA,
-                        () -> fireExitToMainMenu());
+                        () -> {
+                            AudioManager.playMenuMusic();
+                            fireExitToMainMenu();
+                        });
 
                 Node btnExitTablet = createTabletItem("/assets/ui/menu/exit.png", "Exit Game",
                         centerX,
@@ -3301,9 +3347,19 @@ public class MovementApp extends GameApplication {
             Button btnMainMenu = styledButton("Main Menu");
             Button btnExit = styledButton("Exit Game");
 
-            btnResume.setOnAction(e -> fireResume());
-            btnMainMenu.setOnAction(e -> fireExitToMainMenu());
-            btnExit.setOnAction(e -> showPixelExitConfirmation());
+            btnResume.setOnAction(e -> {
+                AudioManager.playButtonClick();
+                fireResume();
+            });
+            btnMainMenu.setOnAction(e -> {
+                AudioManager.playButtonClick();
+                AudioManager.playMenuMusic();
+                fireExitToMainMenu();
+            });
+            btnExit.setOnAction(e -> {
+                AudioManager.playButtonClick();
+                showPixelExitConfirmation();
+            });
 
             VBox vbox = new VBox(10, title, btnResume, btnMainMenu, btnExit);
             vbox.setAlignment(Pos.CENTER);
@@ -3371,6 +3427,7 @@ public class MovementApp extends GameApplication {
             }
             if (btnRetry != null) {
                 btnRetry.setOnAction(e -> {
+                    AudioManager.playButtonClick();
                     if (endGameOverlayNode != null) {
                         FXGL.removeUINode(endGameOverlayNode);
                         endGameOverlayNode = null;
@@ -3381,11 +3438,13 @@ public class MovementApp extends GameApplication {
             }
             if (btnMainMenu != null) {
                 btnMainMenu.setOnAction(e -> {
+                    AudioManager.playButtonClick();
                     if (endGameOverlayNode != null) {
                         FXGL.removeUINode(endGameOverlayNode);
                         endGameOverlayNode = null;
                     }
                     gameEnded = false;
+                    AudioManager.playMenuMusic();
                     FXGL.getGameController().gotoMainMenu();
                 });
             }
