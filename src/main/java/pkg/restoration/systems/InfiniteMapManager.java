@@ -30,7 +30,7 @@ import pkg.EntityType;
 public class InfiniteMapManager {
 
     public static final int CHUNK_SIZE = 20; // 20x20 tiles per region (spacious 640x320 area)
-    public static final int ACTIVE_RADIUS = 2; // 5x5 active grid (25 chunks total for seamless render distance)
+    public static final int ACTIVE_RADIUS = 1; // 3x3 active grid (center chunk + 8 surrounding neighbors = 9 chunks total)
 
     // Isometric tile dimensions matching project TMX maps
     public static final double TILE_HALF_WIDTH = 16.0;
@@ -50,8 +50,8 @@ public class InfiniteMapManager {
     private boolean regionLocked = false;
     private int lockedChunkX = Integer.MIN_VALUE;
     private int lockedChunkY = Integer.MIN_VALUE;
-    private boolean fragmentedMode = true;
-    private double rippleRadius = 10.0;
+    private boolean fragmentedMode = false;
+    private double rippleRadius = 52.0;
     private static final double MAX_RIPPLE_RADIUS = 52.0;
 
     private double currentRestorationRatio = 1.0;
@@ -111,18 +111,15 @@ public class InfiniteMapManager {
     }
 
     public void setFragmentedMode(boolean fragmented) {
-        if (this.fragmentedMode != fragmented) {
-            this.fragmentedMode = fragmented;
-            this.rippleRadius = fragmented ? 10.0 : MAX_RIPPLE_RADIUS;
-            updateAllChunkViews();
-        }
+        this.fragmentedMode = fragmented;
+        updateAllChunkViews();
     }
 
     public void onBottleCollected(int count, int total) {
-        // Pre-generate 10% of surrounding active chunks in background memory per bottle
+        // Pre-generate active surrounding chunks in background memory per bottle
         int activeRadius = ACTIVE_RADIUS;
         int chunkIdx = 0;
-        int targetChunks = (int) Math.ceil(((double) count / Math.max(1, total)) * 25);
+        int targetChunks = (int) Math.ceil(((double) count / Math.max(1, total)) * 9);
         int baseCX = currentChunkX == Integer.MIN_VALUE ? 0 : currentChunkX;
         int baseCY = currentChunkY == Integer.MIN_VALUE ? 0 : currentChunkY;
         for (int dy = -activeRadius; dy <= activeRadius; dy++) {
@@ -137,20 +134,21 @@ public class InfiniteMapManager {
     }
 
     public void startSpreadingRestoration(Runnable onComplete) {
-        rippleRadius = 10.0;
-        int steps = 14;
-        double startR = 10.0;
-        double endR = MAX_RIPPLE_RADIUS;
-        double interval = 0.06; // 60ms per concentric block-line wave
+        String key = currentChunkX + "," + currentChunkY;
+        ChunkState state = chunkStateCache.get(key);
+        if (state != null) {
+            state.isRestored = true;
+            state.restorationRatio = 0.0;
+        }
+
+        int steps = 10;
+        double interval = 0.05;
 
         for (int s = 1; s <= steps; s++) {
             final int stepIndex = s;
-            final double currentR = startR + (endR - startR) * ((double) s / steps);
             FXGL.runOnce(() -> {
-                rippleRadius = currentR;
                 updateAllChunkViews();
                 if (stepIndex == steps) {
-                    fragmentedMode = false;
                     unlockCurrentRegion();
                     if (onComplete != null) {
                         onComplete.run();
@@ -272,7 +270,8 @@ public class InfiniteMapManager {
         final int chunkY;
         final ChunkTemplate template;
         final List<TrashItemState> trashItems = new ArrayList<>();
-        double[] tileLineDists;
+        public boolean isRestored = false;
+        public double restorationRatio = 1.0;
 
         ChunkState(int chunkX, int chunkY, ChunkTemplate template) {
             this.chunkX = chunkX;
@@ -348,6 +347,9 @@ public class InfiniteMapManager {
                                 int dstIdx = ly * CHUNK_SIZE + lx;
 
                                 long gid = (srcIdx >= 0 && srcIdx < data.size()) ? data.get(srcIdx) : 36L;
+                                if (gid <= 0) {
+                                    gid = 36L;
+                                }
                                 gids[dstIdx] = gid;
 
                                 // Impassable water or deep hole obstacle tiles
@@ -376,8 +378,8 @@ public class InfiniteMapManager {
 
         // Fallback synthetic template if no maps could be parsed
         if (templates.isEmpty()) {
-            long[] gids = new long[100];
-            boolean[] walls = new boolean[100];
+            long[] gids = new long[CHUNK_SIZE * CHUNK_SIZE];
+            boolean[] walls = new boolean[CHUNK_SIZE * CHUNK_SIZE];
             Arrays.fill(gids, 36L);
             List<Point2D> candidates = List.of(new Point2D(4, 4));
             templates.add(new ChunkTemplate(gids, walls, candidates));
@@ -401,17 +403,16 @@ public class InfiniteMapManager {
 
     private void refreshActiveChunks() {
         Set<String> activeKeysNeeded = new HashSet<>();
-        int effectiveRadius = fragmentedMode ? 1 : ACTIVE_RADIUS;
 
-        for (int dy = -effectiveRadius; dy <= effectiveRadius; dy++) {
-            for (int dx = -effectiveRadius; dx <= effectiveRadius; dx++) {
+        for (int dy = -ACTIVE_RADIUS; dy <= ACTIVE_RADIUS; dy++) {
+            for (int dx = -ACTIVE_RADIUS; dx <= ACTIVE_RADIUS; dx++) {
                 int cx = currentChunkX + dx;
                 int cy = currentChunkY + dy;
                 activeKeysNeeded.add(cx + "," + cy);
             }
         }
 
-        // Unload chunks outside active radius
+        // Unload chunks outside active radius (virtualization)
         List<String> toUnload = new ArrayList<>();
         for (Map.Entry<String, LoadedChunk> entry : loadedActiveChunks.entrySet()) {
             if (!activeKeysNeeded.contains(entry.getKey())) {
@@ -446,19 +447,6 @@ public class InfiniteMapManager {
         ChunkTemplate template = templates.get(templateIdx);
 
         ChunkState state = new ChunkState(chunkX, chunkY, template);
-        state.tileLineDists = new double[CHUNK_SIZE * CHUNK_SIZE];
-        int baseCX = currentChunkX == Integer.MIN_VALUE ? 0 : currentChunkX;
-        int baseCY = currentChunkY == Integer.MIN_VALUE ? 0 : currentChunkY;
-        int centerX = baseCX * CHUNK_SIZE + (CHUNK_SIZE / 2);
-        int centerY = baseCY * CHUNK_SIZE + (CHUNK_SIZE / 2);
-        for (int ly = 0; ly < CHUNK_SIZE; ly++) {
-            for (int lx = 0; lx < CHUNK_SIZE; lx++) {
-                int idx = ly * CHUNK_SIZE + lx;
-                int gx = chunkX * CHUNK_SIZE + lx;
-                int gy = chunkY * CHUNK_SIZE + ly;
-                state.tileLineDists[idx] = Math.hypot(gx - centerX, gy - centerY);
-            }
-        }
 
         // Populate trash items based on candidates
         int trashId = 0;
@@ -483,10 +471,13 @@ public class InfiniteMapManager {
         Canvas canvas = new Canvas(CHUNK_SIZE * TILE_HALF_WIDTH * 2, CHUNK_SIZE * TILE_HALF_HEIGHT * 2 + 32);
         drawChunkToCanvas(state, canvas);
 
+        // Depth-sorting zIndex to ensure lower chunks render in front and prevent occlusion
+        int zIndex = -1000 + (chunkX + chunkY) * 10;
+
         Entity mapEntity = FXGL.entityBuilder()
                 .at(originX, originY)
                 .view(canvas)
-                .zIndex(-100)
+                .zIndex(zIndex)
                 .buildAndAttach();
 
         LoadedChunk loadedChunk = new LoadedChunk(mapEntity, canvas, state);
@@ -499,24 +490,21 @@ public class InfiniteMapManager {
         gc.setImageSmoothing(false);
         gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
 
-        boolean isCurrentBoundedRegion = (state.chunkX == currentChunkX && state.chunkY == currentChunkY);
+        double ratio = state.isRestored ? 0.0 : currentRestorationRatio;
 
-        for (int i = 0; i < state.template.gids.length; i++) {
-            long originalGid = state.template.gids[i];
-            if (originalGid <= 0) continue;
-            long gid = transformGidByRatio(originalGid, currentRestorationRatio);
+        // Draw in isometric depth order (lx + ly) to guarantee proper painter's algorithm
+        for (int depth = 0; depth <= (CHUNK_SIZE - 1) * 2; depth++) {
+            for (int lx = 0; lx < CHUNK_SIZE; lx++) {
+                int ly = depth - lx;
+                if (ly < 0 || ly >= CHUNK_SIZE) continue;
 
-            boolean visible;
-            if (!fragmentedMode || isCurrentBoundedRegion) {
-                visible = true;
-            } else {
-                double lineDist = state.tileLineDists != null ? state.tileLineDists[i] : 999.0;
-                visible = (lineDist <= rippleRadius);
-            }
+                int i = ly * CHUNK_SIZE + lx;
+                long originalGid = state.template.gids[i];
+                if (originalGid <= 0) {
+                    originalGid = 36L;
+                }
+                long gid = transformGidByRatio(originalGid, ratio);
 
-            if (visible) {
-                int lx = i % CHUNK_SIZE;
-                int ly = i / CHUNK_SIZE;
                 int tileIdx = (int) (gid - 1);
                 int sx = (tileIdx % 11) * 32;
                 int sy = (tileIdx / 11) * 32;

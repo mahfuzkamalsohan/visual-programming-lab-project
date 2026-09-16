@@ -44,8 +44,10 @@ import javafx.scene.control.TextInputDialog;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
+import javafx.scene.input.MouseButton;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
@@ -78,6 +80,19 @@ public class MovementApp extends GameApplication {
 
     public static GameMode selectedGameMode = GameMode.SINGLE_PLAYER;
     public static String targetHostIp = "127.0.0.1";
+
+    public static boolean isInfiniteCoopMode() {
+        return selectedGameMode == GameMode.MAP_GENERATOR || selectedGameMode == GameMode.LOCAL_COOP_SPLITSCREEN;
+    }
+
+    public static boolean isInfiniteGameMode() {
+        return selectedGameMode == GameMode.SINGLE_PLAYER || isInfiniteCoopMode();
+    }
+
+    private double currentCoopZoom = 2.0;
+    private double currentCamX = 0;
+    private double currentCamY = 160;
+    public static final double MAX_TETHER_DISTANCE = 400.0;
 
     private Entity playerEntity;
     private Entity playerEntity2;
@@ -259,6 +274,11 @@ public class MovementApp extends GameApplication {
                 () -> {
                 });
 
+        bindKey("P2 Interact Enter", KeyCode.ENTER,
+                this::tryCollectTrashP2,
+                () -> {
+                });
+
         bindKey("Toggle Fullscreen", KeyCode.F11,
                 () -> FXGL.getPrimaryStage().setFullScreen(!FXGL.getPrimaryStage().isFullScreen()),
                 () -> {
@@ -285,6 +305,7 @@ public class MovementApp extends GameApplication {
                 case SOUTH -> clientDown = pressed;
                 case WEST -> clientLeft = pressed;
                 case EAST -> clientRight = pressed;
+                case NORTH_EAST, NORTH_WEST, SOUTH_EAST, SOUTH_WEST -> {}
             }
             sendClientInputPacket();
             return;
@@ -317,6 +338,7 @@ public class MovementApp extends GameApplication {
             case SOUTH -> comp.setDown(pressed);
             case WEST -> comp.setLeft(pressed);
             case EAST -> comp.setRight(pressed);
+            case NORTH_EAST, NORTH_WEST, SOUTH_EAST, SOUTH_WEST -> {}
         }
     }
 
@@ -358,22 +380,27 @@ public class MovementApp extends GameApplication {
 
         FXGL.getGameWorld().addEntityFactory(new GameEntityFactory());
 
-        if (selectedGameMode == GameMode.MAP_GENERATOR || selectedGameMode == GameMode.SINGLE_PLAYER) {
+        if (isInfiniteGameMode()) {
             mapManager = null;
             infiniteMapManager = new InfiniteMapManager(System.currentTimeMillis());
             playerEntity = FXGL.spawn("restorationPlayer", 0, 160);
+            playerEntity.setZIndex(100);
             playerComponent = playerEntity.getComponent(PlayerComponent.class);
 
-            if (selectedGameMode == GameMode.MAP_GENERATOR) {
-                // Spawn Player 2 for Local Co-Op in Map Generator mode
+            if (isInfiniteCoopMode()) {
+                // Spawn Player 2 for Local Co-Op in Infinite Mode
                 playerEntity2 = FXGL.entityBuilder()
-                        .at(20, 160)
+                        .at(40, 160)
                         .type(EntityType.PLAYER)
                         .bbox(new HitBox(BoundingShape.box(16, 24)))
                         .with(new CollidableComponent(true))
                         .with(new PlayerComponent(2))
+                        .zIndex(100)
                         .buildAndAttach();
                 playerComponent2 = playerEntity2.getComponent(PlayerComponent.class);
+
+                attachPlayerBadge(playerEntity, "P1", Color.web("#39ff14"));
+                attachPlayerBadge(playerEntity2, "P2", Color.web("#d7e77f"));
             } else {
                 playerEntity2 = null;
                 playerComponent2 = null;
@@ -397,9 +424,7 @@ public class MovementApp extends GameApplication {
                 mapManager = null;
             } else {
                 mapManager = new DynamicMapManager(mapPath);
-                if (level != null) {
-                    mapManager.setInitialTileEntities(level.getEntities());
-                }
+                mapManager.setInitialTileEntities(level.getEntities());
             }
 
             List<Entity> players = FXGL.getGameWorld().getEntitiesByComponent(PlayerComponent.class);
@@ -407,10 +432,10 @@ public class MovementApp extends GameApplication {
             if (playerEntity == null) {
                 playerEntity = FXGL.spawn("restorationPlayer", 640, 320);
             }
+            playerEntity.setZIndex(100);
             playerComponent = playerEntity.getComponent(PlayerComponent.class);
 
-            if (selectedGameMode == GameMode.LOCAL_COOP_SPLITSCREEN
-                    || selectedGameMode == GameMode.LAN_HOST
+            if (selectedGameMode == GameMode.LAN_HOST
                     || selectedGameMode == GameMode.LAN_JOIN
                     || selectedGameMode == GameMode.SORTING_TEST
                     || selectedGameMode == GameMode.SEQUENTIAL_DEMO) {
@@ -422,19 +447,19 @@ public class MovementApp extends GameApplication {
                             .bbox(new HitBox(BoundingShape.box(16, 24)))
                             .with(new CollidableComponent(true))
                             .with(new PlayerComponent(2))
+                            .zIndex(100)
                             .buildAndAttach();
+                } else {
+                    playerEntity2.setZIndex(100);
                 }
                 playerComponent2 = playerEntity2.getComponent(PlayerComponent.class);
             }
 
-            if (selectedGameMode == GameMode.QUESTION_TEST) {
-                setupQuestionTest();
-            } else if (selectedGameMode == GameMode.SORTING_TEST) {
-                setupSortingTest();
-            } else if (selectedGameMode == GameMode.SEQUENTIAL_DEMO) {
-                setupSequentialDemo(level);
-            } else {
-                spawnRandomTrash();
+            switch (selectedGameMode) {
+                case QUESTION_TEST -> setupQuestionTest();
+                case SORTING_TEST -> setupSortingTest();
+                case SEQUENTIAL_DEMO -> setupSequentialDemo(level);
+                default -> spawnRandomTrash();
             }
         }
         setupViewports();
@@ -483,7 +508,7 @@ public class MovementApp extends GameApplication {
             questionPanel = loader.load();
             questionLabel = (Label) questionPanel.lookup("#questionPromptLabel");
             questionFeedbackLabel = (Label) questionPanel.lookup("#feedbackLabel");
-        } catch (Exception e) {
+        } catch (IOException | RuntimeException e) {
             questionLabel = new Label();
             questionLabel.setWrapText(true);
             questionLabel.setMaxWidth(360);
@@ -508,10 +533,10 @@ public class MovementApp extends GameApplication {
 
     private void attachQuestionPanelToEntity(Entity targetEntity) {
         createQuestionPanel();
-        if (questionPanel.getParent() instanceof javafx.scene.Group group) {
-            group.getChildren().remove(questionPanel);
-        } else if (questionPanel.getParent() instanceof javafx.scene.layout.Pane pane) {
-            pane.getChildren().remove(questionPanel);
+        switch (questionPanel.getParent()) {
+            case javafx.scene.Group group -> group.getChildren().remove(questionPanel);
+            case javafx.scene.layout.Pane pane -> pane.getChildren().remove(questionPanel);
+            case null, default -> {}
         }
         targetEntity.getViewComponent().addChild(questionPanel);
     }
@@ -519,8 +544,6 @@ public class MovementApp extends GameApplication {
     private void setupSortingTest() {
         resetSortingTestState();
         playerEntity2.setPosition(625, 215);
-        playerEntity.getViewComponent().addChild(debugRectangle(PLAYER_BOX_WIDTH, PLAYER_BOX_HEIGHT));
-        playerEntity2.getViewComponent().addChild(debugRectangle(PLAYER_BOX_WIDTH, PLAYER_BOX_HEIGHT));
 
         Rectangle zone = new Rectangle(SORT_ZONE_WIDTH, SORT_ZONE_HEIGHT, Color.web("#d7e77f", 0.10));
         zone.setStroke(Color.web("#d7e77f"));
@@ -540,15 +563,11 @@ public class MovementApp extends GameApplication {
                 215 - INTAKE_BOX_HEIGHT / 2,
                 INTAKE_BOX_WIDTH,
                 INTAKE_BOX_HEIGHT);
-        Rectangle intakeHitBox = debugRectangle(INTAKE_BOX_WIDTH, INTAKE_BOX_HEIGHT);
-        intakeHitBox.setTranslateX(-INTAKE_BOX_WIDTH / 2);
-        intakeHitBox.setTranslateY(-INTAKE_BOX_HEIGHT / 2);
-        sortingIntakePoint.getViewComponent().addChild(intakeHitBox);
 
-        createSortingBin("black", "BLACK\nGeneral", 545, 145, "#272727");
-        createSortingBin("blue", "BLUE\nRecyclables", 675, 145, "#397ac7");
-        createSortingBin("green", "GREEN\nOrganic", 545, 275, "#3e914c");
-        createSortingBin("red", "RED\nHazardous", 675, 275, "#bd4545");
+        createSortingBin("black", 545, 145, "#272727");
+        createSortingBin("blue", 675, 145, "#397ac7");
+        createSortingBin("green", 545, 275, "#3e914c");
+        createSortingBin("red", 675, 275, "#bd4545");
 
         List<WasteItem> waste = List.of(
                 new WasteItem("wrapper", "Greasy snack wrapper", "black"),
@@ -577,10 +596,6 @@ public class MovementApp extends GameApplication {
                     PICKUP_BOX_WIDTH,
                     PICKUP_BOX_HEIGHT);
             sortingPickupBoxes.put(entity, pickupBox);
-            Rectangle pickupHitBox = debugRectangle(PICKUP_BOX_WIDTH, PICKUP_BOX_HEIGHT);
-            pickupHitBox.setTranslateX(-8);
-            pickupHitBox.setTranslateY(-8);
-            entity.getViewComponent().addChild(pickupHitBox);
         }
         sortingTask = new SortingTask(expectedBins, 15, 7, 8);
 
@@ -754,30 +769,6 @@ public class MovementApp extends GameApplication {
         sortingFeedback = "Collect all scattered garbage";
     }
 
-    private void interactWithSequentialDemo() {
-        if (demoStage == DemoStage.COLLECTION) {
-            for (Map.Entry<Entity, String> entry : List.copyOf(demoCollectionItems.entrySet())) {
-                InteractionBox pickup = new InteractionBox(
-                        entry.getKey().getX() - 8, entry.getKey().getY() - 8,
-                        PICKUP_BOX_WIDTH, PICKUP_BOX_HEIGHT);
-                if (pickup.intersectsPlayer(playerEntity)
-                        || (playerEntity2 != null && pickup.intersectsPlayer(playerEntity2))) {
-                    TaskResult result = demoCollectionTask.collect(entry.getValue());
-                    TaskTimer.apply(timer, result);
-                    entry.getKey().removeFromWorld();
-                    demoCollectionItems.remove(entry.getKey());
-                    if (result.completedNow()) {
-                        activateDemoQuestionStage();
-                    }
-                    return;
-                }
-            }
-        } else if (demoStage == DemoStage.SORTING) {
-            interactWithSortingP1();
-            interactWithSortingP2();
-        }
-    }
-
     private void activateDemoQuestionStage() {
         demoStage = DemoStage.QUESTION;
         demoQuestionEntities.stream()
@@ -822,7 +813,7 @@ public class MovementApp extends GameApplication {
     private void setupGeneratorStage1(int chunkX, int chunkY) {
         clearGeneratorStageEntities();
         if (infiniteMapManager != null) {
-            infiniteMapManager.setFragmentedMode(true);
+            infiniteMapManager.setFragmentedMode(false);
             infiniteMapManager.lockCurrentRegion(chunkX, chunkY);
         }
         generatorTrashCollected = 0;
@@ -930,10 +921,10 @@ public class MovementApp extends GameApplication {
             sortingIntakeBox = new InteractionBox(intakeX - 25, intakeY - 25, INTAKE_BOX_WIDTH, INTAKE_BOX_HEIGHT);
         }
 
-        createSortingBin("black", "BLACK\nGeneral", originX + (10 - 6) * 16.0, originY + (10 + 6) * 8.0, "#272727");
-        createSortingBin("blue", "BLUE\nRecyclables", originX + (14 - 10) * 16.0, originY + (14 + 10) * 8.0, "#397ac7");
-        createSortingBin("green", "GREEN\nOrganic", originX + (6 - 10) * 16.0, originY + (6 + 10) * 8.0, "#3e914c");
-        createSortingBin("red", "RED\nHazardous", originX + (10 - 14) * 16.0, originY + (10 + 14) * 8.0, "#bd4545");
+        createSortingBin("black", originX + (10 - 6) * 16.0, originY + (10 + 6) * 8.0, "#272727");
+        createSortingBin("blue", originX + (14 - 10) * 16.0, originY + (14 + 10) * 8.0, "#397ac7");
+        createSortingBin("green", originX + (6 - 10) * 16.0, originY + (6 + 10) * 8.0, "#3e914c");
+        createSortingBin("red", originX + (10 - 14) * 16.0, originY + (10 + 14) * 8.0, "#bd4545");
 
         List<WasteItem> waste = List.of(
                 new WasteItem("wrapper", "Greasy snack wrapper", "black"),
@@ -978,7 +969,7 @@ public class MovementApp extends GameApplication {
         updateTrashCounter();
         if (selectedGameMode == GameMode.SINGLE_PLAYER) {
             showTemporaryNotice("♻ DISTRICT " + currentDistrict
-                    + " — PHASE 3: ECO-SORTING\nPick up waste items & deposit into matching color bins! [E / Space]");
+                    + " — PHASE 3: ECO-SORTING\nPick up waste items & examine bin plaques to sort! [E / Space]");
         }
     }
 
@@ -1130,7 +1121,70 @@ public class MovementApp extends GameApplication {
         }
     }
 
-    private void createSortingBin(String binId, String labelText, double x, double y, String color) {
+    public static class BinInfo {
+        public final String title;
+        public final String category;
+        public final String accepts;
+        public final String colorHex;
+
+        public BinInfo(String title, String category, String accepts, String colorHex) {
+            this.title = title;
+            this.category = category;
+            this.accepts = accepts;
+            this.colorHex = colorHex;
+        }
+    }
+
+    public static BinInfo getBinInfo(String binId) {
+        String lower = binId == null ? "" : binId.toLowerCase();
+        return switch (lower) {
+            case "blue" -> new BinInfo("BLUE BIN", "RECYCLABLES", "Paper, Cans, Clean Metals", "#5bc0be");
+            case "green" -> new BinInfo("GREEN BIN", "ORGANIC", "Food, Peels, Leaves, Compost", "#39ff14");
+            case "red" -> new BinInfo("RED BIN", "HAZARDOUS", "Batteries, E-Waste, Chemicals", "#ff6b6b");
+            case "black" -> new BinInfo("BLACK BIN", "GENERAL WASTE", "Wrappers, Foam, Non-Recyclable", "#e0e0e0");
+            default -> new BinInfo("BIN", "DISPOSAL", "Miscellaneous Items", "#ffffff");
+        };
+    }
+
+    private static VBox createBinPlaque(String binId) {
+        BinInfo info = getBinInfo(binId);
+
+        VBox plaque = new VBox(2);
+        plaque.setAlignment(Pos.CENTER);
+        plaque.setStyle(
+                "-fx-background-color: rgba(10, 18, 14, 0.90);"
+                + "-fx-border-color: " + info.colorHex + ";"
+                + "-fx-border-width: 1.2px;"
+                + "-fx-border-radius: 4px;"
+                + "-fx-background-radius: 4px;"
+                + "-fx-padding: 3px 6px;");
+
+        Label catLabel = new Label(info.category);
+        catLabel.setStyle(
+                "-fx-text-fill: " + info.colorHex + ";"
+                + "-fx-font-family: 'Monospaced';"
+                + "-fx-font-size: 8.5px;"
+                + "-fx-font-weight: bold;"
+                + "-fx-alignment: center;");
+
+        Label acceptsLabel = new Label("Accepts:\n" + info.accepts);
+        acceptsLabel.setStyle(
+                "-fx-text-fill: #f0fdf4;"
+                + "-fx-font-family: 'Monospaced';"
+                + "-fx-font-size: 7.2px;"
+                + "-fx-alignment: center;"
+                + "-fx-text-alignment: center;");
+        acceptsLabel.setWrapText(true);
+        acceptsLabel.setMaxWidth(115);
+
+        plaque.getChildren().addAll(catLabel, acceptsLabel);
+        plaque.setMouseTransparent(true);
+        plaque.setTranslateX(-23);
+        plaque.setTranslateY(-36);
+        return plaque;
+    }
+
+    private void createSortingBin(String binId, double x, double y, String color) {
         Node binView;
         String lowerId = binId == null ? "" : binId.toLowerCase();
         switch (lowerId) {
@@ -1146,26 +1200,16 @@ public class MovementApp extends GameApplication {
             }
         }
         Entity entity = FXGL.entityBuilder().at(x, y).type(EntityType.QUESTION_POINT).view(binView).buildAndAttach();
-        Label label = new Label(labelText);
-        label.setStyle(
-                "-fx-text-fill:white;-fx-font-family:Verdana;-fx-font-size:8px;-fx-font-weight:bold;-fx-alignment:center;");
-        label.setWrapText(true);
-        label.setMaxWidth(76);
-        label.setTranslateX(-2);
-        label.setTranslateY(-20);
-        entity.getViewComponent().addChild(label);
+        VBox plaque = createBinPlaque(binId);
+        entity.getViewComponent().addChild(plaque);
         double boxOffsetX = (72 - BIN_BOX_WIDTH) / 2.0;
         double boxOffsetY = (58 - BIN_BOX_HEIGHT) / 2.0;
-        Rectangle binHitBox = debugRectangle(BIN_BOX_WIDTH, BIN_BOX_HEIGHT);
-        binHitBox.setTranslateX(boxOffsetX);
-        binHitBox.setTranslateY(boxOffsetY);
-        entity.getViewComponent().addChild(binHitBox);
         sortingBins.put(entity, binId);
         sortingBinBoxes.put(entity, new InteractionBox(x + boxOffsetX, y + boxOffsetY, BIN_BOX_WIDTH, BIN_BOX_HEIGHT));
     }
 
     private void tryCollectTrashP1() {
-        if (selectedGameMode == GameMode.MAP_GENERATOR || selectedGameMode == GameMode.SINGLE_PLAYER) {
+        if (isInfiniteGameMode()) {
             if (generatorStage == GeneratorStage.TRASH_COLLECTION) {
                 for (Entity trash : List.copyOf(generatorTrashEntities)) {
                     if (trash != null && trash.isActive() && playerEntity != null
@@ -1229,7 +1273,7 @@ public class MovementApp extends GameApplication {
     }
 
     private void tryCollectTrashP2() {
-        if (selectedGameMode == GameMode.MAP_GENERATOR) {
+        if (isInfiniteCoopMode()) {
             if (generatorStage == GeneratorStage.TRASH_COLLECTION) {
                 for (Entity trash : List.copyOf(generatorTrashEntities)) {
                     if (trash != null && trash.isActive() && playerEntity2 != null
@@ -1238,11 +1282,14 @@ public class MovementApp extends GameApplication {
                         generatorTrashEntities.remove(trash);
                         generatorTrashCollected++;
                         collectedTrash++;
+                        ecoScore += 50;
                         if (infiniteMapManager != null) {
                             infiniteMapManager.onBottleCollected(generatorTrashCollected, GENERATOR_TARGET_TRASH);
                         }
                         if (timer != null)
                             timer.applyDelta(10.0);
+                        spawnFloatingText(playerEntity2.getX(), playerEntity2.getY() - 16, "+10s Cleaned! (+50 pts)",
+                                Color.web("#d7e77f"));
                         updateTrashCounter();
                         if (generatorTrashCollected >= GENERATOR_TARGET_TRASH) {
                             generatorStageCompleted = true;
@@ -1252,7 +1299,7 @@ public class MovementApp extends GameApplication {
                             if (infiniteMapManager != null) {
                                 infiniteMapManager.startSpreadingRestoration(() -> {
                                     showTemporaryNotice(
-                                            "WORLD RESTORED! Render distance expanded.\nWalk to next region for Questions.");
+                                            "WORLD RESTORED! Render distance expanded.\nWalk into next sector for Eco-Grid Challenge.");
                                 });
                             }
                         }
@@ -1267,7 +1314,12 @@ public class MovementApp extends GameApplication {
                     generatorStageCompleted = true;
                     lastCompletedChunkKey = infiniteMapManager.getCurrentChunkX() + ","
                             + infiniteMapManager.getCurrentChunkY();
-                    showTemporaryNotice("STAGE 3 (SORTING) CLEARED! Walk into a new region to restart cycle.");
+                    ecoScore += 500;
+                    if (timer != null)
+                        timer.applyDelta(30.0);
+                    showTemporaryNotice("🎉 DISTRICT " + currentDistrict
+                            + " RESTORED! (+30s Bonus, +500 pts)\nWalk through gateway into District "
+                            + (currentDistrict + 1) + "!");
                 }
             }
             return;
@@ -1352,10 +1404,11 @@ public class MovementApp extends GameApplication {
                         updateTrashCounter();
                         spawnFloatingText(playerEntity.getX(), playerEntity.getY() - 20,
                                 "✔ Correct Bin! +8s (+100 pts)", Color.web("#39ff14"));
-                        sortingFeedback = "Correct: " + outsideCarriedWaste.name() + " -> " + binId.toUpperCase()
-                                + " bin (+8s)!";
+                        BinInfo info = getBinInfo(binId);
+                        sortingFeedback = "Correct: " + outsideCarriedWaste.name() + " -> " + info.category
+                                + " (+8s)!";
                         showTemporaryNotice("CORRECT! " + outsideCarriedWaste.name() + "\nSorted into "
-                                + binId.toUpperCase() + " bin (+8s)");
+                                + info.category + " (+8s)");
                         outsideCarriedWaste = null;
                         if (collectorCarriedWasteView != null) {
                             collectorCarriedWasteView.setVisible(false);
@@ -1382,16 +1435,13 @@ public class MovementApp extends GameApplication {
                             timer.applyDelta(-6.0);
                         spawnFloatingText(playerEntity.getX(), playerEntity.getY() - 20, "✘ Wrong Bin! -6s",
                                 Color.web("#ff3860"));
-                        showTemporaryNotice("WRONG BIN! (-6s)\n" + outsideCarriedWaste.name() + " belongs in "
-                                + outsideCarriedWaste.binId().toUpperCase() + " bin!");
-                        sortingFeedback = "Wrong bin! " + outsideCarriedWaste.name() + " belongs in "
-                                + outsideCarriedWaste.binId().toUpperCase();
+                        showTemporaryNotice("WRONG BIN! (-6s)\n" + outsideCarriedWaste.name() + " does not belong here!\nRead bin accepted items.");
+                        sortingFeedback = "Wrong bin! " + outsideCarriedWaste.name() + " rejected (-6s)";
                     }
                     return;
                 }
             }
-            showTemporaryNotice("Carrying: " + outsideCarriedWaste.name() + "\nDeposit into the "
-                    + outsideCarriedWaste.binId().toUpperCase() + " bin [Press E / Space]");
+            showTemporaryNotice("Carrying: " + outsideCarriedWaste.name() + "\nWalk to the matching waste bin and press [E / Space]");
             return;
         }
 
@@ -1413,10 +1463,8 @@ public class MovementApp extends GameApplication {
                 }
                 spawnFloatingText(playerEntity.getX(), playerEntity.getY() - 20,
                         "Picked up: " + outsideCarriedWaste.name(), Color.web("#d7e77f"));
-                sortingFeedback = "Picked up: " + outsideCarriedWaste.name() + " -> Sort into "
-                        + outsideCarriedWaste.binId().toUpperCase() + " bin";
-                showTemporaryNotice("PICKED UP: " + outsideCarriedWaste.name() + "\nSort into "
-                        + outsideCarriedWaste.binId().toUpperCase() + " BIN [Press E / Space]");
+                sortingFeedback = "Carrying: " + outsideCarriedWaste.name() + " — Check bin labels to sort";
+                showTemporaryNotice("PICKED UP: " + outsideCarriedWaste.name() + "\nExamine the bins and deposit into the matching category!");
                 return;
             }
         }
@@ -1470,19 +1518,32 @@ public class MovementApp extends GameApplication {
                 if (sortingBinBoxes.get(bin.getKey()).intersectsPlayer(playerEntity2)) {
                     TaskResult result = sortingTask.sort(insideCarriedWaste.id(), bin.getValue());
                     double applied = TaskTimer.apply(timer, result);
-                    sortingFeedback = result.message() + String.format(" (%+.0f seconds)", applied);
                     boolean retryableWrongBin = result.status() == pkg.restoration.tasks.TaskStatus.REJECTED
                             && "Wrong bin".equals(result.message());
                     if (!retryableWrongBin) {
+                        spawnFloatingText(playerEntity2.getX(), playerEntity2.getY() - 20,
+                                "✔ Correct Bin! +8s (+100 pts)", Color.web("#39ff14"));
+                        BinInfo info = getBinInfo(bin.getValue());
+                        showTemporaryNotice("CORRECT! " + insideCarriedWaste.name() + "\nSorted into " + info.category + " (+8s)");
+                        sortingFeedback = "Correct: " + insideCarriedWaste.name() + " -> " + info.category + " (+8s)!";
                         clearInsideCarriedWaste();
+                    } else {
+                        spawnFloatingText(playerEntity2.getX(), playerEntity2.getY() - 20, "✘ Wrong Bin! -6s", Color.web("#ff3860"));
+                        showTemporaryNotice("WRONG BIN! (-6s)\n" + insideCarriedWaste.name() + " does not belong here!\nRead bin accepted items.");
+                        sortingFeedback = "Wrong bin! " + insideCarriedWaste.name() + " rejected (-6s)";
                     }
-                    if (selectedGameMode == GameMode.MAP_GENERATOR && sortingTask.isComplete()) {
+                    if (isInfiniteCoopMode() && sortingTask.isComplete()) {
                         generatorSortedCount = GENERATOR_TARGET_SORTING;
                         infiniteMapManager.unlockCurrentRegion();
                         generatorStageCompleted = true;
                         lastCompletedChunkKey = infiniteMapManager.getCurrentChunkX() + ","
                                 + infiniteMapManager.getCurrentChunkY();
-                        showTemporaryNotice("STAGE 3 (SORTING) CLEARED! Walk into a new region to restart cycle.");
+                        ecoScore += 500;
+                        if (timer != null)
+                            timer.applyDelta(30.0);
+                        showTemporaryNotice("🎉 DISTRICT " + currentDistrict
+                                + " RESTORED! (+30s Bonus, +500 pts)\nWalk through gateway into District "
+                                + (currentDistrict + 1) + "!");
                     }
                     if (selectedGameMode == GameMode.SEQUENTIAL_DEMO && sortingTask.isComplete() && !gameEnded) {
                         gameEnded = true;
@@ -1505,11 +1566,8 @@ public class MovementApp extends GameApplication {
             if (sorterCarriedWasteView != null) {
                 sorterCarriedWasteView.setVisible(true);
             }
-            sortingFeedback = "P2 identified: " + insideCarriedWaste.name() + " -> Sort into "
-                    + insideCarriedWaste.binId().toUpperCase() + " bin";
-            showTemporaryNotice("IDENTIFIED: " + insideCarriedWaste.name() + "\nSort into "
-                    + insideCarriedWaste.binId().toUpperCase() + " BIN");
-            return;
+            sortingFeedback = "P2 retrieved: " + insideCarriedWaste.name() + " — Check bin labels to sort";
+            showTemporaryNotice("RETRIEVED: " + insideCarriedWaste.name() + "\nExamine the bins and sort into the matching category!");
         }
     }
 
@@ -1572,8 +1630,7 @@ public class MovementApp extends GameApplication {
     }
 
     private void answerTestQuestion(int choiceIndex) {
-        if ((selectedGameMode == GameMode.MAP_GENERATOR || selectedGameMode == GameMode.SINGLE_PLAYER)
-                && generatorStage == GeneratorStage.QUESTION) {
+        if (isInfiniteGameMode() && generatorStage == GeneratorStage.QUESTION) {
             if (currentActiveQuestionEntity == null || currentActiveQuestion == null || questionAnswerLocked)
                 return;
             if (choiceIndex >= currentActiveQuestion.choices().size())
@@ -1690,10 +1747,6 @@ public class MovementApp extends GameApplication {
         // Trash is collected actively by pressing E
     }
 
-    private void tryCollectTrash() {
-        tryCollectTrashP1();
-    }
-
     private void setupViewports() {
         Viewport vp = FXGL.getGameScene().getViewport();
         vp.setLazy(true);
@@ -1702,11 +1755,17 @@ public class MovementApp extends GameApplication {
                 || selectedGameMode == GameMode.SORTING_TEST
                 || selectedGameMode == GameMode.SEQUENTIAL_DEMO
                 || selectedGameMode == GameMode.MAP_GENERATOR) && playerEntity != null && playerEntity2 != null) {
-            // Shared Screen Local Co-Op: Fixed 1.8x crisp zoom tracking dual player
-            // midpoint
-            vp.setZoom(1.8);
-            vp.unbind();
-            updateCoopCamera();
+            // Shared Screen Local Co-Op: Dynamic zoom and smooth dual-player midpoint tracking
+            unbindEntityTracking(vp);
+            currentCoopZoom = 2.0;
+            currentCamX = (playerEntity.getX() + playerEntity2.getX()) / 2.0 + 8.0;
+            currentCamY = (playerEntity.getY() + playerEntity2.getY()) / 2.0 + 12.0;
+            vp.setZoom(currentCoopZoom);
+            double halfW = FXGL.getAppWidth() / (2.0 * currentCoopZoom);
+            double halfH = FXGL.getAppHeight() / (2.0 * currentCoopZoom);
+            vp.setX(currentCamX - halfW);
+            vp.setY(currentCamY - halfH);
+            updateCoopCamera(0.016);
         } else if (selectedGameMode == GameMode.LAN_JOIN && playerEntity2 != null) {
             // LAN Join (Client): Full screen following Player 2
             vp.setZoom(2.0);
@@ -1718,20 +1777,90 @@ public class MovementApp extends GameApplication {
         }
     }
 
-    private void updateCoopCamera() {
-        if (playerEntity != null && playerEntity2 != null) {
-            if (selectedGameMode != GameMode.SEQUENTIAL_DEMO) {
-                double midX = (playerEntity.getX() + playerEntity2.getX()) / 2.0 + 120.0;
-                double midY = (playerEntity.getY() + playerEntity2.getY()) / 2.0 + 120.0;
-                FXGL.getGameScene().getViewport().focusOn(new javafx.geometry.Point2D(midX, midY));
-                return;
-            }
+    private void unbindEntityTracking(Viewport vp) {
+        vp.unbind();
+        try {
+            java.lang.reflect.Field fx = Viewport.class.getDeclaredField("boundX");
+            fx.setAccessible(true);
+            fx.set(vp, null);
+            java.lang.reflect.Field fy = Viewport.class.getDeclaredField("boundY");
+            fy.setAccessible(true);
+            fy.set(vp, null);
+        } catch (Throwable ignored) {
+        }
+    }
 
-            double midX = (playerEntity.getCenter().getX() + playerEntity2.getCenter().getX()) / 2.0;
-            double midY = (playerEntity.getCenter().getY() + playerEntity2.getCenter().getY()) / 2.0;
+    private void attachPlayerBadge(Entity player, String text, Color color) {
+        if (player == null) return;
+        Text badge = new Text(text);
+        badge.setFont(Font.font("Monospaced", FontWeight.BOLD, 11));
+        badge.setFill(color);
+        badge.setStroke(Color.BLACK);
+        badge.setStrokeWidth(1.0);
+        badge.setTranslateX(text.length() > 1 ? 0 : 4);
+        badge.setTranslateY(-6);
+        badge.setMouseTransparent(true);
+        player.getViewComponent().addChild(badge);
+    }
+
+    private void updateCoopCamera(double tpf) {
+        if (playerEntity != null && playerEntity2 != null) {
+            double p1X = playerEntity.getX() + 8.0;
+            double p1Y = playerEntity.getY() + 12.0;
+            double p2X = playerEntity2.getX() + 8.0;
+            double p2Y = playerEntity2.getY() + 12.0;
+
+            double midX = (p1X + p2X) / 2.0;
+            double midY = (p1Y + p2Y) / 2.0;
+
+            double deltaX = Math.abs(p1X - p2X);
+            double deltaY = Math.abs(p1Y - p2Y);
+
+            // Dynamic zoom framing both players within screen bounds with comfortable padding
+            double zoomX = 1280.0 / Math.max(340.0, deltaX + 220.0);
+            double zoomY = 720.0 / Math.max(240.0, deltaY + 180.0);
+            double targetZoom = Math.max(1.35, Math.min(2.35, Math.min(zoomX, zoomY)));
+
+            // Smooth interpolation
+            double zoomLerp = Math.min(1.0, tpf * 5.0);
+            currentCoopZoom += (targetZoom - currentCoopZoom) * zoomLerp;
+
+            double camLerp = Math.min(1.0, tpf * 6.0);
+            currentCamX += (midX - currentCamX) * camLerp;
+            currentCamY += (midY - currentCamY) * camLerp;
+
             Viewport viewport = FXGL.getGameScene().getViewport();
-            viewport.setX(midX - viewport.getWidth() / (2.0 * viewport.getZoom()));
-            viewport.setY(midY - viewport.getHeight() / (2.0 * viewport.getZoom()));
+            viewport.setZoom(currentCoopZoom);
+            double halfW = FXGL.getAppWidth() / (2.0 * currentCoopZoom);
+            double halfH = FXGL.getAppHeight() / (2.0 * currentCoopZoom);
+            viewport.setX(currentCamX - halfW);
+            viewport.setY(currentCamY - halfH);
+        }
+    }
+
+    private void enforcePlayerTether() {
+        if (playerEntity == null || playerEntity2 == null) return;
+        double dist = playerEntity.distance(playerEntity2);
+        if (dist > MAX_TETHER_DISTANCE) {
+            double excess = dist - MAX_TETHER_DISTANCE;
+            double angle = Math.atan2(playerEntity.getY() - playerEntity2.getY(), playerEntity.getX() - playerEntity2.getX());
+            boolean p1Moving = playerComponent != null && playerComponent.isMoving();
+            boolean p2Moving = playerComponent2 != null && playerComponent2.isMoving();
+
+            if (p1Moving && !p2Moving) {
+                playerEntity.translateX(-Math.cos(angle) * excess);
+                playerEntity.translateY(-Math.sin(angle) * excess);
+            } else if (p2Moving && !p1Moving) {
+                playerEntity2.translateX(Math.cos(angle) * excess);
+                playerEntity2.translateY(Math.sin(angle) * excess);
+            } else {
+                double halfCorrX = Math.cos(angle) * (excess / 2.0);
+                double halfCorrY = Math.sin(angle) * (excess / 2.0);
+                playerEntity.translateX(-halfCorrX);
+                playerEntity.translateY(-halfCorrY);
+                playerEntity2.translateX(halfCorrX);
+                playerEntity2.translateY(halfCorrY);
+            }
         }
     }
 
@@ -1818,58 +1947,52 @@ public class MovementApp extends GameApplication {
         modeStatusText.setY(60);
         FXGL.addUINode(modeStatusText);
 
-        if (selectedGameMode == GameMode.QUESTION_TEST) {
-            modeStatusText.setText("Question Test — Answered: 0 / " + testQuestions.size());
-        } else if (selectedGameMode == GameMode.SORTING_TEST) {
-            modeStatusText.setText("Sorting Test — P1: WASD + E, P2: Arrows + /");
-        } else if (selectedGameMode == GameMode.SEQUENTIAL_DEMO) {
-            modeStatusText.setText("Sequential Demo — P1: WASD, P2: arrows, E: interact");
-        } else if (selectedGameMode == GameMode.MAP_GENERATOR) {
-            Text p1Label = new Text("P1: WASD + [E]");
-            p1Label.setFont(Font.font("Monospaced", FontWeight.BOLD, 13));
-            p1Label.setFill(Color.web("#39ff14"));
-            p1Label.setX(20);
-            p1Label.setY(85);
+        switch (selectedGameMode) {
+            case QUESTION_TEST ->
+                modeStatusText.setText("Question Test — Answered: 0 / " + testQuestions.size());
+            case SORTING_TEST ->
+                modeStatusText.setText("Sorting Test — P1: WASD + E, P2: Arrows + /");
+            case SEQUENTIAL_DEMO ->
+                modeStatusText.setText("Sequential Demo — P1: WASD, P2: arrows, E: interact");
+            case MAP_GENERATOR, LOCAL_COOP_SPLITSCREEN -> {
+                Text p1Label = new Text("P1: WASD + [E/Space]");
+                p1Label.setFont(Font.font("Monospaced", FontWeight.BOLD, 13));
+                p1Label.setFill(Color.web("#39ff14"));
+                p1Label.setX(20);
+                p1Label.setY(85);
 
-            Text p2Label = new Text("P2: ARROWS + [/]");
-            p2Label.setFont(Font.font("Monospaced", FontWeight.BOLD, 13));
-            p2Label.setFill(Color.web("#d7e77f"));
-            p2Label.setX(20);
-            p2Label.setY(105);
+                Text p2Label = new Text("P2: ARROWS + [/ / Enter]");
+                p2Label.setFont(Font.font("Monospaced", FontWeight.BOLD, 13));
+                p2Label.setFill(Color.web("#d7e77f"));
+                p2Label.setX(20);
+                p2Label.setY(105);
 
-            FXGL.addUINode(p1Label);
-            FXGL.addUINode(p2Label);
-            modeStatusText.setText("Map Generator (2P Local Co-Op)");
-        } else if (selectedGameMode == GameMode.LOCAL_COOP_SPLITSCREEN) {
-            Text p1Label = new Text("P1: WASD");
-            p1Label.setFont(Font.font("Monospaced", FontWeight.BOLD, 13));
-            p1Label.setFill(Color.web("#39ff14"));
-            p1Label.setX(20);
-            p1Label.setY(85);
+                FXGL.addUINode(p1Label);
+                FXGL.addUINode(p2Label);
+                modeStatusText.setText("District 1: Phase 1 — Co-op Cleanup");
 
-            Text p2Label = new Text("P2: ARROW KEYS");
-            p2Label.setFont(Font.font("Monospaced", FontWeight.BOLD, 13));
-            p2Label.setFill(Color.web("#d7e77f"));
-            p2Label.setX(20);
-            p2Label.setY(105);
-
-            FXGL.addUINode(p1Label);
-            FXGL.addUINode(p2Label);
-            modeStatusText.setText("Local Co-Op (2 Players 1 Keyboard)");
-        } else if (selectedGameMode == GameMode.LAN_HOST) {
-            modeStatusText.setText("LAN Co-Op: Hosting on Port " + NetworkManager.DEFAULT_PORT);
-        } else if (selectedGameMode == GameMode.LAN_JOIN) {
-            modeStatusText.setText("LAN Co-Op: Connected to " + targetHostIp);
-        } else if (selectedGameMode == GameMode.SINGLE_PLAYER) {
-            modeStatusText.setText("District 1: Phase 1 — Eco-Cleanup");
-            scoreText = new Text("Eco-Score: 0 | District: 1");
-            scoreText.setFont(Font.font("Monospaced", FontWeight.BOLD, 15));
-            scoreText.setFill(Color.web("#5bc0be"));
-            scoreText.setX(FXGL.getAppWidth() - 280);
-            scoreText.setY(36);
-            FXGL.addUINode(scoreText);
-        } else {
-            modeStatusText.setText("Single Player Mode");
+                scoreText = new Text("Eco-Score: 0 | District: 1");
+                scoreText.setFont(Font.font("Monospaced", FontWeight.BOLD, 15));
+                scoreText.setFill(Color.web("#5bc0be"));
+                scoreText.setX(FXGL.getAppWidth() - 280);
+                scoreText.setY(36);
+                FXGL.addUINode(scoreText);
+            }
+            case LAN_HOST ->
+                modeStatusText.setText("LAN Co-Op: Hosting on Port " + NetworkManager.DEFAULT_PORT);
+            case LAN_JOIN ->
+                modeStatusText.setText("LAN Co-Op: Connected to " + targetHostIp);
+            case SINGLE_PLAYER -> {
+                modeStatusText.setText("District 1: Phase 1 — Eco-Cleanup");
+                scoreText = new Text("Eco-Score: 0 | District: 1");
+                scoreText.setFont(Font.font("Monospaced", FontWeight.BOLD, 15));
+                scoreText.setFill(Color.web("#5bc0be"));
+                scoreText.setX(FXGL.getAppWidth() - 280);
+                scoreText.setY(36);
+                FXGL.addUINode(scoreText);
+            }
+            default ->
+                modeStatusText.setText("Single Player Mode");
         }
 
         if (selectedGameMode != GameMode.SORTING_TEST
@@ -1963,21 +2086,20 @@ public class MovementApp extends GameApplication {
 
     private void updateTrashCounter() {
         if (trashCounterText != null) {
-            if (selectedGameMode == GameMode.SINGLE_PLAYER) {
-                if (generatorStage == GeneratorStage.TRASH_COLLECTION) {
-                    trashCounterText.setText(
-                            String.format("%d/%d", generatorTrashCollected, GENERATOR_TARGET_TRASH));
-                } else if (generatorStage == GeneratorStage.QUESTION) {
-                    trashCounterText.setText(String.format("%d/%d", generatorQuestionsAnswered,
-                            GENERATOR_TARGET_QUESTIONS));
-                } else if (generatorStage == GeneratorStage.SORTING) {
-                    trashCounterText.setText(
-                            String.format("%d/%d", generatorSortedCount, GENERATOR_TARGET_SORTING));
+            switch (selectedGameMode) {
+                case SINGLE_PLAYER -> {
+                    switch (generatorStage) {
+                        case TRASH_COLLECTION -> trashCounterText.setText(
+                                String.format("%d/%d", generatorTrashCollected, GENERATOR_TARGET_TRASH));
+                        case QUESTION -> trashCounterText.setText(String.format("%d/%d", generatorQuestionsAnswered,
+                                GENERATOR_TARGET_QUESTIONS));
+                        case SORTING -> trashCounterText.setText(
+                                String.format("%d/%d", generatorSortedCount, GENERATOR_TARGET_SORTING));
+                        default -> {}
+                    }
                 }
-            } else if (selectedGameMode == GameMode.MAP_GENERATOR) {
-                trashCounterText.setText(String.format("%d", collectedTrash));
-            } else {
-                trashCounterText.setText(String.format("%d/%d", collectedTrash, TOTAL_TRASH));
+                case MAP_GENERATOR -> trashCounterText.setText(String.format("%d", collectedTrash));
+                default -> trashCounterText.setText(String.format("%d/%d", collectedTrash, TOTAL_TRASH));
             }
         }
     }
@@ -2011,10 +2133,13 @@ public class MovementApp extends GameApplication {
                 || selectedGameMode == GameMode.SORTING_TEST
                 || selectedGameMode == GameMode.SEQUENTIAL_DEMO
                 || selectedGameMode == GameMode.MAP_GENERATOR) {
-            updateCoopCamera();
+            if (isInfiniteCoopMode() && playerEntity != null && playerEntity2 != null) {
+                enforcePlayerTether();
+            }
+            updateCoopCamera(tpf);
         }
 
-        if (selectedGameMode == GameMode.MAP_GENERATOR || selectedGameMode == GameMode.SINGLE_PLAYER) {
+        if (isInfiniteGameMode()) {
             if (infiniteMapManager != null && playerEntity != null) {
                 double avgX = playerEntity2 != null ? (playerEntity.getX() + playerEntity2.getX()) / 2.0
                         : playerEntity.getX();
@@ -2064,16 +2189,20 @@ public class MovementApp extends GameApplication {
                     }
                     boundaryWallReenableCooldown = 3.0; // 3-second grace period
 
-                    if (generatorStage == GeneratorStage.TRASH_COLLECTION) {
-                        generatorStage = GeneratorStage.QUESTION;
-                        setupGeneratorStage2(targetChunkX, targetChunkY);
-                    } else if (generatorStage == GeneratorStage.QUESTION) {
-                        generatorStage = GeneratorStage.SORTING;
-                        setupGeneratorStage3(targetChunkX, targetChunkY);
-                    } else {
-                        currentDistrict++;
-                        generatorStage = GeneratorStage.TRASH_COLLECTION;
-                        setupGeneratorStage1(targetChunkX, targetChunkY);
+                    switch (generatorStage) {
+                        case TRASH_COLLECTION -> {
+                            generatorStage = GeneratorStage.QUESTION;
+                            setupGeneratorStage2(targetChunkX, targetChunkY);
+                        }
+                        case QUESTION -> {
+                            generatorStage = GeneratorStage.SORTING;
+                            setupGeneratorStage3(targetChunkX, targetChunkY);
+                        }
+                        default -> {
+                            currentDistrict++;
+                            generatorStage = GeneratorStage.TRASH_COLLECTION;
+                            setupGeneratorStage1(targetChunkX, targetChunkY);
+                        }
                     }
                 }
 
@@ -2107,32 +2236,30 @@ public class MovementApp extends GameApplication {
             }
             if (modeStatusText != null) {
                 if (selectedGameMode == GameMode.SINGLE_PLAYER) {
-                    if (generatorStage == GeneratorStage.TRASH_COLLECTION) {
-                        modeStatusText.setText(String.format("District %d: Phase 1 — Eco-Cleanup (%d / %d)",
+                    switch (generatorStage) {
+                        case TRASH_COLLECTION -> modeStatusText.setText(String.format("District %d: Phase 1 — Eco-Cleanup (%d / %d)",
                                 currentDistrict, generatorTrashCollected, GENERATOR_TARGET_TRASH));
-                    } else if (generatorStage == GeneratorStage.QUESTION) {
-                        modeStatusText.setText(String.format("District %d: Phase 2 — Eco-Grid Terminals (%d / %d)",
+                        case QUESTION -> modeStatusText.setText(String.format("District %d: Phase 2 — Eco-Grid Terminals (%d / %d)",
                                 currentDistrict, generatorQuestionsAnswered, GENERATOR_TARGET_QUESTIONS));
-                    } else if (generatorStage == GeneratorStage.SORTING) {
-                        modeStatusText.setText(String.format("District %d: Phase 3 — Recycling Station (%d / %d)",
+                        case SORTING -> modeStatusText.setText(String.format("District %d: Phase 3 — Recycling Station (%d / %d)",
                                 currentDistrict, generatorSortedCount, GENERATOR_TARGET_SORTING));
+                        default -> {}
                     }
                 } else {
-                    if (generatorStage == GeneratorStage.TRASH_COLLECTION) {
-                        modeStatusText
-                                .setText(String.format("MAP GENERATOR (2P CO-OP) — STAGE 1: TRASH COLLECTION (%d / 10)",
-                                        generatorTrashCollected));
-                    } else if (generatorStage == GeneratorStage.QUESTION) {
-                        modeStatusText.setText(
-                                String.format("MAP GENERATOR (2P CO-OP) — STAGE 2: QUESTIONS ANSWERED (%d / 3)",
-                                        generatorQuestionsAnswered));
-                    } else if (generatorStage == GeneratorStage.SORTING) {
-                        modeStatusText
-                                .setText(String.format("MAP GENERATOR (2P CO-OP) — STAGE 3: %s", sortingFeedback));
+                    switch (generatorStage) {
+                        case TRASH_COLLECTION -> modeStatusText.setText(String.format(
+                                "District %d: Phase 1 — Co-op Cleanup (%d / %d)",
+                                currentDistrict, generatorTrashCollected, GENERATOR_TARGET_TRASH));
+                        case QUESTION -> modeStatusText.setText(String.format(
+                                "District %d: Phase 2 — Co-op Eco-Grid (%d / %d)",
+                                currentDistrict, generatorQuestionsAnswered, GENERATOR_TARGET_QUESTIONS));
+                        case SORTING -> modeStatusText.setText(
+                                String.format("District %d: Phase 3 — Co-op Sorting (%s)", currentDistrict, sortingFeedback));
+                        default -> {}
                     }
                 }
             }
-            if (scoreText != null && selectedGameMode == GameMode.SINGLE_PLAYER) {
+            if (scoreText != null) {
                 scoreText.setText(String.format("Eco-Score: %d | District: %d", ecoScore, currentDistrict));
             }
         } else if (selectedGameMode == GameMode.SORTING_TEST) {
@@ -2173,8 +2300,7 @@ public class MovementApp extends GameApplication {
 
         boolean activeQuestionStage = (selectedGameMode == GameMode.QUESTION_TEST
                 || (selectedGameMode == GameMode.SEQUENTIAL_DEMO && demoStage == DemoStage.QUESTION)
-                || ((selectedGameMode == GameMode.MAP_GENERATOR || selectedGameMode == GameMode.SINGLE_PLAYER)
-                        && generatorStage == GeneratorStage.QUESTION));
+                || (isInfiniteGameMode() && generatorStage == GeneratorStage.QUESTION));
         if (activeQuestionStage) {
             Entity nearEntity = findNearestQuestionEntity();
             if (nearEntity != null) {
@@ -2241,15 +2367,15 @@ public class MovementApp extends GameApplication {
                         InteractionBox binBox = sortingBinBoxes.get(bin.getKey());
                         if ((binBox != null && binBox.intersectsPlayer(playerEntity))
                                 || (playerEntity != null && playerEntity.distance(bin.getKey()) < 56.0)) {
+                            BinInfo info = getBinInfo(bin.getValue());
                             interactPromptText.setText(
-                                    "Press [E / Space] to Deposit in " + bin.getValue().toUpperCase() + " Bin");
+                                    "Press [E / Space] to Deposit in " + info.category + " Bin");
                             nearBin = true;
                             break;
                         }
                     }
                     if (!nearBin) {
-                        interactPromptText.setText("Deposit " + outsideCarriedWaste.name() + " -> "
-                                + outsideCarriedWaste.binId().toUpperCase() + " Bin");
+                        interactPromptText.setText("Carrying: " + outsideCarriedWaste.name() + " — Find the matching bin");
                     }
                     interactPromptText.setVisible(true);
                 } else {
@@ -2334,12 +2460,6 @@ public class MovementApp extends GameApplication {
                 && centerY <= activeSortZoneY + activeSortZoneHeight;
     }
 
-    private boolean playerIsNearQuestionPoint(Entity player) {
-        return Math.hypot(
-                questionPoint.getX() - player.getCenter().getX(),
-                questionPoint.getY() - player.getCenter().getY()) <= 85;
-    }
-
     private void updateSortingStatus() {
         if (sortingStatusText == null || sortingTask == null) {
             return;
@@ -2394,6 +2514,7 @@ public class MovementApp extends GameApplication {
                     .bbox(new HitBox(BoundingShape.box(16, 24)))
                     .with(new CollidableComponent(true))
                     .with(new PlayerComponent(1))
+                    .zIndex(100)
                     .build();
         }
 
@@ -2520,16 +2641,15 @@ public class MovementApp extends GameApplication {
                     bgNode = background;
                 }
             }
-            Text label = new Text(text(data, "label", "BIN"));
-            label.setFill(Color.WHITE);
-            label.setFont(Font.font("Verdana", FontWeight.BOLD, 8));
-            label.setTranslateY(-16);
-            StackPane view = new StackPane(bgNode, label);
-            StackPane.setAlignment(label, Pos.TOP_CENTER);
             Entity entity = FXGL.entityBuilder(data)
                     .type(EntityType.DEMO_BIN)
-                    .view(view)
+                    .view(bgNode)
                     .build();
+            try {
+                VBox plaque = createBinPlaque(binId);
+                entity.getViewComponent().addChild(plaque);
+            } catch (Throwable ignored) {
+            }
             double boxW = number(data, "boxWidth", BIN_BOX_WIDTH);
             double boxH = number(data, "boxHeight", BIN_BOX_HEIGHT);
             entity.setProperty("boxWidth", boxW);
@@ -2569,48 +2689,20 @@ public class MovementApp extends GameApplication {
         }
     }
 
-    private static void bindWindowControls(Node root) {
-        if (root == null)
-            return;
-        Button btnMin = (Button) root.lookup("#btnMinimize");
-        Button btnFS = (Button) root.lookup("#btnFullscreen");
-        Button btnClose = (Button) root.lookup("#btnClose");
-
-        if (btnMin != null) {
-            btnMin.setOnAction(e -> {
-                try {
-                    if (FXGL.getPrimaryStage() != null) {
-                        FXGL.getPrimaryStage().setIconified(true);
-                    }
-                } catch (Exception ignored) {
-                }
-            });
-        }
-        if (btnFS != null) {
-            btnFS.setOnAction(e -> toggleFullscreen());
-        }
-        if (btnClose != null) {
-            btnClose.setOnAction(e -> showPixelExitConfirmation());
-        }
-    }
-
-    private static void toggleFullscreen() {
-        try {
-            javafx.stage.Stage stage = FXGL.getPrimaryStage();
-            if (stage != null) {
-                boolean current = stage.isFullScreen();
-                stage.setFullScreen(!current);
+    private static Node findFxmlNode(Node rootNode, FXMLLoader loader, String id) {
+        if (rootNode != null) {
+            Node n = rootNode.lookup("#" + id);
+            if (n != null) {
+                return n;
             }
-        } catch (Exception ex) {
-            ex.printStackTrace();
         }
-    }
-
-    private void stopNetworking() {
-        if (netManager != null) {
-            netManager.stop();
-            netManager = null;
+        if (loader != null && loader.getNamespace() != null) {
+            Object obj = loader.getNamespace().get(id);
+            if (obj instanceof Node n) {
+                return n;
+            }
         }
+        return null;
     }
 
     public static final class MainMenu extends FXGLMenu {
@@ -2699,11 +2791,13 @@ public class MovementApp extends GameApplication {
                 bgIv.setFitWidth(w);
                 bgIv.setFitHeight(h);
                 bgIv.setPreserveRatio(false);
+                bgIv.setMouseTransparent(true);
                 bgNode = bgIv;
             } else {
                 bgIv = null;
                 Canvas bgCanvas = new Canvas(w, h);
                 drawBackground(bgCanvas.getGraphicsContext2D(), w, h);
+                bgCanvas.setMouseTransparent(true);
                 bgNode = bgCanvas;
             }
 
@@ -2712,15 +2806,23 @@ public class MovementApp extends GameApplication {
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/assets/ui/fxml/main_menu.fxml"));
                 menuRoot = loader.load();
 
-                Node mainMenuBoxNode = menuRoot.lookup("#mainMenuBox");
-                Node multiplayerMenuBoxNode = menuRoot.lookup("#multiplayerMenuBox");
-                Node joinCoopBox = menuRoot.lookup("#joinCoopBox");
-                Node settingsBox = menuRoot.lookup("#settingsBox");
-                Node aboutBox = menuRoot.lookup("#aboutBox");
+                Node mainMenuBoxNode = findFxmlNode(menuRoot, loader, "mainMenuBox");
+                Node multiplayerMenuBoxNode = findFxmlNode(menuRoot, loader, "multiplayerMenuBox");
+                Node joinCoopBox = findFxmlNode(menuRoot, loader, "joinCoopBox");
+                Node settingsBox = findFxmlNode(menuRoot, loader, "settingsBox");
+                Node aboutBox = findFxmlNode(menuRoot, loader, "aboutBox");
 
-                Pane mainMenuBox = (mainMenuBoxNode instanceof Pane) ? (Pane) mainMenuBoxNode : new Pane();
-                Pane multiplayerMenuBox = (multiplayerMenuBoxNode instanceof Pane) ? (Pane) multiplayerMenuBoxNode
-                        : new Pane();
+                Pane mainMenuBox = (mainMenuBoxNode instanceof Pane p) ? p : new Pane();
+                Pane multiplayerMenuBox = (multiplayerMenuBoxNode instanceof Pane p) ? p : new Pane();
+
+                if (menuRoot instanceof Pane pRoot) {
+                    if (!pRoot.getChildren().contains(mainMenuBox)) {
+                        pRoot.getChildren().add(0, mainMenuBox);
+                    }
+                    if (!pRoot.getChildren().contains(multiplayerMenuBox)) {
+                        pRoot.getChildren().add(1, multiplayerMenuBox);
+                    }
+                }
 
                 mainMenuBox.getChildren().clear();
                 multiplayerMenuBox.getChildren().clear();
@@ -2750,7 +2852,7 @@ public class MovementApp extends GameApplication {
                     }
                     showCard(joinCoopBox, multiplayerMenuBox, mainMenuBox, settingsBox, aboutBox);
                     if (joinCoopBox != null) {
-                        TextField txtHostIp = (TextField) joinCoopBox.lookup("#txtHostIp");
+                        TextField txtHostIp = (TextField) findFxmlNode(joinCoopBox, loader, "txtHostIp");
                         if (txtHostIp != null) {
                             txtHostIp.requestFocus();
                             txtHostIp.selectAll();
@@ -2857,9 +2959,9 @@ public class MovementApp extends GameApplication {
                         btnBackTablet);
 
                 // Join Co-op card handlers
-                Button btnJoinConnect = (Button) menuRoot.lookup("#btnJoinConnect");
-                Button btnJoinCancel = (Button) menuRoot.lookup("#btnJoinCancel");
-                TextField txtHostIp = (TextField) menuRoot.lookup("#txtHostIp");
+                Button btnJoinConnect = (Button) findFxmlNode(menuRoot, loader, "btnJoinConnect");
+                Button btnJoinCancel = (Button) findFxmlNode(menuRoot, loader, "btnJoinCancel");
+                TextField txtHostIp = (TextField) findFxmlNode(menuRoot, loader, "txtHostIp");
 
                 if (btnJoinConnect != null) {
                     btnJoinConnect.setOnAction(e -> {
@@ -2879,9 +2981,9 @@ public class MovementApp extends GameApplication {
                 }
 
                 // Settings button handlers
-                Button btnToggleFullscreen = (Button) menuRoot.lookup("#btnToggleFullscreen");
-                Button btnSettingsBack = (Button) menuRoot.lookup("#btnSettingsBack");
-                Button btnAboutBack = (Button) menuRoot.lookup("#btnAboutBack");
+                Button btnToggleFullscreen = (Button) findFxmlNode(menuRoot, loader, "btnToggleFullscreen");
+                Button btnSettingsBack = (Button) findFxmlNode(menuRoot, loader, "btnSettingsBack");
+                Button btnAboutBack = (Button) findFxmlNode(menuRoot, loader, "btnAboutBack");
 
                 if (btnToggleFullscreen != null) {
                     btnToggleFullscreen.setOnAction(
@@ -2896,12 +2998,16 @@ public class MovementApp extends GameApplication {
                     btnAboutBack.setOnAction(e -> showMainCard.run());
                 }
 
-            } catch (Exception ex) {
+            } catch (IOException | RuntimeException ex) {
                 menuRoot = createFallbackMenu();
             }
 
             StackPane root = new StackPane(bgNode, menuRoot);
             root.setPrefSize(w, h);
+            root.setPickOnBounds(false);
+            if (menuRoot instanceof Region r) {
+                r.setPickOnBounds(false);
+            }
 
             getContentRoot().getChildren().add(root);
         }
@@ -2927,6 +3033,9 @@ public class MovementApp extends GameApplication {
             ImageView iv = null;
             try {
                 java.io.InputStream stream = MainMenu.class.getResourceAsStream(imagePath);
+                if (stream == null && imagePath.contains("main_menu.png")) {
+                    stream = MainMenu.class.getResourceAsStream("/assets/ui/menu/mainmenu.png");
+                }
                 if (stream != null) {
                     Image img = new Image(stream);
                     iv = new ImageView(img);
@@ -2935,16 +3044,26 @@ public class MovementApp extends GameApplication {
                         iv.setPreserveRatio(true);
                         iv.setSmooth(true);
                     }
+                    iv.setMouseTransparent(true);
                 }
             } catch (Exception ignored) {
             }
 
+            double tabletHeight = (TABLET_WIDTH > 0) ? (TABLET_WIDTH * 110.0 / 505.0) : 58.0;
+
             StackPane container = new StackPane();
             container.setPickOnBounds(true);
+            container.setPrefSize(TABLET_WIDTH, tabletHeight);
+            container.setMinSize(TABLET_WIDTH, tabletHeight);
+            container.setMaxSize(TABLET_WIDTH, tabletHeight);
+
+            Button fallbackBtn = null;
             if (iv != null) {
                 container.getChildren().add(iv);
             } else {
-                Button fallbackBtn = styledButton(fallbackLabel);
+                fallbackBtn = styledButton(fallbackLabel);
+                fallbackBtn.setPrefSize(TABLET_WIDTH, tabletHeight);
+                fallbackBtn.setMinSize(TABLET_WIDTH, tabletHeight);
                 container.getChildren().add(fallbackBtn);
             }
 
@@ -2981,8 +3100,46 @@ public class MovementApp extends GameApplication {
                 scaleOut.playFromStart();
             });
 
-            if (onClick != null) {
-                container.setOnMouseClicked(e -> onClick.run());
+            final long[] lastClickTime = new long[1];
+            final Runnable safeClick = () -> {
+                long now = System.currentTimeMillis();
+                if (now - lastClickTime[0] > 250) {
+                    lastClickTime[0] = now;
+                    if (onClick != null) {
+                        onClick.run();
+                    }
+                }
+            };
+
+            container.setOnMousePressed(e -> {
+                if (e.getButton() == MouseButton.PRIMARY) {
+                    container.setScaleX(1.02);
+                    container.setScaleY(1.02);
+                    safeClick.run();
+                }
+            });
+
+            container.setOnMouseReleased(e -> {
+                if (e.getButton() == MouseButton.PRIMARY) {
+                    container.setScaleX(1.06);
+                    container.setScaleY(1.06);
+                }
+            });
+
+            container.setOnMouseClicked(e -> {
+                if (e.getButton() == MouseButton.PRIMARY) {
+                    safeClick.run();
+                }
+            });
+
+            if (fallbackBtn != null) {
+                final Button fb = fallbackBtn;
+                fb.setOnAction(e -> safeClick.run());
+                fb.setOnMousePressed(e -> {
+                    if (e.getButton() == MouseButton.PRIMARY) {
+                        safeClick.run();
+                    }
+                });
             }
 
             return container;
@@ -2992,6 +3149,7 @@ public class MovementApp extends GameApplication {
             if (activeCard != null) {
                 activeCard.setVisible(true);
                 activeCard.setManaged(true);
+                activeCard.toFront();
             }
             for (Node c : cardsToHide) {
                 if (c != null) {
@@ -3160,6 +3318,7 @@ public class MovementApp extends GameApplication {
 
             // 1. Dark backdrop to darken the live gameplay behind the menu
             Rectangle darkOverlay = new Rectangle(w, h, Color.rgb(0, 0, 0, 0.65));
+            darkOverlay.setMouseTransparent(true);
 
             // 2. stick.png overlay background
             ImageView stickIv = null;
@@ -3171,11 +3330,13 @@ public class MovementApp extends GameApplication {
                     stickIv.setFitWidth(w);
                     stickIv.setFitHeight(h);
                     stickIv.setPreserveRatio(false);
+                    stickIv.setMouseTransparent(true);
                 }
             } catch (Exception ignored) {
             }
 
             Group bgGroup = new Group();
+            bgGroup.setMouseTransparent(true);
             bgGroup.getChildren().add(darkOverlay);
             if (stickIv != null) {
                 bgGroup.getChildren().add(stickIv);
@@ -3186,8 +3347,11 @@ public class MovementApp extends GameApplication {
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/assets/ui/fxml/pause_menu.fxml"));
                 menuRoot = loader.load();
 
-                Node pauseMenuBoxNode = menuRoot.lookup("#pauseMenuBox");
-                Pane pauseMenuBox = (pauseMenuBoxNode instanceof Pane) ? (Pane) pauseMenuBoxNode : new Pane();
+                Node pauseMenuBoxNode = findFxmlNode(menuRoot, loader, "pauseMenuBox");
+                Pane pauseMenuBox = (pauseMenuBoxNode instanceof Pane p) ? p : new Pane();
+                if (menuRoot instanceof Pane pRoot && !pRoot.getChildren().contains(pauseMenuBox)) {
+                    pRoot.getChildren().add(pauseMenuBox);
+                }
                 pauseMenuBox.getChildren().clear();
 
                 double centerX = (w - TABLET_WIDTH) / 2.0;
@@ -3214,12 +3378,16 @@ public class MovementApp extends GameApplication {
                         () -> showPixelExitConfirmation());
 
                 pauseMenuBox.getChildren().addAll(btnResumeTablet, btnMainMenuTablet, btnExitTablet);
-            } catch (Exception ex) {
+            } catch (IOException | RuntimeException ex) {
                 menuRoot = createFallbackPauseMenu();
             }
 
             StackPane root = new StackPane(bgGroup, menuRoot);
             root.setPrefSize(w, h);
+            root.setPickOnBounds(false);
+            if (menuRoot instanceof Region r) {
+                r.setPickOnBounds(false);
+            }
             getContentRoot().getChildren().add(root);
         }
 
@@ -3239,16 +3407,26 @@ public class MovementApp extends GameApplication {
                         iv.setPreserveRatio(true);
                         iv.setSmooth(true);
                     }
+                    iv.setMouseTransparent(true);
                 }
             } catch (Exception ignored) {
             }
 
+            double tabletHeight = (TABLET_WIDTH > 0) ? (TABLET_WIDTH * 110.0 / 505.0) : 58.0;
+
             StackPane container = new StackPane();
             container.setPickOnBounds(true);
+            container.setPrefSize(TABLET_WIDTH, tabletHeight);
+            container.setMinSize(TABLET_WIDTH, tabletHeight);
+            container.setMaxSize(TABLET_WIDTH, tabletHeight);
+
+            Button fallbackBtn = null;
             if (iv != null) {
                 container.getChildren().add(iv);
             } else {
-                Button fallbackBtn = styledButton(fallbackLabel);
+                fallbackBtn = styledButton(fallbackLabel);
+                fallbackBtn.setPrefSize(TABLET_WIDTH, tabletHeight);
+                fallbackBtn.setMinSize(TABLET_WIDTH, tabletHeight);
                 container.getChildren().add(fallbackBtn);
             }
 
@@ -3285,8 +3463,46 @@ public class MovementApp extends GameApplication {
                 scaleOut.playFromStart();
             });
 
-            if (onClick != null) {
-                container.setOnMouseClicked(e -> onClick.run());
+            final long[] lastClickTime = new long[1];
+            final Runnable safeClick = () -> {
+                long now = System.currentTimeMillis();
+                if (now - lastClickTime[0] > 250) {
+                    lastClickTime[0] = now;
+                    if (onClick != null) {
+                        onClick.run();
+                    }
+                }
+            };
+
+            container.setOnMousePressed(e -> {
+                if (e.getButton() == MouseButton.PRIMARY) {
+                    container.setScaleX(1.02);
+                    container.setScaleY(1.02);
+                    safeClick.run();
+                }
+            });
+
+            container.setOnMouseReleased(e -> {
+                if (e.getButton() == MouseButton.PRIMARY) {
+                    container.setScaleX(1.06);
+                    container.setScaleY(1.06);
+                }
+            });
+
+            container.setOnMouseClicked(e -> {
+                if (e.getButton() == MouseButton.PRIMARY) {
+                    safeClick.run();
+                }
+            });
+
+            if (fallbackBtn != null) {
+                final Button fb = fallbackBtn;
+                fb.setOnAction(e -> safeClick.run());
+                fb.setOnMousePressed(e -> {
+                    if (e.getButton() == MouseButton.PRIMARY) {
+                        safeClick.run();
+                    }
+                });
             }
 
             return container;
@@ -3331,6 +3547,12 @@ public class MovementApp extends GameApplication {
 
     private static void showPixelExitConfirmation() {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        try {
+            if (FXGL.getPrimaryStage() != null) {
+                alert.initOwner(FXGL.getPrimaryStage());
+            }
+        } catch (Exception ignored) {
+        }
         alert.setTitle("Exit Game");
         alert.setHeaderText("EXIT RESTORATION?");
         alert.setContentText("Are you sure you want to quit the game?");
@@ -3390,8 +3612,7 @@ public class MovementApp extends GameApplication {
                 });
             }
             FXGL.addUINode(endGameOverlayNode);
-        } catch (Exception ex) {
-            ex.printStackTrace();
+        } catch (IOException | RuntimeException ignored) {
         }
     }
 

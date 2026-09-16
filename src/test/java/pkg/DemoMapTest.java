@@ -1,18 +1,19 @@
 package pkg;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import com.almasb.fxgl.entity.level.tiled.TMXLevelLoader;
-import com.almasb.fxgl.entity.level.tiled.TiledObject;
-import com.almasb.fxgl.entity.SpawnData;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
+
+import com.almasb.fxgl.entity.SpawnData;
+import com.almasb.fxgl.entity.level.tiled.TMXLevelLoader;
+import com.almasb.fxgl.entity.level.tiled.TiledObject;
 
 class DemoMapTest {
 
@@ -29,6 +30,27 @@ class DemoMapTest {
         var entity = new MovementApp.GameEntityFactory().spawnDemoBin(data);
 
         assertEquals("black", entity.getProperties().getString("binId"));
+    }
+
+    @Test
+    void binInfoProvidesCategoriesAndAcceptedItemsWithoutSpoilers() {
+        MovementApp.BinInfo blue = MovementApp.getBinInfo("blue");
+        assertEquals("RECYCLABLES", blue.category);
+        assertTrue(blue.accepts.contains("Paper"));
+        assertTrue(blue.accepts.contains("Cans"));
+
+        MovementApp.BinInfo green = MovementApp.getBinInfo("green");
+        assertEquals("ORGANIC", green.category);
+        assertTrue(green.accepts.contains("Food"));
+        assertTrue(green.accepts.contains("Leaves"));
+
+        MovementApp.BinInfo red = MovementApp.getBinInfo("red");
+        assertEquals("HAZARDOUS", red.category);
+        assertTrue(red.accepts.contains("Batteries"));
+
+        MovementApp.BinInfo black = MovementApp.getBinInfo("black");
+        assertEquals("GENERAL WASTE", black.category);
+        assertTrue(black.accepts.contains("Wrappers"));
     }
 
     @Test
