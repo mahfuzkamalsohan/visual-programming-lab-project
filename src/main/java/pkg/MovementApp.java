@@ -1180,7 +1180,13 @@ public class MovementApp extends GameApplication {
         plaque.getChildren().addAll(catLabel);
         plaque.setMouseTransparent(true);
         plaque.setTranslateX(-23);
-        plaque.setTranslateY(-36);
+        // Position label: under hazardous (red) and recyclables (blue) bins, otherwise above
+        boolean isUnder = "red".equalsIgnoreCase(binId) || "blue".equalsIgnoreCase(binId);
+        if (isUnder) {
+            plaque.setTranslateY(62);
+        } else {
+            plaque.setTranslateY(-34);
+        }
         return plaque;
     }
 
@@ -1959,20 +1965,24 @@ public class MovementApp extends GameApplication {
 
     @Override
     protected void initUI() {
+        // Top-left HUD: timer and mode status with styled background
         timerText = new Text();
         timerText.setFont(Font.font("Monospaced", FontWeight.BOLD, 20));
         timerText.setFill(Color.web("#ffb703"));
-        timerText.setX(20);
-        timerText.setY(36);
-        FXGL.addUINode(timerText);
-
         modeStatusText = new Text();
         modeStatusText.setFont(Font.font("Monospaced", FontWeight.BOLD, 13));
         modeStatusText.setFill(Color.web("#d7e77f"));
-        modeStatusText.setX(20);
-        modeStatusText.setY(60);
-        FXGL.addUINode(modeStatusText);
-
+        VBox topLeftBox = new VBox(4, timerText, modeStatusText);
+        topLeftBox.setAlignment(Pos.TOP_LEFT);
+        topLeftBox.setStyle("-fx-background-color: rgba(10, 18, 14, 0.90);" +
+                "-fx-border-color: #39ff14;" +
+                "-fx-border-width: 1.2px;" +
+                "-fx-border-radius: 4px;" +
+                "-fx-background-radius: 4px;" +
+                "-fx-padding: 4px 8px;");
+        topLeftBox.setTranslateX(20);
+        topLeftBox.setTranslateY(20);
+        FXGL.addUINode(topLeftBox);
         switch (selectedGameMode) {
             case QUESTION_TEST ->
                 modeStatusText.setText("Question Test — Answered: 0 / " + testQuestions.size());
