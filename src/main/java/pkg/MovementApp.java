@@ -112,7 +112,9 @@ public class MovementApp extends GameApplication {
 
     private GeneratorStage generatorStage = GeneratorStage.TRASH_COLLECTION;
     private boolean generatorStageCompleted = false;
-    private String lastCompletedChunkKey = "";
+    private int currentMapRadius = 0;
+    private final java.util.Set<String> completedChunks = new java.util.HashSet<>();
+    private final java.util.Map<String, GeneratorStage> assignedTasks = new java.util.HashMap<>();
     private double boundaryWallReenableCooldown = 0.0;
 
     private final List<Entity> generatorTrashEntities = new ArrayList<>();
@@ -420,7 +422,11 @@ public class MovementApp extends GameApplication {
             ecoScore = 0;
             generatorStage = GeneratorStage.TRASH_COLLECTION;
             generatorStageCompleted = false;
-            lastCompletedChunkKey = "";
+            completedChunks.clear();
+            currentMapRadius = 0;
+            assignedTasks.clear();
+            assignedTasks.put("0,0", GeneratorStage.TRASH_COLLECTION);
+            infiniteMapManager.unlockLayer(0);
             setupGeneratorStage1(0, 0);
         } else {
             String mapPath = selectedGameMode == GameMode.SEQUENTIAL_DEMO
@@ -1249,9 +1255,7 @@ public class MovementApp extends GameApplication {
                                 Color.web("#39ff14"));
                         updateTrashCounter();
                         if (generatorTrashCollected >= GENERATOR_TARGET_TRASH) {
-                            generatorStageCompleted = true;
-                            lastCompletedChunkKey = infiniteMapManager.getCurrentChunkX() + ","
-                                    + infiniteMapManager.getCurrentChunkY();
+                            completeCurrentChunkTask();
                             AudioManager.playCorrectAnswer();
                             showTemporaryNotice("STAGE 1 CLEARED!\nSpreading world restoration wave...");
                             if (infiniteMapManager != null) {
@@ -1315,9 +1319,7 @@ public class MovementApp extends GameApplication {
                                 Color.web("#d7e77f"));
                         updateTrashCounter();
                         if (generatorTrashCollected >= GENERATOR_TARGET_TRASH) {
-                            generatorStageCompleted = true;
-                            lastCompletedChunkKey = infiniteMapManager.getCurrentChunkX() + ","
-                                    + infiniteMapManager.getCurrentChunkY();
+                            completeCurrentChunkTask();
                             AudioManager.playCorrectAnswer();
                             showTemporaryNotice("STAGE 1 CLEARED!\nSpreading world restoration wave...");
                             if (infiniteMapManager != null) {
@@ -1335,9 +1337,7 @@ public class MovementApp extends GameApplication {
                 if (sortingTask != null && sortingTask.isComplete()) {
                     generatorSortedCount = GENERATOR_TARGET_SORTING;
                     infiniteMapManager.unlockCurrentRegion();
-                    generatorStageCompleted = true;
-                    lastCompletedChunkKey = infiniteMapManager.getCurrentChunkX() + ","
-                            + infiniteMapManager.getCurrentChunkY();
+                    completeCurrentChunkTask();
                     ecoScore += 500;
                     if (timer != null)
                         timer.applyDelta(30.0);
@@ -1447,9 +1447,7 @@ public class MovementApp extends GameApplication {
                         if (sortingTask.isComplete()) {
                             generatorSortedCount = GENERATOR_TARGET_SORTING;
                             infiniteMapManager.unlockCurrentRegion();
-                            generatorStageCompleted = true;
-                            lastCompletedChunkKey = infiniteMapManager.getCurrentChunkX() + ","
-                                    + infiniteMapManager.getCurrentChunkY();
+                            completeCurrentChunkTask();
                             ecoScore += 500;
                             if (timer != null)
                                 timer.applyDelta(30.0);
@@ -1569,9 +1567,7 @@ public class MovementApp extends GameApplication {
                     if (isInfiniteCoopMode() && sortingTask.isComplete()) {
                         generatorSortedCount = GENERATOR_TARGET_SORTING;
                         infiniteMapManager.unlockCurrentRegion();
-                        generatorStageCompleted = true;
-                        lastCompletedChunkKey = infiniteMapManager.getCurrentChunkX() + ","
-                                + infiniteMapManager.getCurrentChunkY();
+                        completeCurrentChunkTask();
                         ecoScore += 500;
                         if (timer != null)
                             timer.applyDelta(30.0);
@@ -1708,9 +1704,7 @@ public class MovementApp extends GameApplication {
 
                 if (generatorQuestionsAnswered >= GENERATOR_TARGET_QUESTIONS) {
                     infiniteMapManager.unlockCurrentRegion();
-                    generatorStageCompleted = true;
-                    lastCompletedChunkKey = infiniteMapManager.getCurrentChunkX() + ","
-                            + infiniteMapManager.getCurrentChunkY();
+                    completeCurrentChunkTask();
                     showTemporaryNotice("💡 ECO-GRID ONLINE!\nProceed into next sector for Eco-Sorting.");
                 }
             }, Duration.seconds(1.2));
@@ -2261,6 +2255,48 @@ public class MovementApp extends GameApplication {
         return null;
     }
 
+    private void completeCurrentChunkTask() {
+        if (infiniteMapManager != null) {
+            infiniteMapManager.unlockCurrentRegion();
+            String chunkKey = infiniteMapManager.getCurrentChunkX() + "," + infiniteMapManager.getCurrentChunkY();
+            completedChunks.add(chunkKey);
+        }
+        generatorStageCompleted = true;
+        checkAndExpandLayer();
+    }
+
+    private void checkAndExpandLayer() {
+        if (infiniteMapManager == null) return;
+        boolean layerComplete = true;
+        for (int dx = -currentMapRadius; dx <= currentMapRadius; dx++) {
+            for (int dy = -currentMapRadius; dy <= currentMapRadius; dy++) {
+                if (Math.abs(dx) == currentMapRadius || Math.abs(dy) == currentMapRadius) {
+                    if (!completedChunks.contains(dx + "," + dy)) {
+                        layerComplete = false;
+                        break;
+                    }
+                }
+            }
+            if (!layerComplete) break;
+        }
+
+        if (layerComplete) {
+            currentMapRadius++;
+            infiniteMapManager.unlockLayer(currentMapRadius);
+            
+            GeneratorStage[] stages = {GeneratorStage.TRASH_COLLECTION, GeneratorStage.QUESTION, GeneratorStage.SORTING};
+            java.util.Random rand = new java.util.Random();
+            
+            for (int dx = -currentMapRadius; dx <= currentMapRadius; dx++) {
+                for (int dy = -currentMapRadius; dy <= currentMapRadius; dy++) {
+                    if (Math.abs(dx) == currentMapRadius || Math.abs(dy) == currentMapRadius) {
+                        assignedTasks.put(dx + "," + dy, stages[rand.nextInt(stages.length)]);
+                    }
+                }
+            }
+        }
+    }
+
     private void updateTrashCounter() {
         if (trashCounterText != null) {
             switch (selectedGameMode) {
@@ -2344,11 +2380,11 @@ public class MovementApp extends GameApplication {
                 int p2LocalX = (int) Math.floor(p2TileX) - p2CurX * InfiniteMapManager.CHUNK_SIZE;
                 int p2LocalY = (int) Math.floor(p2TileY) - p2CurY * InfiniteMapManager.CHUNK_SIZE;
 
-                boolean p1Entered = !p1Key.equals(lastCompletedChunkKey)
+                boolean p1Entered = !completedChunks.contains(p1Key)
                         && p1LocalX >= 3 && p1LocalX <= (InfiniteMapManager.CHUNK_SIZE - 4)
                         && p1LocalY >= 3 && p1LocalY <= (InfiniteMapManager.CHUNK_SIZE - 4);
 
-                boolean p2Entered = (playerEntity2 != null) && !p2Key.equals(lastCompletedChunkKey)
+                boolean p2Entered = (playerEntity2 != null) && !completedChunks.contains(p2Key)
                         && p2LocalX >= 3 && p2LocalX <= (InfiniteMapManager.CHUNK_SIZE - 4)
                         && p2LocalY >= 3 && p2LocalY <= (InfiniteMapManager.CHUNK_SIZE - 4);
 
@@ -2368,20 +2404,11 @@ public class MovementApp extends GameApplication {
                     }
                     boundaryWallReenableCooldown = 3.0; // 3-second grace period
 
+                    generatorStage = assignedTasks.getOrDefault(targetChunkX + "," + targetChunkY, GeneratorStage.TRASH_COLLECTION);
                     switch (generatorStage) {
-                        case TRASH_COLLECTION -> {
-                            generatorStage = GeneratorStage.QUESTION;
-                            setupGeneratorStage2(targetChunkX, targetChunkY);
-                        }
-                        case QUESTION -> {
-                            generatorStage = GeneratorStage.SORTING;
-                            setupGeneratorStage3(targetChunkX, targetChunkY);
-                        }
-                        default -> {
-                            currentDistrict++;
-                            generatorStage = GeneratorStage.TRASH_COLLECTION;
-                            setupGeneratorStage1(targetChunkX, targetChunkY);
-                        }
+                        case TRASH_COLLECTION -> setupGeneratorStage1(targetChunkX, targetChunkY);
+                        case QUESTION -> setupGeneratorStage2(targetChunkX, targetChunkY);
+                        case SORTING -> setupGeneratorStage3(targetChunkX, targetChunkY);
                     }
                 }
 

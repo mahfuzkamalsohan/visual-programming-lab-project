@@ -40,6 +40,7 @@ public class InfiniteMapManager {
     private final List<ChunkTemplate> templates = new ArrayList<>();
     private final Map<String, ChunkState> chunkStateCache = new HashMap<>();
     private final Map<String, LoadedChunk> loadedActiveChunks = new HashMap<>();
+    private final Set<String> unlockedChunks = new HashSet<>();
 
     private Image spritesheetImage;
     private int currentChunkX = Integer.MIN_VALUE;
@@ -294,6 +295,7 @@ public class InfiniteMapManager {
 
     public InfiniteMapManager(long worldSeed) {
         this.worldSeed = worldSeed;
+        this.unlockedChunks.add("0,0"); // Starting chunk is always unlocked
         try {
             InputStream is = getClass().getClassLoader().getResourceAsStream("assets/levels/tmx/map_spritesheet.png");
             if (is != null) {
@@ -408,7 +410,10 @@ public class InfiniteMapManager {
             for (int dx = -ACTIVE_RADIUS; dx <= ACTIVE_RADIUS; dx++) {
                 int cx = currentChunkX + dx;
                 int cy = currentChunkY + dy;
-                activeKeysNeeded.add(cx + "," + cy);
+                String key = cx + "," + cy;
+                if (unlockedChunks.contains(key)) {
+                    activeKeysNeeded.add(key);
+                }
             }
         }
 
@@ -432,6 +437,21 @@ public class InfiniteMapManager {
                 loadChunk(cx, cy);
             }
         }
+    }
+    
+    public void unlockLayer(int radius) {
+        if (radius == 0) {
+            unlockedChunks.add("0,0");
+        } else {
+            for (int dx = -radius; dx <= radius; dx++) {
+                for (int dy = -radius; dy <= radius; dy++) {
+                    if (Math.abs(dx) == radius || Math.abs(dy) == radius) {
+                        unlockedChunks.add(dx + "," + dy);
+                    }
+                }
+            }
+        }
+        refreshActiveChunks();
     }
 
     private ChunkState getOrCreateChunkState(int chunkX, int chunkY) {
@@ -490,7 +510,7 @@ public class InfiniteMapManager {
         gc.setImageSmoothing(false);
         gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
 
-        double ratio = state.isRestored ? 0.0 : currentRestorationRatio;
+        double ratio = state.isRestored ? 1.0 : currentRestorationRatio;
 
         // Draw in isometric depth order (lx + ly) to guarantee proper painter's algorithm
         for (int depth = 0; depth <= (CHUNK_SIZE - 1) * 2; depth++) {
