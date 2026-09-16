@@ -871,6 +871,16 @@ public class MovementApp extends GameApplication {
         activeSortZoneHeight = SORT_ZONE_HEIGHT;
     }
 
+    private void hideSortingBins() {
+        for (Entity bin : sortingBins.keySet()) {
+            if (bin.isActive()) {
+                bin.removeFromWorld();
+            }
+        }
+        sortingBins.clear();
+        sortingBinBoxes.clear();
+    }
+
     private void setupGeneratorStage1(int chunkX, int chunkY) {
         clearGeneratorStageEntities();
         if (infiniteMapManager != null) {
@@ -1395,6 +1405,7 @@ public class MovementApp extends GameApplication {
             } else if (generatorStage == GeneratorStage.SORTING) {
                 interactWithSortingP2();
                 if (sortingTask != null && sortingTask.isComplete()) {
+                    hideSortingBins();
                     generatorSortedCount = GENERATOR_TARGET_SORTING;
                     infiniteMapManager.unlockCurrentRegion();
                     completeCurrentChunkTask();
@@ -1505,6 +1516,7 @@ public class MovementApp extends GameApplication {
                         }
 
                         if (sortingTask.isComplete()) {
+                            hideSortingBins();
                             generatorSortedCount = GENERATOR_TARGET_SORTING;
                             infiniteMapManager.unlockCurrentRegion();
                             completeCurrentChunkTask();
@@ -1623,6 +1635,7 @@ public class MovementApp extends GameApplication {
                         sortingFeedback = "Wrong bin! " + insideCarriedWaste.name() + " rejected (-6s)";
                     }
                     if (isInfiniteCoopMode() && sortingTask.isComplete()) {
+                        hideSortingBins();
                         generatorSortedCount = GENERATOR_TARGET_SORTING;
                         infiniteMapManager.unlockCurrentRegion();
                         completeCurrentChunkTask();
@@ -1635,6 +1648,7 @@ public class MovementApp extends GameApplication {
                                 + (currentDistrict + 1) + "!");
                     }
                     if (selectedGameMode == GameMode.SEQUENTIAL_DEMO && sortingTask.isComplete() && !gameEnded) {
+                        hideSortingBins();
                         gameEnded = true;
                         demoStage = DemoStage.COMPLETE;
                         sortingFeedback = "Demo complete — all three stages passed";
