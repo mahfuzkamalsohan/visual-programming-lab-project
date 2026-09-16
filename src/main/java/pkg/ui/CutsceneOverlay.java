@@ -23,6 +23,8 @@ import javafx.scene.image.PixelWriter;
 import javafx.scene.image.WritableImage;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
@@ -272,7 +274,10 @@ public class CutsceneOverlay extends StackPane {
         HBox promptRow = new HBox(prompt);
         promptRow.setAlignment(Pos.BOTTOM_RIGHT);
 
-        box.getChildren().addAll(dialogueText, promptRow);
+        Region spacer = new Region();
+        VBox.setVgrow(spacer, Priority.ALWAYS);
+
+        box.getChildren().addAll(dialogueText, spacer, promptRow);
 
         // Pulsing animation for prompt label
         Timeline pulseTimeline = new Timeline(
