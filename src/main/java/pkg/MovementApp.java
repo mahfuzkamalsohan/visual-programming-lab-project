@@ -1102,7 +1102,18 @@ public class MovementApp extends GameApplication {
 
     private Label worldLabel(String text) {
         Label label = new Label(text);
-        label.setStyle("-fx-text-fill:white;-fx-font-family:Verdana;-fx-font-size:10px;-fx-font-weight:bold;");
+        label.setStyle(
+                "-fx-background-color: rgba(9, 17, 24, 0.90);"
+                + "-fx-border-color: #f1d090;"
+                + "-fx-border-width: 1.2px;"
+                + "-fx-border-radius: 3px;"
+                + "-fx-background-radius: 3px;"
+                + "-fx-padding: 2px 6px;"
+                + "-fx-text-fill: #f1d090;"
+                + "-fx-font-family: 'Monospaced';"
+                + "-fx-font-size: 9.5px;"
+                + "-fx-font-weight: bold;"
+                + "-fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.8), 3, 0, 0, 2);");
         label.setMouseTransparent(true);
         return label;
     }
@@ -1154,33 +1165,42 @@ public class MovementApp extends GameApplication {
         };
     }
 
-    private static VBox createBinPlaque(String binId) {
+    static VBox createBinPlaque(String binId) {
         BinInfo info = getBinInfo(binId);
+
+        String lower = binId == null ? "" : binId.toLowerCase().trim();
+        boolean isUnderneath = lower.equals("red") || lower.equals("blue")
+                || lower.contains("hazard") || lower.contains("recyc");
 
         VBox plaque = new VBox(2);
         plaque.setAlignment(Pos.CENTER);
         plaque.setStyle(
-                "-fx-background-color: rgba(10, 18, 14, 0.90);"
+                "-fx-background-color: rgba(9, 17, 24, 0.92);"
                 + "-fx-border-color: " + info.colorHex + ";"
-                + "-fx-border-width: 1.2px;"
+                + "-fx-border-width: 1.8px;"
                 + "-fx-border-radius: 4px;"
                 + "-fx-background-radius: 4px;"
-                + "-fx-padding: 3px 6px;");
+                + "-fx-padding: 3px 8px;"
+                + "-fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.85), 4, 0, 0, 2);");
 
-        Label catLabel = new Label(info.category);
+        String arrow = isUnderneath ? "▲ " : "▼ ";
+        Label catLabel = new Label(arrow + info.category + " " + arrow);
         catLabel.setStyle(
                 "-fx-text-fill: " + info.colorHex + ";"
                 + "-fx-font-family: 'Monospaced';"
-                + "-fx-font-size: 8.5px;"
+                + "-fx-font-size: 9px;"
                 + "-fx-font-weight: bold;"
                 + "-fx-alignment: center;");
 
-
-
-        plaque.getChildren().addAll(catLabel);
+        plaque.getChildren().add(catLabel);
         plaque.setMouseTransparent(true);
-        plaque.setTranslateX(-23);
-        plaque.setTranslateY(-36);
+        plaque.setMinWidth(100);
+        plaque.setMaxWidth(114);
+
+        // Center plaque horizontally relative to 72px can: (72 - 104) / 2 ~= -16
+        plaque.setTranslateX(-16);
+        // Hazardous & Recyclable underneath (Y=62), Organic & General Waste above (Y=-32)
+        plaque.setTranslateY(isUnderneath ? 62 : -32);
         return plaque;
     }
 
@@ -1960,18 +1980,60 @@ public class MovementApp extends GameApplication {
     @Override
     protected void initUI() {
         timerText = new Text();
-        timerText.setFont(Font.font("Monospaced", FontWeight.BOLD, 20));
+        timerText.setFont(Font.font("Monospaced", FontWeight.BOLD, 18));
         timerText.setFill(Color.web("#ffb703"));
-        timerText.setX(20);
-        timerText.setY(36);
-        FXGL.addUINode(timerText);
+
+        Label timerTag = new Label("[⏱ TIME]");
+        timerTag.setStyle(
+                "-fx-background-color: rgba(255, 183, 3, 0.18);"
+                + "-fx-border-color: #ffb703;"
+                + "-fx-border-width: 1px;"
+                + "-fx-border-radius: 3px;"
+                + "-fx-background-radius: 3px;"
+                + "-fx-padding: 2px 6px;"
+                + "-fx-text-fill: #ffb703;"
+                + "-fx-font-family: 'Monospaced';"
+                + "-fx-font-size: 11px;"
+                + "-fx-font-weight: bold;");
+
+        HBox timerRow = new HBox(8, timerTag, timerText);
+        timerRow.setAlignment(Pos.CENTER_LEFT);
 
         modeStatusText = new Text();
         modeStatusText.setFont(Font.font("Monospaced", FontWeight.BOLD, 13));
-        modeStatusText.setFill(Color.web("#d7e77f"));
-        modeStatusText.setX(20);
-        modeStatusText.setY(60);
-        FXGL.addUINode(modeStatusText);
+        modeStatusText.setFill(Color.web("#e0e0e0"));
+
+        Label missionTag = new Label("[MISSION]");
+        missionTag.setStyle(
+                "-fx-background-color: rgba(57, 255, 20, 0.18);"
+                + "-fx-border-color: #39ff14;"
+                + "-fx-border-width: 1px;"
+                + "-fx-border-radius: 3px;"
+                + "-fx-background-radius: 3px;"
+                + "-fx-padding: 2px 6px;"
+                + "-fx-text-fill: #39ff14;"
+                + "-fx-font-family: 'Monospaced';"
+                + "-fx-font-size: 10px;"
+                + "-fx-font-weight: bold;");
+
+        HBox missionRow = new HBox(8, missionTag, modeStatusText);
+        missionRow.setAlignment(Pos.CENTER_LEFT);
+
+        VBox topBarLeftCard = new VBox(6);
+        topBarLeftCard.setStyle(
+                "-fx-background-color: rgba(9, 17, 24, 0.88);"
+                + "-fx-border-color: #39ff14;"
+                + "-fx-border-width: 2px;"
+                + "-fx-border-radius: 5px;"
+                + "-fx-background-radius: 5px;"
+                + "-fx-padding: 8px 14px;"
+                + "-fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.85), 6, 0, 0, 3);");
+        topBarLeftCard.setTranslateX(16);
+        topBarLeftCard.setTranslateY(14);
+        topBarLeftCard.setMouseTransparent(true);
+        topBarLeftCard.getChildren().addAll(timerRow, missionRow);
+
+        boolean hasScore = false;
 
         switch (selectedGameMode) {
             case QUESTION_TEST ->
@@ -1981,28 +2043,38 @@ public class MovementApp extends GameApplication {
             case SEQUENTIAL_DEMO ->
                 modeStatusText.setText("Sequential Demo — P1: WASD, P2: arrows, E: interact");
             case MAP_GENERATOR, LOCAL_COOP_SPLITSCREEN -> {
-                Text p1Label = new Text("P1: WASD + [E/Space]");
-                p1Label.setFont(Font.font("Monospaced", FontWeight.BOLD, 13));
-                p1Label.setFill(Color.web("#39ff14"));
-                p1Label.setX(20);
-                p1Label.setY(85);
+                Label p1Tag = new Label("P1: WASD + [E/Space]");
+                p1Tag.setStyle(
+                        "-fx-background-color: rgba(57, 255, 20, 0.15);"
+                        + "-fx-border-color: #39ff14;"
+                        + "-fx-border-width: 1px;"
+                        + "-fx-border-radius: 3px;"
+                        + "-fx-background-radius: 3px;"
+                        + "-fx-padding: 1px 6px;"
+                        + "-fx-text-fill: #39ff14;"
+                        + "-fx-font-family: 'Monospaced';"
+                        + "-fx-font-size: 11px;"
+                        + "-fx-font-weight: bold;");
 
-                Text p2Label = new Text("P2: ARROWS + [/ / Enter]");
-                p2Label.setFont(Font.font("Monospaced", FontWeight.BOLD, 13));
-                p2Label.setFill(Color.web("#d7e77f"));
-                p2Label.setX(20);
-                p2Label.setY(105);
+                Label p2Tag = new Label("P2: ARROWS + [/ / Enter]");
+                p2Tag.setStyle(
+                        "-fx-background-color: rgba(0, 240, 255, 0.15);"
+                        + "-fx-border-color: #00f0ff;"
+                        + "-fx-border-width: 1px;"
+                        + "-fx-border-radius: 3px;"
+                        + "-fx-background-radius: 3px;"
+                        + "-fx-padding: 1px 6px;"
+                        + "-fx-text-fill: #00f0ff;"
+                        + "-fx-font-family: 'Monospaced';"
+                        + "-fx-font-size: 11px;"
+                        + "-fx-font-weight: bold;");
 
-                FXGL.addUINode(p1Label);
-                FXGL.addUINode(p2Label);
+                HBox controlsRow = new HBox(8, p1Tag, p2Tag);
+                controlsRow.setAlignment(Pos.CENTER_LEFT);
+                topBarLeftCard.getChildren().add(controlsRow);
                 modeStatusText.setText("District 1: Phase 1 — Co-op Cleanup");
 
-                scoreText = new Text("Eco-Score: 0 | District: 1");
-                scoreText.setFont(Font.font("Monospaced", FontWeight.BOLD, 15));
-                scoreText.setFill(Color.web("#5bc0be"));
-                scoreText.setX(FXGL.getAppWidth() - 280);
-                scoreText.setY(36);
-                FXGL.addUINode(scoreText);
+                hasScore = true;
             }
             case LAN_HOST ->
                 modeStatusText.setText("LAN Co-Op: Hosting on Port " + NetworkManager.DEFAULT_PORT);
@@ -2010,21 +2082,52 @@ public class MovementApp extends GameApplication {
                 modeStatusText.setText("LAN Co-Op: Connected to " + targetHostIp);
             case SINGLE_PLAYER -> {
                 modeStatusText.setText("District 1: Phase 1 — Eco-Cleanup");
-                scoreText = new Text("Eco-Score: 0 | District: 1");
-                scoreText.setFont(Font.font("Monospaced", FontWeight.BOLD, 15));
-                scoreText.setFill(Color.web("#5bc0be"));
-                scoreText.setX(FXGL.getAppWidth() - 280);
-                scoreText.setY(36);
-                FXGL.addUINode(scoreText);
+                hasScore = true;
             }
             default ->
                 modeStatusText.setText("Single Player Mode");
         }
 
+        if (hasScore) {
+            scoreText = new Text("Eco-Score: 0 | District: 1");
+            scoreText.setFont(Font.font("Monospaced", FontWeight.BOLD, 14));
+            scoreText.setFill(Color.web("#5bc0be"));
+
+            Label scoreTag = new Label("[★ METRICS]");
+            scoreTag.setStyle(
+                    "-fx-background-color: rgba(0, 240, 255, 0.18);"
+                    + "-fx-border-color: #00f0ff;"
+                    + "-fx-border-width: 1px;"
+                    + "-fx-border-radius: 3px;"
+                    + "-fx-background-radius: 3px;"
+                    + "-fx-padding: 2px 6px;"
+                    + "-fx-text-fill: #00f0ff;"
+                    + "-fx-font-family: 'Monospaced';"
+                    + "-fx-font-size: 11px;"
+                    + "-fx-font-weight: bold;");
+
+            HBox topBarRightCard = new HBox(8, scoreTag, scoreText);
+            topBarRightCard.setAlignment(Pos.CENTER_RIGHT);
+            topBarRightCard.setStyle(
+                    "-fx-background-color: rgba(9, 17, 24, 0.88);"
+                    + "-fx-border-color: #00f0ff;"
+                    + "-fx-border-width: 2px;"
+                    + "-fx-border-radius: 5px;"
+                    + "-fx-background-radius: 5px;"
+                    + "-fx-padding: 8px 14px;"
+                    + "-fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.85), 6, 0, 0, 3);");
+            topBarRightCard.setMinWidth(296);
+            topBarRightCard.setTranslateX(FXGL.getAppWidth() - 326);
+            topBarRightCard.setTranslateY(14);
+            topBarRightCard.setMouseTransparent(true);
+            FXGL.addUINode(topBarRightCard);
+        }
+
+        FXGL.addUINode(topBarLeftCard);
+
         if (selectedGameMode != GameMode.SORTING_TEST
                 && selectedGameMode != GameMode.SEQUENTIAL_DEMO) {
 
-            // 1. Overlapped bottle.png and trash.png visual container
             Pane iconOverlayPane = new Pane();
             iconOverlayPane.setPrefSize(44, 32);
 
@@ -2050,15 +2153,36 @@ public class MovementApp extends GameApplication {
                 iconOverlayPane.getChildren().add(trashIv);
             }
 
-            // 2. Count numbers beside the overlapped icons
             trashCounterText = new Text("0/10");
             trashCounterText.setFont(Font.font("Monospaced", FontWeight.BOLD, 22));
             trashCounterText.setFill(Color.web("#39ff14"));
 
-            HBox trashHUDBox = new HBox(8, iconOverlayPane, trashCounterText);
+            Label targetTag = new Label("[TARGET]");
+            targetTag.setStyle(
+                    "-fx-background-color: rgba(57, 255, 20, 0.18);"
+                    + "-fx-border-color: #39ff14;"
+                    + "-fx-border-width: 1px;"
+                    + "-fx-border-radius: 3px;"
+                    + "-fx-background-radius: 3px;"
+                    + "-fx-padding: 2px 6px;"
+                    + "-fx-text-fill: #39ff14;"
+                    + "-fx-font-family: 'Monospaced';"
+                    + "-fx-font-size: 11px;"
+                    + "-fx-font-weight: bold;");
+
+            HBox trashHUDBox = new HBox(10, targetTag, iconOverlayPane, trashCounterText);
             trashHUDBox.setAlignment(Pos.CENTER_LEFT);
-            trashHUDBox.setTranslateX(20);
-            trashHUDBox.setTranslateY(FXGL.getAppHeight() - 50);
+            trashHUDBox.setStyle(
+                    "-fx-background-color: rgba(9, 17, 24, 0.88);"
+                    + "-fx-border-color: #39ff14;"
+                    + "-fx-border-width: 2px;"
+                    + "-fx-border-radius: 5px;"
+                    + "-fx-background-radius: 5px;"
+                    + "-fx-padding: 6px 14px;"
+                    + "-fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.85), 6, 0, 0, 3);");
+            trashHUDBox.setTranslateX(16);
+            trashHUDBox.setTranslateY(FXGL.getAppHeight() - 62);
+            trashHUDBox.setMouseTransparent(true);
 
             FXGL.addUINode(trashHUDBox);
             updateTrashCounter();
@@ -2067,25 +2191,52 @@ public class MovementApp extends GameApplication {
         interactPromptText = new Text("Press [E / Space] to Interact");
         interactPromptText.setFont(Font.font("Monospaced", FontWeight.BOLD, 14));
         interactPromptText.setFill(Color.web("#ffd700"));
-        interactPromptText.setX(FXGL.getAppWidth() / 2.0 - 180);
-        interactPromptText.setY(FXGL.getAppHeight() - 40);
+
+        Label promptTag = new Label("▶ ACTION");
+        promptTag.setStyle(
+                "-fx-background-color: rgba(255, 215, 0, 0.22);"
+                + "-fx-border-color: #ffd700;"
+                + "-fx-border-width: 1px;"
+                + "-fx-border-radius: 3px;"
+                + "-fx-background-radius: 3px;"
+                + "-fx-padding: 2px 6px;"
+                + "-fx-text-fill: #ffd700;"
+                + "-fx-font-family: 'Monospaced';"
+                + "-fx-font-size: 11px;"
+                + "-fx-font-weight: bold;");
+
+        HBox interactPromptCard = new HBox(8, promptTag, interactPromptText);
+        interactPromptCard.setAlignment(Pos.CENTER);
+        interactPromptCard.setStyle(
+                "-fx-background-color: rgba(12, 20, 28, 0.94);"
+                + "-fx-border-color: #ffd700;"
+                + "-fx-border-width: 2px;"
+                + "-fx-border-radius: 6px;"
+                + "-fx-background-radius: 6px;"
+                + "-fx-padding: 7px 18px;"
+                + "-fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.90), 6, 0, 0, 3);");
+        interactPromptCard.setMouseTransparent(true);
+
+        HBox promptCenterer = new HBox(interactPromptCard);
+        promptCenterer.setAlignment(Pos.CENTER);
+        promptCenterer.setPrefWidth(FXGL.getAppWidth());
+        promptCenterer.setTranslateY(FXGL.getAppHeight() - 58);
+        promptCenterer.setMouseTransparent(true);
+        promptCenterer.visibleProperty().bind(interactPromptText.visibleProperty());
+
         interactPromptText.setVisible(false);
-        FXGL.addUINode(interactPromptText);
+        FXGL.addUINode(promptCenterer);
 
         if (selectedGameMode == GameMode.SORTING_TEST) {
             sortingStatusText = new Text();
-            sortingStatusText.setFont(Font.font("Verdana", FontWeight.BOLD, 15));
+            sortingStatusText.setFont(Font.font("Monospaced", FontWeight.BOLD, 13));
             sortingStatusText.setFill(Color.web("#f7f4dc"));
-            sortingStatusText.setX(20);
-            sortingStatusText.setY(88);
-            FXGL.addUINode(sortingStatusText);
+            topBarLeftCard.getChildren().add(sortingStatusText);
         } else if (selectedGameMode == GameMode.SEQUENTIAL_DEMO) {
             demoStatusText = new Text();
-            demoStatusText.setFont(Font.font("Verdana", FontWeight.BOLD, 15));
+            demoStatusText.setFont(Font.font("Monospaced", FontWeight.BOLD, 13));
             demoStatusText.setFill(Color.web("#f7f4dc"));
-            demoStatusText.setX(20);
-            demoStatusText.setY(88);
-            FXGL.addUINode(demoStatusText);
+            topBarLeftCard.getChildren().add(demoStatusText);
         }
 
         refreshTimerLabel();
@@ -2136,8 +2287,10 @@ public class MovementApp extends GameApplication {
         if (collectedTrash >= TOTAL_TRASH) {
             if (levelNoticeText == null) {
                 levelNoticeText = new Text("LEVEL 1 CLEARED! AREA RESTORED");
-                levelNoticeText.setFont(Font.font("Georgia", FontWeight.BOLD, 32));
+                levelNoticeText.setFont(Font.font("Monospaced", FontWeight.BOLD, 28));
                 levelNoticeText.setFill(Color.web("#ffd700"));
+                levelNoticeText.setStroke(Color.BLACK);
+                levelNoticeText.setStrokeWidth(2.0);
                 levelNoticeText.setX(FXGL.getAppWidth() / 2.0 - 270);
                 levelNoticeText.setY(100);
                 FXGL.addUINode(levelNoticeText);
