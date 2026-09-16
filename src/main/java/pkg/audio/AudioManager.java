@@ -115,6 +115,10 @@ public final class AudioManager {
                         currentMusicPlayer = null;
                     }
 
+                    if (!resourcePath.equals(pendingMusicPath)) {
+                        return;
+                    }
+
                     try {
                         Media media = new Media(resource.toExternalForm());
                         MediaPlayer player = new MediaPlayer(media);
@@ -144,7 +148,8 @@ public final class AudioManager {
                 if (currentMusicPlayer != null) {
                     try {
                         currentMusicPlayer.stop();
-                    } catch (Exception ignored) {}
+                        currentMusicPlayer.dispose();
+                    } catch (Throwable ignored) {}
                     currentMusicPlayer = null;
                     currentMusicPath = "";
                 }
@@ -161,7 +166,7 @@ public final class AudioManager {
     }
 
     public static void playFootstep() {
-        playSfx(PATH_SFX_FOOTSTEP, footstepVolume);
+        playSfx(PATH_SFX_FOOTSTEP, footstepVolume * sfxVolume);
     }
 
     public static void playTrashPickup() {

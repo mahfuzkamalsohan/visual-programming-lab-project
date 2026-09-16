@@ -106,6 +106,9 @@ public class PlayerComponent extends Component {
 
         boolean moving = dx != 0 || dy != 0;
 
+        double startX = entity.getX();
+        double startY = entity.getY();
+
         if (moving) {
             double len = Math.hypot(dx, dy);
             dx /= len;
@@ -156,10 +159,15 @@ public class PlayerComponent extends Component {
                 texture.loopAnimationChannel(walk);
             }
 
-            footstepTimer += tpf;
-            if (footstepTimer >= FOOTSTEP_INTERVAL) {
-                footstepTimer = 0.0;
-                pkg.audio.AudioManager.playFootstep();
+            boolean actuallyMoved = Math.hypot(entity.getX() - startX, entity.getY() - startY) > 0.05;
+            if (actuallyMoved) {
+                footstepTimer += tpf;
+                if (footstepTimer >= FOOTSTEP_INTERVAL) {
+                    footstepTimer = 0.0;
+                    pkg.audio.AudioManager.playFootstep();
+                }
+            } else {
+                footstepTimer = FOOTSTEP_INTERVAL;
             }
         } else {
             footstepTimer = FOOTSTEP_INTERVAL;

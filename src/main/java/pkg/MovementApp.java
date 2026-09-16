@@ -1240,6 +1240,7 @@ public class MovementApp extends GameApplication {
                             generatorStageCompleted = true;
                             lastCompletedChunkKey = infiniteMapManager.getCurrentChunkX() + ","
                                     + infiniteMapManager.getCurrentChunkY();
+                            AudioManager.playCorrectAnswer();
                             showTemporaryNotice("STAGE 1 CLEARED!\nSpreading world restoration wave...");
                             if (infiniteMapManager != null) {
                                 infiniteMapManager.startSpreadingRestoration(() -> {
@@ -1305,6 +1306,7 @@ public class MovementApp extends GameApplication {
                             generatorStageCompleted = true;
                             lastCompletedChunkKey = infiniteMapManager.getCurrentChunkX() + ","
                                     + infiniteMapManager.getCurrentChunkY();
+                            AudioManager.playCorrectAnswer();
                             showTemporaryNotice("STAGE 1 CLEARED!\nSpreading world restoration wave...");
                             if (infiniteMapManager != null) {
                                 infiniteMapManager.startSpreadingRestoration(() -> {
@@ -1439,6 +1441,7 @@ public class MovementApp extends GameApplication {
                             ecoScore += 500;
                             if (timer != null)
                                 timer.applyDelta(30.0);
+                            AudioManager.playCorrectAnswer();
                             showTemporaryNotice("🎉 DISTRICT " + currentDistrict
                                     + " RESTORED! (+30s Bonus, +500 pts)\nWalk through gateway into District "
                                     + (currentDistrict + 1) + "!");
@@ -1560,6 +1563,7 @@ public class MovementApp extends GameApplication {
                         ecoScore += 500;
                         if (timer != null)
                             timer.applyDelta(30.0);
+                        AudioManager.playCorrectAnswer();
                         showTemporaryNotice("🎉 DISTRICT " + currentDistrict
                                 + " RESTORED! (+30s Bonus, +500 pts)\nWalk through gateway into District "
                                 + (currentDistrict + 1) + "!");
@@ -3329,6 +3333,7 @@ public class MovementApp extends GameApplication {
             btn.setStyle(base);
             btn.setOnMouseEntered(e -> btn.setStyle(hover));
             btn.setOnMouseExited(e -> btn.setStyle(base));
+            btn.addEventHandler(javafx.event.ActionEvent.ACTION, e -> AudioManager.playButtonClick());
             return btn;
         }
 
@@ -3606,6 +3611,7 @@ public class MovementApp extends GameApplication {
             btn.setStyle(base);
             btn.setOnMouseEntered(e -> btn.setStyle(hover));
             btn.setOnMouseExited(e -> btn.setStyle(base));
+            btn.addEventHandler(javafx.event.ActionEvent.ACTION, e -> AudioManager.playButtonClick());
             return btn;
         }
     }
@@ -3649,8 +3655,10 @@ public class MovementApp extends GameApplication {
                 titleLabel.setText(titleText);
                 if (!isVictory) {
                     titleLabel.setStyle("-fx-text-fill:#ff0055; -fx-font-size:28px;");
+                    AudioManager.playWrongAnswer();
                 } else {
                     titleLabel.setStyle("-fx-text-fill:#39ff14; -fx-font-size:28px;");
+                    AudioManager.playCorrectAnswer();
                 }
             }
             if (subtitleLabel != null) {
