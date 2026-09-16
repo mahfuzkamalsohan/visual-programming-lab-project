@@ -306,7 +306,7 @@ public class InfiniteMapManager {
     }
 
     private void loadMapTemplates() {
-        String[] mapFiles = { "tmx/level_0.tmx", "tmx/level_demo.tmx" };
+        String[] mapFiles = { "tmx/chunk1.tmx", "tmx/chunk2.tmx", "tmx/chunk3.tmx", "tmx/chunk4.tmx" };
         for (String relativePath : mapFiles) {
             try {
                 URL resourceURL = getClass().getClassLoader().getResource("assets/levels/" + relativePath);
