@@ -1785,16 +1785,12 @@ public class MovementApp extends GameApplication {
         sortingBinBoxes.put(entity, new InteractionBox(x + boxOffsetX, y + boxOffsetY, BIN_BOX_WIDTH, BIN_BOX_HEIGHT));
     }
 
-    private void tryCollectTrashP1() {
-        if (isCutsceneActive) {
-            return;
-        }
-
+    private boolean handleAnimalRescueInteraction(Entity player) {
         boolean isAnimalRescue = (selectedGameMode == GameMode.ANIMAL_RESCUE)
                 || (isInfiniteGameMode() && generatorStage == GeneratorStage.ANIMAL_RESCUE);
         if (isAnimalRescue) {
-            if (!generatorStageCompleted && rabbitEntity != null && playerEntity != null
-                    && playerEntity.distance(rabbitEntity) < 64.0) {
+            if (!generatorStageCompleted && rabbitEntity != null && player != null
+                    && player.distance(rabbitEntity) < 64.0) {
                 AudioManager.playTrashPickup();
                 pkg.ui.RabbitHealingWindow window = new pkg.ui.RabbitHealingWindow(() -> {
                     rabbitEntity.getViewComponent().clearChildren();
@@ -1821,6 +1817,17 @@ public class MovementApp extends GameApplication {
                 });
                 javafx.application.Platform.runLater(window::show);
             }
+            return true;
+        }
+        return false;
+    }
+
+    private void tryCollectTrashP1() {
+        if (isCutsceneActive) {
+            return;
+        }
+
+        if (handleAnimalRescueInteraction(playerEntity)) {
             return;
         }
 
@@ -1893,6 +1900,10 @@ public class MovementApp extends GameApplication {
 
     private void tryCollectTrashP2() {
         if (isCutsceneActive) {
+            return;
+        }
+
+        if (handleAnimalRescueInteraction(playerEntity2)) {
             return;
         }
 
