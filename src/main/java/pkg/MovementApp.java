@@ -67,7 +67,6 @@ import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.util.Duration;
 import pkg.audio.AudioManager;
-import pkg.ui.CutsceneOverlay;
 import pkg.net.GameStatePacket;
 import pkg.net.InputPacket;
 import pkg.net.NetworkManager;
@@ -82,6 +81,7 @@ import pkg.restoration.tasks.CollectionTask;
 import pkg.restoration.tasks.SortingTask;
 import pkg.restoration.tasks.TaskResult;
 import pkg.restoration.tasks.TaskTimer;
+import pkg.ui.CutsceneOverlay;
 
 public class MovementApp extends GameApplication {
 
@@ -194,6 +194,7 @@ public class MovementApp extends GameApplication {
     private int currentDistrict = 1;
     private int ecoScore = 0;
     private Label carriedItemLabel;
+    private Label sorterCarriedItemLabel;
     private Node currentNoticeNode;
 
     private NetworkManager netManager;
@@ -231,7 +232,8 @@ public class MovementApp extends GameApplication {
     private final List<Node> hudNodes = new ArrayList<>();
 
     private void addHudNode(Node node) {
-        if (node == null) return;
+        if (node == null)
+            return;
         hudNodes.add(node);
         if (isCutsceneActive) {
             if (!node.visibleProperty().isBound()) {
@@ -385,7 +387,9 @@ public class MovementApp extends GameApplication {
     }
 
     private void handleMovement(int playerNum, Direction dir, boolean pressed) {
-        if (isCutsceneActive) {
+        if (isCutsceneActive && pressed) {
+            // Block new key presses during cutscenes, but allow key releases
+            // so direction flags don't get stuck permanently
             return;
         }
 
@@ -396,7 +400,8 @@ public class MovementApp extends GameApplication {
                 case SOUTH -> clientDown = pressed;
                 case WEST -> clientLeft = pressed;
                 case EAST -> clientRight = pressed;
-                case NORTH_EAST, NORTH_WEST, SOUTH_EAST, SOUTH_WEST -> {}
+                case NORTH_EAST, NORTH_WEST, SOUTH_EAST, SOUTH_WEST -> {
+                }
             }
             sendClientInputPacket();
             return;
@@ -429,7 +434,23 @@ public class MovementApp extends GameApplication {
             case SOUTH -> comp.setDown(pressed);
             case WEST -> comp.setLeft(pressed);
             case EAST -> comp.setRight(pressed);
-            case NORTH_EAST, NORTH_WEST, SOUTH_EAST, SOUTH_WEST -> {}
+            case NORTH_EAST, NORTH_WEST, SOUTH_EAST, SOUTH_WEST -> {
+            }
+        }
+    }
+
+    private void resetAllMovementFlags() {
+        if (playerComponent != null) {
+            playerComponent.setUp(false);
+            playerComponent.setDown(false);
+            playerComponent.setLeft(false);
+            playerComponent.setRight(false);
+        }
+        if (playerComponent2 != null) {
+            playerComponent2.setUp(false);
+            playerComponent2.setDown(false);
+            playerComponent2.setLeft(false);
+            playerComponent2.setRight(false);
         }
     }
 
@@ -472,6 +493,8 @@ public class MovementApp extends GameApplication {
 
         hudNodes.clear();
         isCutsceneActive = true;
+        // Reset all direction flags to prevent stuck movement after cutscene
+        resetAllMovementFlags();
         cutsceneOverlayNode = new CutsceneOverlay(FXGL.getAppWidth(), FXGL.getAppHeight(), () -> {
             if (cutsceneOverlayNode != null) {
                 FXGL.removeUINode(cutsceneOverlayNode);
@@ -591,14 +614,15 @@ public class MovementApp extends GameApplication {
         Runnable spawnBirdTask = () -> {
             Viewport viewport = FXGL.getGameScene().getViewport();
             double spawnX = viewport.getX() + FXGL.getAppWidth() + 50;
-            double spawnY = viewport.getY() + ThreadLocalRandom.current().nextDouble(50, Math.max(100, FXGL.getAppHeight() - 100));
+            double spawnY = viewport.getY()
+                    + ThreadLocalRandom.current().nextDouble(50, Math.max(100, FXGL.getAppHeight() - 100));
             System.out.println("Spawning bird at: " + spawnX + ", " + spawnY);
             FXGL.spawn("bird", spawnX, spawnY);
         };
 
         // Spawn one bird shortly after the game starts
         FXGL.getGameTimer().runOnceAfter(spawnBirdTask, Duration.seconds(2));
-        
+
         // And then every 8 seconds
         FXGL.getGameTimer().runAtInterval(spawnBirdTask, Duration.seconds(8));
     }
@@ -632,7 +656,7 @@ public class MovementApp extends GameApplication {
                 .type(EntityType.QUESTION_POINT)
                 .view(safeQuestionTexture())
                 .buildAndAttach();
-        questionPoint.setProperty("question", testQuestions.getFirst());
+        questionPoint.setProperty("question", testQuestions.getFirst().shuffled());
         createQuestionPanel();
     }
 
@@ -650,23 +674,26 @@ public class MovementApp extends GameApplication {
             questionLabel = new Label();
             questionLabel.setWrapText(true);
             questionLabel.setMaxWidth(550);
-            questionLabel.setStyle("-fx-text-fill: #3b291a; -fx-font-family: 'Press Start 2P', 'Monospaced'; -fx-font-size: 10px; -fx-line-spacing: 3px;");
+            questionLabel.setStyle(
+                    "-fx-text-fill: #3b291a; -fx-font-family: 'Press Start 2P', 'Monospaced'; -fx-font-size: 10px; -fx-line-spacing: 3px;");
 
             questionFeedbackLabel = new Label("Click an option below to answer:");
-            questionFeedbackLabel.setStyle("-fx-text-fill: #523c28; -fx-font-family: 'Press Start 2P', 'Monospaced'; -fx-font-size: 9px;");
+            questionFeedbackLabel.setStyle(
+                    "-fx-text-fill: #523c28; -fx-font-family: 'Press Start 2P', 'Monospaced'; -fx-font-size: 9px;");
 
             questionChoicesContainer = new VBox(6);
 
             Label header = new Label("[?] QUESTION");
-            header.setStyle("-fx-text-fill: #523c28; -fx-font-family: 'Press Start 2P', 'Monospaced'; -fx-font-size: 11px; -fx-font-weight: bold;");
+            header.setStyle(
+                    "-fx-text-fill: #523c28; -fx-font-family: 'Press Start 2P', 'Monospaced'; -fx-font-size: 11px; -fx-font-weight: bold;");
 
             questionPanel = new VBox(7, header, questionLabel, questionChoicesContainer, questionFeedbackLabel);
             questionPanel.setStyle(
                     "-fx-background-color: rgba(197, 159, 115, 0.98);"
-                    + "-fx-border-color: #6c5139 #4a3623 #4a3623 #6c5139;"
-                    + "-fx-border-width: 3px;"
-                    + "-fx-padding: 12px 16px;"
-                    + "-fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.85), 8, 0, 3, 3);");
+                            + "-fx-border-color: #6c5139 #4a3623 #4a3623 #6c5139;"
+                            + "-fx-border-width: 3px;"
+                            + "-fx-padding: 12px 16px;"
+                            + "-fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.85), 8, 0, 3, 3);");
             questionPanel.setPrefWidth(560);
             questionPanel.setMaxWidth(580);
         }
@@ -791,6 +818,20 @@ public class MovementApp extends GameApplication {
                 playerEntity2.getViewComponent().addChild(sorterCarriedWasteView);
             }
             sorterCarriedWasteView.setVisible(insideCarriedWaste != null);
+
+            if (sorterCarriedItemLabel == null) {
+                sorterCarriedItemLabel = new Label();
+                sorterCarriedItemLabel.setStyle(
+                        "-fx-text-fill:#ffd700;-fx-font-family:Monospaced;-fx-font-size:9px;-fx-font-weight:bold;-fx-background-color:rgba(0,0,0,0.75);-fx-padding:1px 4px;-fx-border-color:#ffd700;-fx-border-width:1px;");
+                sorterCarriedItemLabel.setTranslateX(-30);
+                sorterCarriedItemLabel.setTranslateY(-28);
+                sorterCarriedItemLabel.setMouseTransparent(true);
+                playerEntity2.getViewComponent().addChild(sorterCarriedItemLabel);
+            }
+            sorterCarriedItemLabel.setVisible(insideCarriedWaste != null);
+            if (insideCarriedWaste != null) {
+                sorterCarriedItemLabel.setText(insideCarriedWaste.name());
+            }
         }
 
         if (sortingIntakePoint != null) {
@@ -859,7 +900,7 @@ public class MovementApp extends GameApplication {
                         .view(safeQuestionTexture())
                         .buildAndAttach();
             }
-            qEntity.setProperty("question", q);
+            qEntity.setProperty("question", q.shuffled());
             qEntity.setVisible(false);
             demoQuestionEntities.add(qEntity);
         }
@@ -952,10 +993,18 @@ public class MovementApp extends GameApplication {
         sortingIntake.clear();
         outsideCarriedWaste = null;
         insideCarriedWaste = null;
+        if (sortingIntakePoint != null && sortingIntakePoint.isActive()) {
+            sortingIntakePoint.removeFromWorld();
+        }
         sortingIntakePoint = null;
         sortingIntakeBox = null;
         collectorCarriedWasteView = null;
+        carriedItemLabel = null;
         sorterCarriedWasteView = null;
+        sorterCarriedItemLabel = null;
+        if (intakeWasteView != null) {
+            intakeWasteView.setVisible(false);
+        }
         intakeWasteView = null;
         sortingFeedback = "Collect every scattered garbage and sort it";
         activeSortZoneX = SORT_ZONE_X;
@@ -972,6 +1021,17 @@ public class MovementApp extends GameApplication {
         }
         sortingBins.clear();
         sortingBinBoxes.clear();
+
+        if (sortingIntakePoint != null && sortingIntakePoint.isActive()) {
+            sortingIntakePoint.removeFromWorld();
+        }
+        sortingIntakePoint = null;
+        sortingIntakeBox = null;
+        sortingIntake.clear();
+        if (intakeWasteView != null) {
+            intakeWasteView.setVisible(false);
+            intakeWasteView = null;
+        }
     }
 
     private List<WasteItem> randomBalancedSortingWaste(int count) {
@@ -1105,7 +1165,7 @@ public class MovementApp extends GameApplication {
                     .type(EntityType.QUESTION_POINT)
                     .view(safeQuestionTexture())
                     .buildAndAttach();
-            qPoint.setProperty("question", testQuestions.get(i));
+            qPoint.setProperty("question", testQuestions.get(i).shuffled());
             generatorQuestionEntities.add(qPoint);
         }
         generatorStageCompleted = false;
@@ -1262,7 +1322,7 @@ public class MovementApp extends GameApplication {
         double isoY = originY + (lx + ly) * 8.0;
 
         rabbitEntity = FXGL.spawn("rabbit", isoX, isoY);
-        
+
         generatorStageCompleted = false;
         updateTrashCounter();
         if (selectedGameMode == GameMode.SINGLE_PLAYER) {
@@ -1275,11 +1335,13 @@ public class MovementApp extends GameApplication {
         demoStage = DemoStage.TREE_PLANTATION;
         demoPlantsPlanted = 0;
         for (Entity e : demoPlantEntities) {
-            if (e != null && e.isActive()) e.removeFromWorld();
+            if (e != null && e.isActive())
+                e.removeFromWorld();
         }
         demoPlantEntities.clear();
         for (Entity e : demoHoleEntities) {
-            if (e != null && e.isActive()) e.removeFromWorld();
+            if (e != null && e.isActive())
+                e.removeFromWorld();
         }
         demoHoleEntities.clear();
         p1CarryingPlant = false;
@@ -1289,12 +1351,12 @@ public class MovementApp extends GameApplication {
         double baseY = playerEntity != null ? playerEntity.getY() : 320;
 
         double[][] plantOffsets = {
-            { -120, -60 }, { -80, 80 }, { -140, 20 },
-            { -60, -100 }, { -160, -40 }, { -100, 120 }
+                { -120, -60 }, { -80, 80 }, { -140, 20 },
+                { -60, -100 }, { -160, -40 }, { -100, 120 }
         };
         double[][] holeOffsets = {
-            { 80, -60 }, { 120, 40 }, { 60, 100 },
-            { 140, -20 }, { 100, -100 }, { 160, 80 }
+                { 80, -60 }, { 120, 40 }, { 60, 100 },
+                { 140, -20 }, { 100, -100 }, { 160, 80 }
         };
 
         for (int i = 0; i < 6; i++) {
@@ -1320,17 +1382,21 @@ public class MovementApp extends GameApplication {
     }
 
     private void handleTreePlantationInteraction(Entity player, int playerIndex) {
-        if (player == null) return;
+        if (player == null)
+            return;
         boolean carrying = (playerIndex == 1) ? p1CarryingPlant : p2CarryingPlant;
 
         List<Entity> plantList = (selectedGameMode == GameMode.SEQUENTIAL_DEMO)
-                ? demoPlantEntities : generatorPlantEntities;
+                ? demoPlantEntities
+                : generatorPlantEntities;
         List<Entity> holeList = (selectedGameMode == GameMode.SEQUENTIAL_DEMO)
-                ? demoHoleEntities : generatorHoleEntities;
+                ? demoHoleEntities
+                : generatorHoleEntities;
 
         if (!carrying) {
             for (Entity plant : List.copyOf(plantList)) {
-                if (plant != null && plant.isActive() && (player.distance(plant) < 48.0 || safelyCollides(player, plant))) {
+                if (plant != null && plant.isActive()
+                        && (player.distance(plant) < 48.0 || safelyCollides(player, plant))) {
                     plant.removeFromWorld();
                     plantList.remove(plant);
                     if (playerIndex == 1) {
@@ -1481,6 +1547,9 @@ public class MovementApp extends GameApplication {
         if (sorterCarriedWasteView != null) {
             sorterCarriedWasteView.setVisible(false);
         }
+        if (sorterCarriedItemLabel != null) {
+            sorterCarriedItemLabel.setVisible(false);
+        }
         if (intakeWasteView != null) {
             intakeWasteView.setVisible(false);
         }
@@ -1591,16 +1660,16 @@ public class MovementApp extends GameApplication {
         Label label = new Label(text);
         label.setStyle(
                 "-fx-background-color: rgba(9, 17, 24, 0.90);"
-                + "-fx-border-color: #f1d090;"
-                + "-fx-border-width: 1.2px;"
-                + "-fx-border-radius: 3px;"
-                + "-fx-background-radius: 3px;"
-                + "-fx-padding: 2px 6px;"
-                + "-fx-text-fill: #f1d090;"
-                + "-fx-font-family: 'Monospaced';"
-                + "-fx-font-size: 9.5px;"
-                + "-fx-font-weight: bold;"
-                + "-fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.8), 3, 0, 0, 2);");
+                        + "-fx-border-color: #f1d090;"
+                        + "-fx-border-width: 1.2px;"
+                        + "-fx-border-radius: 3px;"
+                        + "-fx-background-radius: 3px;"
+                        + "-fx-padding: 2px 6px;"
+                        + "-fx-text-fill: #f1d090;"
+                        + "-fx-font-family: 'Monospaced';"
+                        + "-fx-font-size: 9.5px;"
+                        + "-fx-font-weight: bold;"
+                        + "-fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.8), 3, 0, 0, 2);");
         label.setMouseTransparent(true);
         return label;
     }
@@ -1663,21 +1732,21 @@ public class MovementApp extends GameApplication {
         plaque.setAlignment(Pos.CENTER);
         plaque.setStyle(
                 "-fx-background-color: rgba(9, 17, 24, 0.92);"
-                + "-fx-border-color: " + info.colorHex + ";"
-                + "-fx-border-width: 1.8px;"
-                + "-fx-border-radius: 4px;"
-                + "-fx-background-radius: 4px;"
-                + "-fx-padding: 3px 8px;"
-                + "-fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.85), 4, 0, 0, 2);");
+                        + "-fx-border-color: " + info.colorHex + ";"
+                        + "-fx-border-width: 1.8px;"
+                        + "-fx-border-radius: 4px;"
+                        + "-fx-background-radius: 4px;"
+                        + "-fx-padding: 3px 8px;"
+                        + "-fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.85), 4, 0, 0, 2);");
 
         String arrow = isUnderneath ? "▲ " : "▼ ";
         Label catLabel = new Label(arrow + info.category + " " + arrow);
         catLabel.setStyle(
                 "-fx-text-fill: " + info.colorHex + ";"
-                + "-fx-font-family: 'Monospaced';"
-                + "-fx-font-size: 9px;"
-                + "-fx-font-weight: bold;"
-                + "-fx-alignment: center;");
+                        + "-fx-font-family: 'Monospaced';"
+                        + "-fx-font-size: 9px;"
+                        + "-fx-font-weight: bold;"
+                        + "-fx-alignment: center;");
 
         plaque.getChildren().add(catLabel);
         plaque.setMouseTransparent(true);
@@ -1686,7 +1755,8 @@ public class MovementApp extends GameApplication {
 
         // Center plaque horizontally relative to 72px can: (72 - 104) / 2 ~= -16
         plaque.setTranslateX(-16);
-        // Hazardous & Recyclable underneath (Y=62), Organic & General Waste above (Y=-32)
+        // Hazardous & Recyclable underneath (Y=62), Organic & General Waste above
+        // (Y=-32)
         plaque.setTranslateY(isUnderneath ? 62 : -32);
         return plaque;
     }
@@ -1720,24 +1790,29 @@ public class MovementApp extends GameApplication {
             return;
         }
 
-        boolean isAnimalRescue = (selectedGameMode == GameMode.ANIMAL_RESCUE) 
-                               || (isInfiniteGameMode() && generatorStage == GeneratorStage.ANIMAL_RESCUE);
+        boolean isAnimalRescue = (selectedGameMode == GameMode.ANIMAL_RESCUE)
+                || (isInfiniteGameMode() && generatorStage == GeneratorStage.ANIMAL_RESCUE);
         if (isAnimalRescue) {
-            if (!generatorStageCompleted && rabbitEntity != null && playerEntity != null && playerEntity.distance(rabbitEntity) < 64.0) {
+            if (!generatorStageCompleted && rabbitEntity != null && playerEntity != null
+                    && playerEntity.distance(rabbitEntity) < 64.0) {
                 AudioManager.playTrashPickup();
                 pkg.ui.RabbitHealingWindow window = new pkg.ui.RabbitHealingWindow(() -> {
                     rabbitEntity.getViewComponent().clearChildren();
-                    rabbitEntity.getViewComponent().addChild(new javafx.scene.image.ImageView(new javafx.scene.image.Image(getClass().getResource("/assets/textures/healed_rabit.png").toExternalForm())));
+                    rabbitEntity.getViewComponent()
+                            .addChild(new javafx.scene.image.ImageView(new javafx.scene.image.Image(
+                                    getClass().getResource("/assets/textures/healed_rabit.png").toExternalForm())));
                     generatorStageCompleted = true;
-                    if (timer != null) timer.applyDelta(6.0);
-                    
+                    if (timer != null)
+                        timer.applyDelta(6.0);
+
                     if (isInfiniteGameMode() && generatorStage == GeneratorStage.ANIMAL_RESCUE) {
                         completeCurrentChunkTask();
                         AudioManager.playCorrectAnswer();
                         showTemporaryNotice("RABBIT HEALED!\nSpreading world restoration wave...");
                         if (infiniteMapManager != null) {
                             infiniteMapManager.startSpreadingRestoration(() -> {
-                                showTemporaryNotice("WORLD RESTORED! Render distance expanded.\nWalk into next sector.");
+                                showTemporaryNotice(
+                                        "WORLD RESTORED! Render distance expanded.\nWalk into next sector.");
                             });
                         }
                     } else {
@@ -1990,13 +2065,15 @@ public class MovementApp extends GameApplication {
                         AudioManager.playWrongAnswer();
                         spawnFloatingText(playerEntity.getX(), playerEntity.getY() - 20, "-6s",
                                 Color.web("#ff3860"));
-                        showTemporaryNotice("WRONG BIN! (-6s)\n" + outsideCarriedWaste.name() + " does not belong here!\nRead bin accepted items.");
+                        showTemporaryNotice("WRONG BIN! (-6s)\n" + outsideCarriedWaste.name()
+                                + " does not belong here!\nRead bin accepted items.");
                         sortingFeedback = "Wrong bin! " + outsideCarriedWaste.name() + " rejected (-6s)";
                     }
                     return;
                 }
             }
-            showTemporaryNotice("Carrying: " + outsideCarriedWaste.name() + "\nWalk to the matching waste bin and press [E / Space]");
+            showTemporaryNotice("Carrying: " + outsideCarriedWaste.name()
+                    + "\nWalk to the matching waste bin and press [E / Space]");
             return;
         }
 
@@ -2018,7 +2095,8 @@ public class MovementApp extends GameApplication {
                     carriedItemLabel.setVisible(true);
                 }
                 sortingFeedback = "Carrying: " + outsideCarriedWaste.name() + " — Check bin labels to sort";
-                showTemporaryNotice("PICKED UP: " + outsideCarriedWaste.name() + "\nExamine the bins and deposit into the matching category!");
+                showTemporaryNotice("PICKED UP: " + outsideCarriedWaste.name()
+                        + "\nExamine the bins and deposit into the matching category!");
                 return;
             }
         }
@@ -2029,7 +2107,7 @@ public class MovementApp extends GameApplication {
             return;
         if (outsideCarriedWaste != null) {
             // Player 1 is carrying waste: must be physically at the intake point to deliver
-            if (sortingIntakeBox.intersectsPlayer(playerEntity)) {
+            if (sortingIntakeBox != null && sortingIntakeBox.intersectsPlayer(playerEntity)) {
                 sortingIntake.addLast(outsideCarriedWaste);
                 outsideCarriedWaste = null;
                 if (collectorCarriedWasteView != null) {
@@ -2081,13 +2159,15 @@ public class MovementApp extends GameApplication {
                         spawnFloatingText(playerEntity2.getX(), playerEntity2.getY() - 20,
                                 "+100", Color.web("#39ff14"));
                         BinInfo info = getBinInfo(bin.getValue());
-                        showTemporaryNotice("CORRECT! " + insideCarriedWaste.name() + "\nSorted into " + info.category + " (+8s)");
+                        showTemporaryNotice(
+                                "CORRECT! " + insideCarriedWaste.name() + "\nSorted into " + info.category + " (+8s)");
                         sortingFeedback = "Correct: " + insideCarriedWaste.name() + " -> " + info.category + " (+8s)!";
                         clearInsideCarriedWaste();
                     } else {
                         AudioManager.playWrongAnswer();
                         spawnFloatingText(playerEntity2.getX(), playerEntity2.getY() - 20, "-6s", Color.web("#ff3860"));
-                        showTemporaryNotice("WRONG BIN! (-6s)\n" + insideCarriedWaste.name() + " does not belong here!\nRead bin accepted items.");
+                        showTemporaryNotice("WRONG BIN! (-6s)\n" + insideCarriedWaste.name()
+                                + " does not belong here!\nRead bin accepted items.");
                         sortingFeedback = "Wrong bin! " + insideCarriedWaste.name() + " rejected (-6s)";
                     }
                     if (sortingTask.isComplete()) {
@@ -2106,7 +2186,8 @@ public class MovementApp extends GameApplication {
                                 + " RESTORED! (+30s Bonus, +500 pts)\nWalk through gateway into District "
                                 + (currentDistrict + 1) + "!");
                     }
-                    if (selectedGameMode == GameMode.SEQUENTIAL_DEMO && sortingTask.isComplete() && demoStage == DemoStage.SORTING) {
+                    if (selectedGameMode == GameMode.SEQUENTIAL_DEMO && sortingTask.isComplete()
+                            && demoStage == DemoStage.SORTING) {
                         hideSortingBins();
                         activateDemoPlantationStage();
                         showTemporaryNotice("STAGE 3 CLEARED!\nWalk to the tree plantation area for Stage 4!");
@@ -2114,17 +2195,49 @@ public class MovementApp extends GameApplication {
                     return;
                 }
             }
-        } else if (!sortingIntake.isEmpty() && sortingIntakeBox.intersectsPlayer(playerEntity2)) {
+        } else if (!sortingIntake.isEmpty()
+                && ((sortingIntakeBox != null && sortingIntakeBox.intersectsPlayer(playerEntity2))
+                        || (sortingIntakePoint != null && playerEntity2.distance(sortingIntakePoint) < 54.0))) {
             insideCarriedWaste = sortingIntake.removeFirst();
             if (intakeWasteView != null) {
                 intakeWasteView.setVisible(!sortingIntake.isEmpty());
             }
+            if (sorterCarriedWasteView == null && playerEntity2 != null) {
+                sorterCarriedWasteView = new ImageView(FXGL.image("trashbag.png"));
+                sorterCarriedWasteView.setTranslateX(-4);
+                sorterCarriedWasteView.setTranslateY(-16);
+                sorterCarriedWasteView.setMouseTransparent(true);
+                playerEntity2.getViewComponent().addChild(sorterCarriedWasteView);
+            } else if (sorterCarriedWasteView != null && playerEntity2 != null
+                    && !playerEntity2.getViewComponent().getChildren().contains(sorterCarriedWasteView)) {
+                playerEntity2.getViewComponent().addChild(sorterCarriedWasteView);
+            }
             if (sorterCarriedWasteView != null) {
                 sorterCarriedWasteView.setVisible(true);
+                sorterCarriedWasteView.toFront();
+            }
+
+            if (sorterCarriedItemLabel == null && playerEntity2 != null) {
+                sorterCarriedItemLabel = new Label();
+                sorterCarriedItemLabel.setStyle(
+                        "-fx-text-fill:#ffd700;-fx-font-family:Monospaced;-fx-font-size:9px;-fx-font-weight:bold;-fx-background-color:rgba(0,0,0,0.85);-fx-padding:1px 4px;-fx-border-color:#ffd700;-fx-border-width:1px;");
+                sorterCarriedItemLabel.setTranslateX(-30);
+                sorterCarriedItemLabel.setTranslateY(-28);
+                sorterCarriedItemLabel.setMouseTransparent(true);
+                playerEntity2.getViewComponent().addChild(sorterCarriedItemLabel);
+            } else if (sorterCarriedItemLabel != null && playerEntity2 != null
+                    && !playerEntity2.getViewComponent().getChildren().contains(sorterCarriedItemLabel)) {
+                playerEntity2.getViewComponent().addChild(sorterCarriedItemLabel);
+            }
+            if (sorterCarriedItemLabel != null) {
+                sorterCarriedItemLabel.setText(insideCarriedWaste.name());
+                sorterCarriedItemLabel.setVisible(true);
+                sorterCarriedItemLabel.toFront();
             }
             AudioManager.playTrashPickup();
             sortingFeedback = "P2 retrieved: " + insideCarriedWaste.name() + " — Check bin labels to sort";
-            showTemporaryNotice("RETRIEVED: " + insideCarriedWaste.name() + "\nExamine the bins and sort into the matching category!");
+            showTemporaryNotice("RETRIEVED: " + insideCarriedWaste.name()
+                    + "\nExamine the bins and sort into the matching category!");
         }
     }
 
@@ -2132,6 +2245,9 @@ public class MovementApp extends GameApplication {
         insideCarriedWaste = null;
         if (sorterCarriedWasteView != null) {
             sorterCarriedWasteView.setVisible(false);
+        }
+        if (sorterCarriedItemLabel != null) {
+            sorterCarriedItemLabel.setVisible(false);
         }
     }
 
@@ -2184,7 +2300,8 @@ public class MovementApp extends GameApplication {
         questionLabel.setText(currentActiveQuestion.prompt());
         if (questionFeedbackLabel != null) {
             questionFeedbackLabel.setText("Click an option below to answer:");
-            questionFeedbackLabel.setStyle("-fx-text-fill: #523c28; -fx-font-family: 'Press Start 2P', 'Monospaced'; -fx-font-size: 9px;");
+            questionFeedbackLabel.setStyle(
+                    "-fx-text-fill: #523c28; -fx-font-family: 'Press Start 2P', 'Monospaced'; -fx-font-size: 9px;");
         }
 
         if (questionChoicesContainer != null) {
@@ -2213,25 +2330,25 @@ public class MovementApp extends GameApplication {
                 btnChoice.setCursor(Cursor.HAND);
                 btnChoice.setStyle(
                         "-fx-background-color: #6c5139;"
-                        + "-fx-border-color: #8d6b4c #3d2919 #3d2919 #8d6b4c;"
-                        + "-fx-border-width: 2px;"
-                        + "-fx-text-fill: #fdfbf7;"
-                        + "-fx-font-family: 'Press Start 2P', 'Monospaced', monospace;"
-                        + "-fx-font-weight: bold;"
-                        + "-fx-font-size: 9.5px;"
-                        + "-fx-alignment: center-left;");
+                                + "-fx-border-color: #8d6b4c #3d2919 #3d2919 #8d6b4c;"
+                                + "-fx-border-width: 2px;"
+                                + "-fx-text-fill: #fdfbf7;"
+                                + "-fx-font-family: 'Press Start 2P', 'Monospaced', monospace;"
+                                + "-fx-font-weight: bold;"
+                                + "-fx-font-size: 9.5px;"
+                                + "-fx-alignment: center-left;");
 
                 btnChoice.setOnMouseEntered(e -> {
                     if (!questionAnswerLocked) {
                         btnChoice.setStyle(
                                 "-fx-background-color: #523c28;"
-                                + "-fx-border-color: #ffd700 #281a0e #281a0e #ffd700;"
-                                + "-fx-border-width: 2px;"
-                                + "-fx-text-fill: #ffd700;"
-                                + "-fx-font-family: 'Press Start 2P', 'Monospaced', monospace;"
-                                + "-fx-font-weight: bold;"
-                                + "-fx-font-size: 9.5px;"
-                                + "-fx-alignment: center-left;");
+                                        + "-fx-border-color: #ffd700 #281a0e #281a0e #ffd700;"
+                                        + "-fx-border-width: 2px;"
+                                        + "-fx-text-fill: #ffd700;"
+                                        + "-fx-font-family: 'Press Start 2P', 'Monospaced', monospace;"
+                                        + "-fx-font-weight: bold;"
+                                        + "-fx-font-size: 9.5px;"
+                                        + "-fx-alignment: center-left;");
                         AudioManager.playButtonClick();
                     }
                 });
@@ -2240,13 +2357,13 @@ public class MovementApp extends GameApplication {
                     if (!questionAnswerLocked) {
                         btnChoice.setStyle(
                                 "-fx-background-color: #6c5139;"
-                                + "-fx-border-color: #8d6b4c #3d2919 #3d2919 #8d6b4c;"
-                                + "-fx-border-width: 2px;"
-                                + "-fx-text-fill: #fdfbf7;"
-                                + "-fx-font-family: 'Press Start 2P', 'Monospaced', monospace;"
-                                + "-fx-font-weight: bold;"
-                                + "-fx-font-size: 9.5px;"
-                                + "-fx-alignment: center-left;");
+                                        + "-fx-border-color: #8d6b4c #3d2919 #3d2919 #8d6b4c;"
+                                        + "-fx-border-width: 2px;"
+                                        + "-fx-text-fill: #fdfbf7;"
+                                        + "-fx-font-family: 'Press Start 2P', 'Monospaced', monospace;"
+                                        + "-fx-font-weight: bold;"
+                                        + "-fx-font-size: 9.5px;"
+                                        + "-fx-alignment: center-left;");
                     }
                 });
 
@@ -2275,21 +2392,21 @@ public class MovementApp extends GameApplication {
                                 if (isWrong) {
                                     btn.setStyle(
                                             "-fx-background-color: #8b2525;"
-                                            + "-fx-border-color: #ff6b6b;"
-                                            + "-fx-border-width: 2px;"
-                                            + "-fx-text-fill: #ffffff;"
-                                            + "-fx-font-family: 'Press Start 2P', 'Monospaced';"
-                                            + "-fx-font-size: 9.5px;"
-                                            + "-fx-alignment: center-left;");
+                                                    + "-fx-border-color: #ff6b6b;"
+                                                    + "-fx-border-width: 2px;"
+                                                    + "-fx-text-fill: #ffffff;"
+                                                    + "-fx-font-family: 'Press Start 2P', 'Monospaced';"
+                                                    + "-fx-font-size: 9.5px;"
+                                                    + "-fx-alignment: center-left;");
                                 } else {
                                     btn.setStyle(
                                             "-fx-background-color: #276c35;"
-                                            + "-fx-border-color: #39ff14;"
-                                            + "-fx-border-width: 2px;"
-                                            + "-fx-text-fill: #ffffff;"
-                                            + "-fx-font-family: 'Press Start 2P', 'Monospaced';"
-                                            + "-fx-font-size: 9.5px;"
-                                            + "-fx-alignment: center-left;");
+                                                    + "-fx-border-color: #39ff14;"
+                                                    + "-fx-border-width: 2px;"
+                                                    + "-fx-text-fill: #ffffff;"
+                                                    + "-fx-font-family: 'Press Start 2P', 'Monospaced';"
+                                                    + "-fx-font-size: 9.5px;"
+                                                    + "-fx-alignment: center-left;");
                                 }
                             }
                             buttonCounter++;
@@ -2301,21 +2418,21 @@ public class MovementApp extends GameApplication {
                         if (isWrong) {
                             btn.setStyle(
                                     "-fx-background-color: #8b2525;"
-                                    + "-fx-border-color: #ff6b6b;"
-                                    + "-fx-border-width: 2px;"
-                                    + "-fx-text-fill: #ffffff;"
-                                    + "-fx-font-family: 'Press Start 2P', 'Monospaced';"
-                                    + "-fx-font-size: 9.5px;"
-                                    + "-fx-alignment: center-left;");
+                                            + "-fx-border-color: #ff6b6b;"
+                                            + "-fx-border-width: 2px;"
+                                            + "-fx-text-fill: #ffffff;"
+                                            + "-fx-font-family: 'Press Start 2P', 'Monospaced';"
+                                            + "-fx-font-size: 9.5px;"
+                                            + "-fx-alignment: center-left;");
                         } else {
                             btn.setStyle(
                                     "-fx-background-color: #276c35;"
-                                    + "-fx-border-color: #39ff14;"
-                                    + "-fx-border-width: 2px;"
-                                    + "-fx-text-fill: #ffffff;"
-                                    + "-fx-font-family: 'Press Start 2P', 'Monospaced';"
-                                    + "-fx-font-size: 9.5px;"
-                                    + "-fx-alignment: center-left;");
+                                            + "-fx-border-color: #39ff14;"
+                                            + "-fx-border-width: 2px;"
+                                            + "-fx-text-fill: #ffffff;"
+                                            + "-fx-font-family: 'Press Start 2P', 'Monospaced';"
+                                            + "-fx-font-size: 9.5px;"
+                                            + "-fx-alignment: center-left;");
                         }
                     }
                     buttonCounter++;
@@ -2449,7 +2566,7 @@ public class MovementApp extends GameApplication {
                     if (targetEntity != null && targetEntity.isActive()) {
                         if (selectedGameMode == GameMode.QUESTION_TEST
                                 && testQuestionIndex < testQuestions.size()) {
-                            targetEntity.setProperty("question", testQuestions.get(testQuestionIndex));
+                            targetEntity.setProperty("question", testQuestions.get(testQuestionIndex).shuffled());
                         } else {
                             targetEntity.removeFromWorld();
                         }
@@ -2509,7 +2626,8 @@ public class MovementApp extends GameApplication {
                 || selectedGameMode == GameMode.SORTING_TEST
                 || selectedGameMode == GameMode.SEQUENTIAL_DEMO
                 || selectedGameMode == GameMode.MAP_GENERATOR) && playerEntity != null && playerEntity2 != null) {
-            // Shared Screen Local Co-Op: Dynamic zoom and smooth dual-player midpoint tracking
+            // Shared Screen Local Co-Op: Dynamic zoom and smooth dual-player midpoint
+            // tracking
             unbindEntityTracking(vp);
             currentCoopZoom = 2.0;
             currentCamX = (playerEntity.getX() + playerEntity2.getX()) / 2.0 + 8.0;
@@ -2545,7 +2663,8 @@ public class MovementApp extends GameApplication {
     }
 
     private void attachPlayerBadge(Entity player, String text, Color color) {
-        if (player == null) return;
+        if (player == null)
+            return;
         Text badge = new Text(text);
         badge.setFont(Font.font("Monospaced", FontWeight.BOLD, 11));
         badge.setFill(color);
@@ -2570,7 +2689,8 @@ public class MovementApp extends GameApplication {
             double deltaX = Math.abs(p1X - p2X);
             double deltaY = Math.abs(p1Y - p2Y);
 
-            // Dynamic zoom framing both players within screen bounds with comfortable padding
+            // Dynamic zoom framing both players within screen bounds with comfortable
+            // padding
             double zoomX = 1280.0 / Math.max(340.0, deltaX + 220.0);
             double zoomY = 720.0 / Math.max(240.0, deltaY + 180.0);
             double targetZoom = Math.max(1.35, Math.min(2.35, Math.min(zoomX, zoomY)));
@@ -2593,27 +2713,48 @@ public class MovementApp extends GameApplication {
     }
 
     private void enforcePlayerTether() {
-        if (playerEntity == null || playerEntity2 == null) return;
+        if (playerEntity == null || playerEntity2 == null)
+            return;
         double dist = playerEntity.distance(playerEntity2);
         if (dist > MAX_TETHER_DISTANCE) {
             double excess = dist - MAX_TETHER_DISTANCE;
-            double angle = Math.atan2(playerEntity.getY() - playerEntity2.getY(), playerEntity.getX() - playerEntity2.getX());
+            double angle = Math.atan2(playerEntity.getY() - playerEntity2.getY(),
+                    playerEntity.getX() - playerEntity2.getX());
             boolean p1Moving = playerComponent != null && playerComponent.isMoving();
             boolean p2Moving = playerComponent2 != null && playerComponent2.isMoving();
 
             if (p1Moving && !p2Moving) {
-                playerEntity.translateX(-Math.cos(angle) * excess);
-                playerEntity.translateY(-Math.sin(angle) * excess);
+                safeTetherTranslate(playerEntity, -Math.cos(angle) * excess, -Math.sin(angle) * excess);
             } else if (p2Moving && !p1Moving) {
-                playerEntity2.translateX(Math.cos(angle) * excess);
-                playerEntity2.translateY(Math.sin(angle) * excess);
+                safeTetherTranslate(playerEntity2, Math.cos(angle) * excess, Math.sin(angle) * excess);
             } else {
                 double halfCorrX = Math.cos(angle) * (excess / 2.0);
                 double halfCorrY = Math.sin(angle) * (excess / 2.0);
-                playerEntity.translateX(-halfCorrX);
-                playerEntity.translateY(-halfCorrY);
-                playerEntity2.translateX(halfCorrX);
-                playerEntity2.translateY(halfCorrY);
+                safeTetherTranslate(playerEntity, -halfCorrX, -halfCorrY);
+                safeTetherTranslate(playerEntity2, halfCorrX, halfCorrY);
+            }
+        }
+    }
+
+    /**
+     * Translate a player entity by (dx, dy) for tethering, but revert if the
+     * destination overlaps a wall to prevent clipping players into geometry.
+     */
+    private void safeTetherTranslate(Entity player, double dx, double dy) {
+        double origX = player.getX();
+        double origY = player.getY();
+        player.translateX(dx);
+        player.translateY(dy);
+
+        // Check if destination collides with walls (not other players — tether
+        // naturally brings them closer so player overlap is expected and handled
+        // by PlayerComponent's overlap-escape logic)
+        List<Entity> walls = FXGL.getGameWorld().getEntitiesByType(EntityType.WALL);
+        for (Entity wall : walls) {
+            if (player.isColliding(wall)) {
+                player.setX(origX);
+                player.setY(origY);
+                return;
             }
         }
     }
@@ -2735,12 +2876,12 @@ public class MovementApp extends GameApplication {
             topBarRightCard.setAlignment(Pos.CENTER_RIGHT);
             topBarRightCard.setStyle(
                     "-fx-background-color: rgba(9, 17, 24, 0.88);"
-                    + "-fx-border-color: #00f0ff;"
-                    + "-fx-border-width: 2px;"
-                    + "-fx-border-radius: 5px;"
-                    + "-fx-background-radius: 5px;"
-                    + "-fx-padding: 8px 14px;"
-                    + "-fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.85), 6, 0, 0, 3);");
+                            + "-fx-border-color: #00f0ff;"
+                            + "-fx-border-width: 2px;"
+                            + "-fx-border-radius: 5px;"
+                            + "-fx-background-radius: 5px;"
+                            + "-fx-padding: 8px 14px;"
+                            + "-fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.85), 6, 0, 0, 3);");
             topBarRightCard.setTranslateX(FXGL.getAppWidth() - 112);
             topBarRightCard.setTranslateY(14);
             topBarRightCard.setMouseTransparent(true);
@@ -2760,12 +2901,12 @@ public class MovementApp extends GameApplication {
             trashHUDBox.setAlignment(Pos.CENTER_LEFT);
             trashHUDBox.setStyle(
                     "-fx-background-color: rgba(9, 17, 24, 0.88);"
-                    + "-fx-border-color: #39ff14;"
-                    + "-fx-border-width: 2px;"
-                    + "-fx-border-radius: 5px;"
-                    + "-fx-background-radius: 5px;"
-                    + "-fx-padding: 6px 14px;"
-                    + "-fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.85), 6, 0, 0, 3);");
+                            + "-fx-border-color: #39ff14;"
+                            + "-fx-border-width: 2px;"
+                            + "-fx-border-radius: 5px;"
+                            + "-fx-background-radius: 5px;"
+                            + "-fx-padding: 6px 14px;"
+                            + "-fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.85), 6, 0, 0, 3);");
             trashHUDBox.setTranslateX(16);
             trashHUDBox.setTranslateY(FXGL.getAppHeight() - 62);
             trashHUDBox.setMouseTransparent(true);
@@ -2774,7 +2915,8 @@ public class MovementApp extends GameApplication {
             updateTrashCounter();
         }
 
-        // Keep the backing text for interaction logic, without rendering a bottom instruction banner.
+        // Keep the backing text for interaction logic, without rendering a bottom
+        // instruction banner.
         interactPromptText = new Text();
         interactPromptText.setVisible(false);
 
@@ -2811,7 +2953,8 @@ public class MovementApp extends GameApplication {
     }
 
     private void checkAndExpandLayer() {
-        if (infiniteMapManager == null) return;
+        if (infiniteMapManager == null)
+            return;
         boolean layerComplete = true;
         for (int dx = -currentMapRadius; dx <= currentMapRadius; dx++) {
             for (int dy = -currentMapRadius; dy <= currentMapRadius; dy++) {
@@ -2822,13 +2965,14 @@ public class MovementApp extends GameApplication {
                     }
                 }
             }
-            if (!layerComplete) break;
+            if (!layerComplete)
+                break;
         }
 
         if (layerComplete) {
             currentMapRadius++;
             infiniteMapManager.unlockLayer(currentMapRadius);
-            
+
         }
     }
 
@@ -2846,7 +2990,8 @@ public class MovementApp extends GameApplication {
                     plantIv.setLayoutY(2);
                     hudIconPane.getChildren().add(plantIv);
                 }
-            } else if (generatorStage == GeneratorStage.QUESTION || (selectedGameMode == GameMode.SEQUENTIAL_DEMO && demoStage == DemoStage.QUESTION)) {
+            } else if (generatorStage == GeneratorStage.QUESTION
+                    || (selectedGameMode == GameMode.SEQUENTIAL_DEMO && demoStage == DemoStage.QUESTION)) {
                 ImageView questionIv = safeImageView("/assets/textures/question.png", 28, 28);
                 if (questionIv != null) {
                     questionIv.setLayoutX(8);
@@ -2895,11 +3040,16 @@ public class MovementApp extends GameApplication {
                 case SEQUENTIAL_DEMO -> {
                     switch (demoStage) {
                         case COLLECTION -> trashCounterText.setText(
-                                String.format("%d/%d", demoCollectionTask != null ? demoCollectionTask.collectedItems() : 0, demoCollectionItems.size() + (demoCollectionTask != null ? demoCollectionTask.collectedItems() : 0)));
+                                String.format("%d/%d",
+                                        demoCollectionTask != null ? demoCollectionTask.collectedItems() : 0,
+                                        demoCollectionItems.size()
+                                                + (demoCollectionTask != null ? demoCollectionTask.collectedItems()
+                                                        : 0)));
                         case QUESTION -> trashCounterText.setText(
                                 String.format("%d/%d", testQuestionIndex, testQuestions.size()));
                         case SORTING -> trashCounterText.setText(
-                                String.format("%d/%d", sortingTask != null ? sortingTask.sortedItems() : 0, demoSortingItemCount));
+                                String.format("%d/%d", sortingTask != null ? sortingTask.sortedItems() : 0,
+                                        demoSortingItemCount));
                         case TREE_PLANTATION -> trashCounterText.setText(
                                 String.format("%d/%d", demoPlantsPlanted, 6));
                         case COMPLETE -> trashCounterText.setText("6/6");
@@ -3016,11 +3166,13 @@ public class MovementApp extends GameApplication {
                     String currentKey = targetChunkX + "," + targetChunkY;
                     generatorStage = assignedTasks.get(currentKey);
                     if (generatorStage == null) {
-                        GeneratorStage[] stages = {GeneratorStage.TRASH_COLLECTION, GeneratorStage.QUESTION, GeneratorStage.SORTING, GeneratorStage.TREE_PLANTATION, GeneratorStage.ANIMAL_RESCUE};
+                        GeneratorStage[] stages = { GeneratorStage.TRASH_COLLECTION, GeneratorStage.QUESTION,
+                                GeneratorStage.SORTING, GeneratorStage.TREE_PLANTATION, GeneratorStage.ANIMAL_RESCUE };
                         generatorStage = stages[nextGeneratorStageIndex];
                         assignedTasks.put(currentKey, generatorStage);
                         nextGeneratorStageIndex = (nextGeneratorStageIndex + 1) % stages.length;
                     }
+                    currentDistrict = completedChunks.size() + 1;
                     switch (generatorStage) {
                         case TRASH_COLLECTION -> setupGeneratorStage1(targetChunkX, targetChunkY);
                         case QUESTION -> setupGeneratorStage2(targetChunkX, targetChunkY);
@@ -3061,15 +3213,20 @@ public class MovementApp extends GameApplication {
             if (modeStatusText != null) {
                 if (selectedGameMode == GameMode.SINGLE_PLAYER) {
                     switch (generatorStage) {
-                        case TRASH_COLLECTION -> modeStatusText.setText(String.format("District %d: Phase 1 — Eco-Cleanup (%d / %d)",
-                                currentDistrict, generatorTrashCollected, GENERATOR_TARGET_TRASH));
-                        case QUESTION -> modeStatusText.setText(String.format("District %d: Phase 2 — Eco-Grid Terminals (%d / %d)",
-                                currentDistrict, generatorQuestionsAnswered, GENERATOR_TARGET_QUESTIONS));
-                        case SORTING -> modeStatusText.setText(String.format("District %d: Phase 3 — Recycling Station (%d / %d)",
-                                currentDistrict, generatorSortedCount, GENERATOR_TARGET_SORTING));
-                        case TREE_PLANTATION -> modeStatusText.setText(String.format("District %d: Phase 4 — Tree Plantation (%d / %d)",
-                                currentDistrict, generatorPlantsPlanted, GENERATOR_TARGET_PLANTS));
-                        default -> {}
+                        case TRASH_COLLECTION ->
+                            modeStatusText.setText(String.format("District %d: Phase 1 — Eco-Cleanup (%d / %d)",
+                                    currentDistrict, generatorTrashCollected, GENERATOR_TARGET_TRASH));
+                        case QUESTION ->
+                            modeStatusText.setText(String.format("District %d: Phase 2 — Eco-Grid Terminals (%d / %d)",
+                                    currentDistrict, generatorQuestionsAnswered, GENERATOR_TARGET_QUESTIONS));
+                        case SORTING ->
+                            modeStatusText.setText(String.format("District %d: Phase 3 — Recycling Station (%d / %d)",
+                                    currentDistrict, generatorSortedCount, GENERATOR_TARGET_SORTING));
+                        case TREE_PLANTATION ->
+                            modeStatusText.setText(String.format("District %d: Phase 4 — Tree Plantation (%d / %d)",
+                                    currentDistrict, generatorPlantsPlanted, GENERATOR_TARGET_PLANTS));
+                        default -> {
+                        }
                     }
                 } else {
                     switch (generatorStage) {
@@ -3080,11 +3237,13 @@ public class MovementApp extends GameApplication {
                                 "District %d: Phase 2 — Co-op Eco-Grid (%d / %d)",
                                 currentDistrict, generatorQuestionsAnswered, GENERATOR_TARGET_QUESTIONS));
                         case SORTING -> modeStatusText.setText(
-                                String.format("District %d: Phase 3 — Co-op Sorting (%s)", currentDistrict, sortingFeedback));
+                                String.format("District %d: Phase 3 — Co-op Sorting (%s)", currentDistrict,
+                                        sortingFeedback));
                         case TREE_PLANTATION -> modeStatusText.setText(String.format(
                                 "District %d: Phase 4 — Co-op Tree Plantation (%d / %d)",
                                 currentDistrict, generatorPlantsPlanted, GENERATOR_TARGET_PLANTS));
-                        default -> {}
+                        default -> {
+                        }
                     }
                 }
             }
@@ -3113,7 +3272,11 @@ public class MovementApp extends GameApplication {
         }
 
         if (!gameEnded && selectedGameMode != GameMode.LAN_JOIN) {
-            timer.tick(tpf);
+            int level = isInfiniteGameMode() ? currentDistrict
+                    : (selectedGameMode == GameMode.SEQUENTIAL_DEMO && demoStage != null ? (demoStage.ordinal() + 1)
+                            : 1);
+            double depletionMultiplier = 1.0 + 0.20 * Math.max(0, level - 1);
+            timer.tick(tpf * depletionMultiplier);
             if (timer.isExpired()) {
                 gameEnded = true;
                 showEndGameOverlay("TIME EXPIRED", "The world could not be restored in time.", false);
@@ -3204,7 +3367,8 @@ public class MovementApp extends GameApplication {
                         }
                     }
                     if (!nearBin) {
-                        interactPromptText.setText("Carrying: " + outsideCarriedWaste.name() + " — Find the matching bin");
+                        interactPromptText
+                                .setText("Carrying: " + outsideCarriedWaste.name() + " — Find the matching bin");
                     }
                     interactPromptText.setVisible(true);
                 } else {
@@ -3245,7 +3409,8 @@ public class MovementApp extends GameApplication {
                     interactPromptText.setVisible(nearHole);
                 }
             } else if (generatorStage == GeneratorStage.ANIMAL_RESCUE) {
-                if (!generatorStageCompleted && rabbitEntity != null && rabbitEntity.isActive() && playerEntity != null && playerEntity.distance(rabbitEntity) < 64.0) {
+                if (!generatorStageCompleted && rabbitEntity != null && rabbitEntity.isActive() && playerEntity != null
+                        && playerEntity.distance(rabbitEntity) < 64.0) {
                     interactPromptText.setText("Press [E / Space] to Heal Rabbit");
                     interactPromptText.setVisible(true);
                 } else {
@@ -3299,12 +3464,33 @@ public class MovementApp extends GameApplication {
     }
 
     private void keepCollectorOutsideSortingZone() {
-        if (playerEntity != null
-                && playerEntity.getX() >= activeSortZoneX - 5
-                && playerEntity.getX() <= activeSortZoneX + activeSortZoneWidth
-                && playerEntity.getY() >= activeSortZoneY - 5
-                && playerEntity.getY() <= activeSortZoneY + activeSortZoneHeight) {
-            playerEntity.setX(activeSortZoneX - 28);
+        if (playerEntity == null)
+            return;
+        double px = playerEntity.getX();
+        double py = playerEntity.getY();
+        double zoneLeft = activeSortZoneX - 5;
+        double zoneRight = activeSortZoneX + activeSortZoneWidth;
+        double zoneTop = activeSortZoneY - 5;
+        double zoneBottom = activeSortZoneY + activeSortZoneHeight;
+
+        if (px >= zoneLeft && px <= zoneRight && py >= zoneTop && py <= zoneBottom) {
+            // Find nearest edge to eject to
+            double distLeft = px - zoneLeft;
+            double distRight = zoneRight - px;
+            double distTop = py - zoneTop;
+            double distBottom = zoneBottom - py;
+
+            double minDist = Math.min(Math.min(distLeft, distRight), Math.min(distTop, distBottom));
+
+            if (minDist == distLeft) {
+                playerEntity.setX(zoneLeft - 20);
+            } else if (minDist == distRight) {
+                playerEntity.setX(zoneRight + 4);
+            } else if (minDist == distTop) {
+                playerEntity.setY(zoneTop - 20);
+            } else {
+                playerEntity.setY(zoneBottom + 4);
+            }
         }
     }
 
@@ -4120,11 +4306,12 @@ public class MovementApp extends GameApplication {
             Text stTitle = new Text("SETTINGS");
             stTitle.setFont(Font.font("Monospaced", FontWeight.BOLD, 32));
             stTitle.setFill(Color.web("#6c5139"));
-            
-            Text lblFallbackVol = new Text(String.format("MUSIC VOLUME: %d%%", Math.round(AudioManager.getMusicVolume() * 100.0)));
+
+            Text lblFallbackVol = new Text(
+                    String.format("MUSIC VOLUME: %d%%", Math.round(AudioManager.getMusicVolume() * 100.0)));
             lblFallbackVol.setFont(Font.font("Monospaced", FontWeight.BOLD, 12));
             lblFallbackVol.setFill(Color.web("#6c5139"));
-            
+
             Slider sliderFallbackVol = new Slider(0.0, 100.0, AudioManager.getMusicVolume() * 100.0);
             sliderFallbackVol.setMaxWidth(300);
             sliderFallbackVol.valueProperty().addListener((obs, oldVal, newVal) -> {
