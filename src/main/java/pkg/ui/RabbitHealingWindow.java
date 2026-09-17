@@ -58,7 +58,9 @@ public class RabbitHealingWindow extends Stage {
             ClipboardContent content = new ClipboardContent();
             content.putString("ointment");
             db.setContent(content);
-            db.setDragView(ointmentImg, 96, 96); // drag view centered
+            javafx.scene.SnapshotParameters params = new javafx.scene.SnapshotParameters();
+            params.setFill(javafx.scene.paint.Color.TRANSPARENT);
+            db.setDragView(ointmentView.snapshot(params, null), 96, 96); // drag view centered
             e.consume();
         });
 
@@ -67,7 +69,9 @@ public class RabbitHealingWindow extends Stage {
             ClipboardContent content = new ClipboardContent();
             content.putString("bandaid");
             db.setContent(content);
-            db.setDragView(bandaidImg, 96, 96); // drag view centered
+            javafx.scene.SnapshotParameters params = new javafx.scene.SnapshotParameters();
+            params.setFill(javafx.scene.paint.Color.TRANSPARENT);
+            db.setDragView(bandaidView.snapshot(params, null), 96, 96); // drag view centered
             e.consume();
         });
 
