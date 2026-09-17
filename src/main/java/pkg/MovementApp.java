@@ -1736,7 +1736,7 @@ public class MovementApp extends GameApplication {
                         + "-fx-border-width: 1.8px;"
                         + "-fx-border-radius: 4px;"
                         + "-fx-background-radius: 4px;"
-                        + "-fx-padding: 3px 8px;"
+                        + "-fx-padding: 3px 6px;"
                         + "-fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.85), 4, 0, 0, 2);");
 
         String arrow = isUnderneath ? "▲ " : "▼ ";
@@ -1747,14 +1747,15 @@ public class MovementApp extends GameApplication {
                         + "-fx-font-size: 9px;"
                         + "-fx-font-weight: bold;"
                         + "-fx-alignment: center;");
+        catLabel.setMinWidth(Region.USE_PREF_SIZE);
 
         plaque.getChildren().add(catLabel);
         plaque.setMouseTransparent(true);
-        plaque.setMinWidth(100);
-        plaque.setMaxWidth(114);
+        plaque.setMinWidth(128);
+        plaque.setMaxWidth(130);
 
-        // Center plaque horizontally relative to 72px can: (72 - 104) / 2 ~= -16
-        plaque.setTranslateX(-16);
+        // Center plaque horizontally relative to 72px can: (72 - 128) / 2 = -28
+        plaque.setTranslateX(-28);
         // Hazardous & Recyclable underneath (Y=62), Organic & General Waste above
         // (Y=-32)
         plaque.setTranslateY(isUnderneath ? 62 : -32);
