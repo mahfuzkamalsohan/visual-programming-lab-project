@@ -583,6 +583,20 @@ public class MovementApp extends GameApplication {
         }
         setupViewports();
         setupNetworking();
+
+        Runnable spawnBirdTask = () -> {
+            Viewport viewport = FXGL.getGameScene().getViewport();
+            double spawnX = viewport.getX() + FXGL.getAppWidth() + 50;
+            double spawnY = viewport.getY() + ThreadLocalRandom.current().nextDouble(50, Math.max(100, FXGL.getAppHeight() - 100));
+            System.out.println("Spawning bird at: " + spawnX + ", " + spawnY);
+            FXGL.spawn("bird", spawnX, spawnY);
+        };
+
+        // Spawn one bird shortly after the game starts
+        FXGL.getGameTimer().runOnceAfter(spawnBirdTask, Duration.seconds(2));
+        
+        // And then every 8 seconds
+        FXGL.getGameTimer().runAtInterval(spawnBirdTask, Duration.seconds(8));
     }
 
     private Entity findPlayer(List<Entity> players, int index) {
@@ -3330,6 +3344,15 @@ public class MovementApp extends GameApplication {
                     .type(EntityType.TRASH)
                     .viewWithBBox("bottle.png")
                     .with(new CollidableComponent(true))
+                    .build();
+        }
+
+        @Spawns("bird")
+        public Entity spawnBird(SpawnData data) {
+            return FXGL.entityBuilder(data)
+                    .type(EntityType.BIRD)
+                    .with(new BirdComponent())
+                    .zIndex(150)
                     .build();
         }
 
