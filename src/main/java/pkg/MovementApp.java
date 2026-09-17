@@ -978,12 +978,18 @@ public class MovementApp extends GameApplication {
         sortingIntake.clear();
         outsideCarriedWaste = null;
         insideCarriedWaste = null;
+        if (sortingIntakePoint != null && sortingIntakePoint.isActive()) {
+            sortingIntakePoint.removeFromWorld();
+        }
         sortingIntakePoint = null;
         sortingIntakeBox = null;
         collectorCarriedWasteView = null;
         carriedItemLabel = null;
         sorterCarriedWasteView = null;
         sorterCarriedItemLabel = null;
+        if (intakeWasteView != null) {
+            intakeWasteView.setVisible(false);
+        }
         intakeWasteView = null;
         sortingFeedback = "Collect every scattered garbage and sort it";
         activeSortZoneX = SORT_ZONE_X;
@@ -1000,6 +1006,17 @@ public class MovementApp extends GameApplication {
         }
         sortingBins.clear();
         sortingBinBoxes.clear();
+
+        if (sortingIntakePoint != null && sortingIntakePoint.isActive()) {
+            sortingIntakePoint.removeFromWorld();
+        }
+        sortingIntakePoint = null;
+        sortingIntakeBox = null;
+        sortingIntake.clear();
+        if (intakeWasteView != null) {
+            intakeWasteView.setVisible(false);
+            intakeWasteView = null;
+        }
     }
 
     private List<WasteItem> randomBalancedSortingWaste(int count) {
@@ -2007,7 +2024,7 @@ public class MovementApp extends GameApplication {
             return;
         if (outsideCarriedWaste != null) {
             // Player 1 is carrying waste: must be physically at the intake point to deliver
-            if (sortingIntakeBox.intersectsPlayer(playerEntity)) {
+            if (sortingIntakeBox != null && sortingIntakeBox.intersectsPlayer(playerEntity)) {
                 sortingIntake.addLast(outsideCarriedWaste);
                 outsideCarriedWaste = null;
                 if (collectorCarriedWasteView != null) {
