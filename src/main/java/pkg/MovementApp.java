@@ -3990,7 +3990,11 @@ public class MovementApp extends GameApplication {
                         MENU_BASE_X + EXIT_OFFSET_X,
                         MENU_BASE_Y + 4 * MENU_ITEM_SPACING + EXIT_OFFSET_Y,
                         EXIT_BASE_TILT,
-                        () -> showPixelExitConfirmation());
+                        () -> showInScenePixelConfirmation(
+                                getContentRoot(),
+                                "EXIT RESTORATION?",
+                                "Are you sure you want to quit the game?",
+                                () -> FXGL.getGameController().exit()));
 
                 mainMenuBox.getChildren().addAll(
                         btnSingleTablet,
@@ -4352,7 +4356,11 @@ public class MovementApp extends GameApplication {
             btnMultiplayer.setOnAction(e -> showCard(mpBox, mainBox, stBox, abBox));
             btnSettings.setOnAction(e -> showCard(stBox, mainBox, mpBox, abBox));
             btnAbout.setOnAction(e -> showCard(abBox, mainBox, mpBox, stBox));
-            btnExit.setOnAction(e -> showPixelExitConfirmation());
+            btnExit.setOnAction(e -> showInScenePixelConfirmation(
+                    getContentRoot(),
+                    "EXIT RESTORATION?",
+                    "Are you sure you want to quit the game?",
+                    () -> FXGL.getGameController().exit()));
 
             btnHostCoop.setOnAction(e -> {
                 selectedGameMode = GameMode.LAN_HOST;
@@ -4496,14 +4504,33 @@ public class MovementApp extends GameApplication {
                         PAUSE_BASE_Y + 1 * PAUSE_ITEM_SPACING,
                         MAINMENU_BASE_TILT,
                         HOVER_TILT_DELTA,
-                        () -> showPixelMainMenuConfirmation());
+                        () -> showInScenePixelConfirmation(
+                                getContentRoot(),
+                                "RETURN TO MAIN MENU?",
+                                "Are you sure you want to return to the main menu?\nUnsaved progress will be lost!",
+                                () -> {
+                                    boolean wasFullScreen = FXGL.getPrimaryStage().isFullScreen();
+                                    AudioManager.playMenuMusic();
+                                    FXGL.getGameController().gotoMainMenu();
+                                    if (wasFullScreen) {
+                                        javafx.application.Platform.runLater(() -> {
+                                            if (!FXGL.getPrimaryStage().isFullScreen()) {
+                                                FXGL.getPrimaryStage().setFullScreen(true);
+                                            }
+                                        });
+                                    }
+                                }));
 
                 Node btnExitTablet = createTabletItem("/assets/ui/menu/exit.png", "Exit Game",
                         centerX,
                         PAUSE_BASE_Y + 2 * PAUSE_ITEM_SPACING,
                         EXIT_BASE_TILT,
                         HOVER_TILT_DELTA,
-                        () -> showPixelExitConfirmation());
+                        () -> showInScenePixelConfirmation(
+                                getContentRoot(),
+                                "EXIT RESTORATION?",
+                                "Are you sure you want to quit the game?",
+                                () -> FXGL.getGameController().exit()));
 
                 pauseMenuBox.getChildren().addAll(btnResumeTablet, btnMainMenuTablet, btnExitTablet);
             } catch (IOException | RuntimeException ex) {
@@ -4652,11 +4679,30 @@ public class MovementApp extends GameApplication {
             });
             btnMainMenu.setOnAction(e -> {
                 AudioManager.playButtonClick();
-                showPixelMainMenuConfirmation();
+                showInScenePixelConfirmation(
+                        getContentRoot(),
+                        "RETURN TO MAIN MENU?",
+                        "Are you sure you want to return to the main menu?\nUnsaved progress will be lost!",
+                        () -> {
+                            boolean wasFullScreen = FXGL.getPrimaryStage().isFullScreen();
+                            AudioManager.playMenuMusic();
+                            FXGL.getGameController().gotoMainMenu();
+                            if (wasFullScreen) {
+                                javafx.application.Platform.runLater(() -> {
+                                    if (!FXGL.getPrimaryStage().isFullScreen()) {
+                                        FXGL.getPrimaryStage().setFullScreen(true);
+                                    }
+                                });
+                            }
+                        });
             });
             btnExit.setOnAction(e -> {
                 AudioManager.playButtonClick();
-                showPixelExitConfirmation();
+                showInScenePixelConfirmation(
+                        getContentRoot(),
+                        "EXIT RESTORATION?",
+                        "Are you sure you want to quit the game?",
+                        () -> FXGL.getGameController().exit());
             });
 
             VBox vbox = new VBox(10, title, btnResume, btnMainMenu, btnExit);
@@ -4684,7 +4730,148 @@ public class MovementApp extends GameApplication {
         }
     }
 
+    private static void showInScenePixelConfirmation(
+            Pane container,
+            String headerText,
+            String contentText,
+            Runnable onConfirm) {
+        if (container == null)
+            return;
+
+        double w = FXGL.getAppWidth();
+        double h = FXGL.getAppHeight();
+
+        // 1. Dimmed backdrop covering full viewport
+        StackPane overlay = new StackPane();
+        overlay.setPrefSize(w, h);
+        overlay.setMinSize(w, h);
+        overlay.setMaxSize(w, h);
+        overlay.setAlignment(Pos.CENTER);
+        overlay.setStyle("-fx-background-color: rgba(0, 0, 0, 0.65);");
+        overlay.setPickOnBounds(true);
+
+        // 2. Dialog card (compact wood pixel theme matching pixel_style.css)
+        VBox card = new VBox();
+        card.setMaxWidth(460);
+        card.setMinWidth(460);
+        card.setMaxHeight(Region.USE_PREF_SIZE);
+        StackPane.setAlignment(card, Pos.CENTER);
+        card.setStyle(
+                "-fx-background-color: rgba(197, 159, 115, 0.98);"
+                        + "-fx-border-color: #6c5139 #4a3623 #4a3623 #6c5139;"
+                        + "-fx-border-width: 4px;"
+                        + "-fx-border-style: solid;"
+                        + "-fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.88), 16, 0, 4, 4);");
+
+        // Header panel: title text on left, blue circular question badge on right
+        Label headerLabel = new Label(headerText);
+        headerLabel.setStyle(
+                "-fx-text-fill: #6c5139;"
+                        + "-fx-font-family: 'Press Start 2P', 'Monospaced', monospace;"
+                        + "-fx-font-size: 13px;"
+                        + "-fx-font-weight: bold;");
+        headerLabel.setWrapText(true);
+
+        // Question mark badge
+        StackPane badge = new StackPane();
+        Circle circle = new Circle(16, Color.web("#397ac7"));
+        circle.setStroke(Color.WHITE);
+        circle.setStrokeWidth(2.0);
+        Label qText = new Label("?");
+        qText.setStyle(
+                "-fx-text-fill: #ffffff;"
+                        + "-fx-font-family: 'Press Start 2P', 'Monospaced', monospace;"
+                        + "-fx-font-size: 14px;"
+                        + "-fx-font-weight: bold;");
+        badge.getChildren().addAll(circle, qText);
+
+        HBox headerBox = new HBox(12, headerLabel, badge);
+        HBox.setHgrow(headerLabel, Priority.ALWAYS);
+        headerBox.setAlignment(Pos.CENTER_LEFT);
+        headerBox.setStyle(
+                "-fx-background-color: #c59f73;"
+                        + "-fx-border-color: #6c5139;"
+                        + "-fx-border-width: 0 0 2px 0;"
+                        + "-fx-padding: 14px 18px;");
+
+        // Content panel
+        Label contentLabel = new Label(contentText);
+        contentLabel.setStyle(
+                "-fx-text-fill: #523c28;"
+                        + "-fx-font-family: 'Press Start 2P', 'Monospaced', monospace;"
+                        + "-fx-font-size: 11px;"
+                        + "-fx-font-weight: bold;"
+                        + "-fx-line-spacing: 6px;");
+        contentLabel.setWrapText(true);
+
+        VBox contentBox = new VBox(contentLabel);
+        contentBox.setStyle("-fx-background-color: #c59f73; -fx-padding: 20px 20px 14px 20px;");
+
+        // Buttons
+        Button btnCancel = new Button("Cancel");
+        Button btnOk = new Button("OK");
+
+        String btnBase = "-fx-background-color: #6c5139;"
+                + "-fx-border-color: #8d6b4c #3d2919 #3d2919 #8d6b4c;"
+                + "-fx-border-width: 3px;"
+                + "-fx-text-fill: #fdfbf7;"
+                + "-fx-font-family: 'Press Start 2P', 'Monospaced', monospace;"
+                + "-fx-font-weight: bold;"
+                + "-fx-font-size: 11px;"
+                + "-fx-padding: 8px 24px;"
+                + "-fx-cursor: hand;";
+        String btnHover = "-fx-background-color: #523c28;"
+                + "-fx-border-color: #6c5139 #281a0e #281a0e #6c5139;"
+                + "-fx-text-fill: #c59f73;"
+                + "-fx-font-family: 'Press Start 2P', 'Monospaced', monospace;"
+                + "-fx-font-weight: bold;"
+                + "-fx-font-size: 11px;"
+                + "-fx-padding: 8px 24px;"
+                + "-fx-cursor: hand;";
+
+        btnCancel.setStyle(btnBase);
+        btnCancel.setOnMouseEntered(e -> btnCancel.setStyle(btnHover));
+        btnCancel.setOnMouseExited(e -> btnCancel.setStyle(btnBase));
+
+        btnOk.setStyle(btnBase);
+        btnOk.setOnMouseEntered(e -> btnOk.setStyle(btnHover));
+        btnOk.setOnMouseExited(e -> btnOk.setStyle(btnBase));
+
+        btnCancel.setOnAction(e -> {
+            AudioManager.playButtonClick();
+            container.getChildren().remove(overlay);
+        });
+
+        btnOk.setOnAction(e -> {
+            AudioManager.playButtonClick();
+            container.getChildren().remove(overlay);
+            if (onConfirm != null) {
+                onConfirm.run();
+            }
+        });
+
+        overlay.setFocusTraversable(true);
+        overlay.setOnKeyPressed(e -> {
+            if (e.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
+                AudioManager.playButtonClick();
+                container.getChildren().remove(overlay);
+                e.consume();
+            }
+        });
+        javafx.application.Platform.runLater(() -> overlay.requestFocus());
+
+        HBox btnBox = new HBox(16, btnCancel, btnOk);
+        btnBox.setAlignment(Pos.CENTER_RIGHT);
+        btnBox.setStyle("-fx-background-color: #c59f73; -fx-padding: 10px 20px 18px 20px;");
+
+        card.getChildren().addAll(headerBox, contentBox, btnBox);
+        overlay.getChildren().add(card);
+
+        container.getChildren().add(overlay);
+    }
+
     private static void showPixelMainMenuConfirmation() {
+        boolean wasFullScreen = FXGL.getPrimaryStage().isFullScreen();
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         try {
             alert.initOwner(FXGL.getPrimaryStage());
@@ -4703,9 +4890,17 @@ public class MovementApp extends GameApplication {
             AudioManager.playMenuMusic();
             FXGL.getGameController().gotoMainMenu();
         }
+        if (wasFullScreen) {
+            javafx.application.Platform.runLater(() -> {
+                if (!FXGL.getPrimaryStage().isFullScreen()) {
+                    FXGL.getPrimaryStage().setFullScreen(true);
+                }
+            });
+        }
     }
 
     private static void showPixelExitConfirmation() {
+        boolean wasFullScreen = FXGL.getPrimaryStage().isFullScreen();
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         try {
             alert.initOwner(FXGL.getPrimaryStage());
@@ -4722,6 +4917,12 @@ public class MovementApp extends GameApplication {
         Optional<ButtonType> result = alert.showAndWait();
         if (result.isPresent() && result.get() == ButtonType.OK) {
             FXGL.getGameController().exit();
+        } else if (wasFullScreen) {
+            javafx.application.Platform.runLater(() -> {
+                if (!FXGL.getPrimaryStage().isFullScreen()) {
+                    FXGL.getPrimaryStage().setFullScreen(true);
+                }
+            });
         }
     }
 
