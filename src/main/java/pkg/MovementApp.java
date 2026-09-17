@@ -4495,10 +4495,7 @@ public class MovementApp extends GameApplication {
                         PAUSE_BASE_Y + 1 * PAUSE_ITEM_SPACING,
                         MAINMENU_BASE_TILT,
                         HOVER_TILT_DELTA,
-                        () -> {
-                            AudioManager.playMenuMusic();
-                            fireExitToMainMenu();
-                        });
+                        () -> showPixelMainMenuConfirmation());
 
                 Node btnExitTablet = createTabletItem("/assets/ui/menu/exit.png", "Exit Game",
                         centerX,
@@ -4654,8 +4651,7 @@ public class MovementApp extends GameApplication {
             });
             btnMainMenu.setOnAction(e -> {
                 AudioManager.playButtonClick();
-                AudioManager.playMenuMusic();
-                fireExitToMainMenu();
+                showPixelMainMenuConfirmation();
             });
             btnExit.setOnAction(e -> {
                 AudioManager.playButtonClick();
@@ -4684,6 +4680,27 @@ public class MovementApp extends GameApplication {
             btn.setOnMouseExited(e -> btn.setStyle(base));
             btn.addEventHandler(javafx.event.ActionEvent.ACTION, e -> AudioManager.playButtonClick());
             return btn;
+        }
+    }
+
+    private static void showPixelMainMenuConfirmation() {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        try {
+            alert.initOwner(FXGL.getPrimaryStage());
+        } catch (Exception ignored) {
+        }
+        alert.setTitle("Main Menu");
+        alert.setHeaderText("RETURN TO MAIN MENU?");
+        alert.setContentText("Are you sure you want to return to the main menu?\nUnsaved progress will be lost!");
+        try {
+            alert.getDialogPane().getStylesheets()
+                    .add(MovementApp.class.getResource("/assets/ui/css/pixel_style.css").toExternalForm());
+        } catch (Exception ignored) {
+        }
+        Optional<ButtonType> result = alert.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK) {
+            AudioManager.playMenuMusic();
+            FXGL.getGameController().gotoMainMenu();
         }
     }
 
