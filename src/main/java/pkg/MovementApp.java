@@ -30,11 +30,14 @@ import com.almasb.fxgl.input.UserAction;
 import com.almasb.fxgl.physics.BoundingShape;
 import com.almasb.fxgl.physics.HitBox;
 
+import javafx.animation.FadeTransition;
 import javafx.animation.RotateTransition;
 import javafx.animation.ScaleTransition;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Insets;
 import javafx.geometry.Point2D;
 import javafx.geometry.Pos;
+import javafx.scene.Cursor;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.canvas.Canvas;
@@ -52,6 +55,7 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -146,7 +150,8 @@ public class MovementApp extends GameApplication {
     public enum GeneratorStage {
         TRASH_COLLECTION,
         QUESTION,
-        SORTING
+        SORTING,
+        TREE_PLANTATION
     }
 
     private GeneratorStage generatorStage = GeneratorStage.TRASH_COLLECTION;
@@ -167,6 +172,21 @@ public class MovementApp extends GameApplication {
     private final List<Entity> generatorSortingWasteEntities = new ArrayList<>();
     private int generatorSortedCount = 0;
     private final int GENERATOR_TARGET_SORTING = 8;
+
+    private final List<Entity> generatorPlantEntities = new ArrayList<>();
+    private final List<Entity> generatorHoleEntities = new ArrayList<>();
+    private int generatorPlantsPlanted = 0;
+    private final int GENERATOR_TARGET_PLANTS = 6;
+
+    private boolean p1CarryingPlant = false;
+    private boolean p2CarryingPlant = false;
+    private ImageView p1CarriedPlantView;
+    private ImageView p2CarriedPlantView;
+
+    private int demoPlantsPlanted = 0;
+    private final List<Entity> demoPlantEntities = new ArrayList<>();
+    private final List<Entity> demoHoleEntities = new ArrayList<>();
+    private Pane hudIconPane;
 
     private int currentDistrict = 1;
     private int ecoScore = 0;
@@ -193,6 +213,7 @@ public class MovementApp extends GameApplication {
     private VBox questionPanel;
     private Label questionLabel;
     private Label questionFeedbackLabel;
+    private VBox questionChoicesContainer;
     private List<EnvironmentalQuestion> testQuestions = List.of();
     private final List<Entity> demoQuestionEntities = new ArrayList<>();
     private int testQuestionIndex;
@@ -606,37 +627,56 @@ public class MovementApp extends GameApplication {
             questionPanel = loader.load();
             questionLabel = (Label) questionPanel.lookup("#questionPromptLabel");
             questionFeedbackLabel = (Label) questionPanel.lookup("#feedbackLabel");
+            questionChoicesContainer = (VBox) questionPanel.lookup("#choicesContainer");
         } catch (IOException | RuntimeException e) {
             questionLabel = new Label();
             questionLabel.setWrapText(true);
-            questionLabel.setMaxWidth(360);
-            questionLabel.getStyleClass().add("pixel-question-text");
-            questionFeedbackLabel = new Label("Press 1, 2, or 3 to answer");
-            questionFeedbackLabel.getStyleClass().add("pixel-label-yellow");
+            questionLabel.setMaxWidth(550);
+            questionLabel.setStyle("-fx-text-fill: #3b291a; -fx-font-family: 'Press Start 2P', 'Monospaced'; -fx-font-size: 10px; -fx-line-spacing: 3px;");
 
-            questionPanel = new VBox(7, questionLabel, questionFeedbackLabel);
-            questionPanel.getStyleClass().add("pixel-panel");
+            questionFeedbackLabel = new Label("Click an option below to answer:");
+            questionFeedbackLabel.setStyle("-fx-text-fill: #523c28; -fx-font-family: 'Press Start 2P', 'Monospaced'; -fx-font-size: 9px;");
+
+            questionChoicesContainer = new VBox(6);
+
+            Label header = new Label("[?] QUESTION");
+            header.setStyle("-fx-text-fill: #523c28; -fx-font-family: 'Press Start 2P', 'Monospaced'; -fx-font-size: 11px; -fx-font-weight: bold;");
+
+            questionPanel = new VBox(7, header, questionLabel, questionChoicesContainer, questionFeedbackLabel);
+            questionPanel.setStyle(
+                    "-fx-background-color: rgba(197, 159, 115, 0.98);"
+                    + "-fx-border-color: #6c5139 #4a3623 #4a3623 #6c5139;"
+                    + "-fx-border-width: 3px;"
+                    + "-fx-padding: 12px 16px;"
+                    + "-fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.85), 8, 0, 3, 3);");
+            questionPanel.setPrefWidth(560);
+            questionPanel.setMaxWidth(580);
         }
         try {
             questionPanel.getStylesheets()
                     .add(getClass().getResource("/assets/ui/css/pixel_style.css").toExternalForm());
         } catch (Exception ignored) {
         }
-        questionPanel.setTranslateX(-135);
-        questionPanel.setTranslateY(-165);
-        questionPanel.setScaleX(0.72);
-        questionPanel.setScaleY(0.72);
+        questionPanel.setTranslateX(0);
+        questionPanel.setTranslateY(0);
+        questionPanel.setLayoutX((FXGL.getAppWidth() - 560) / 2.0);
+        questionPanel.setLayoutY(15);
+        questionPanel.setScaleX(1.0);
+        questionPanel.setScaleY(1.0);
+        questionPanel.setMouseTransparent(false);
         questionPanel.setVisible(false);
+        addHudNode(questionPanel);
     }
 
     private void attachQuestionPanelToEntity(Entity targetEntity) {
         createQuestionPanel();
-        switch (questionPanel.getParent()) {
-            case javafx.scene.Group group -> group.getChildren().remove(questionPanel);
-            case javafx.scene.layout.Pane pane -> pane.getChildren().remove(questionPanel);
-            case null, default -> {}
+        if (questionPanel != null) {
+            if (questionPanel.getParent() == null) {
+                addHudNode(questionPanel);
+            }
+            questionPanel.setLayoutX((FXGL.getAppWidth() - questionPanel.getPrefWidth()) / 2.0);
+            questionPanel.setLayoutY(15);
         }
-        targetEntity.getViewComponent().addChild(questionPanel);
     }
 
     private void setupSortingTest() {
@@ -1131,6 +1171,218 @@ public class MovementApp extends GameApplication {
         }
     }
 
+    private void setupGeneratorStage4(int chunkX, int chunkY) {
+        clearGeneratorStageEntities();
+        if (infiniteMapManager != null) {
+            infiniteMapManager.setFragmentedMode(false);
+            infiniteMapManager.lockCurrentRegion(chunkX, chunkY);
+        }
+        generatorPlantsPlanted = 0;
+        p1CarryingPlant = false;
+        p2CarryingPlant = false;
+
+        double originX = (chunkX - chunkY) * 320.0;
+        double originY = (chunkX + chunkY) * 160.0;
+
+        List<int[]> tilePositions = randomWalkableGeneratorTilePositions(
+                GENERATOR_TARGET_PLANTS * 2, chunkX, chunkY, 3, 18);
+        for (int i = 0; i < GENERATOR_TARGET_PLANTS && i < tilePositions.size(); i++) {
+            int[] pos = tilePositions.get(i);
+            int lx = pos[0];
+            int ly = pos[1];
+            double isoX = originX + (lx - ly) * 16.0 + 8;
+            double isoY = originY + (lx + ly) * 8.0 + 4;
+            Entity plant = FXGL.entityBuilder()
+                    .at(isoX, isoY)
+                    .type(EntityType.PLANT)
+                    .viewWithBBox("plant.png")
+                    .with(new CollidableComponent(true))
+                    .buildAndAttach();
+            generatorPlantEntities.add(plant);
+        }
+
+        for (int i = GENERATOR_TARGET_PLANTS; i < GENERATOR_TARGET_PLANTS * 2 && i < tilePositions.size(); i++) {
+            int[] pos = tilePositions.get(i);
+            int lx = pos[0];
+            int ly = pos[1];
+            double isoX = originX + (lx - ly) * 16.0 + 8;
+            double isoY = originY + (lx + ly) * 8.0 + 4;
+            Entity hole = FXGL.entityBuilder()
+                    .at(isoX, isoY)
+                    .type(EntityType.HOLE)
+                    .viewWithBBox("hole.png")
+                    .with(new CollidableComponent(true))
+                    .buildAndAttach();
+            hole.setProperty("planted", false);
+            generatorHoleEntities.add(hole);
+        }
+
+        generatorStageCompleted = false;
+        updateTrashCounter();
+        if (selectedGameMode == GameMode.SINGLE_PLAYER) {
+            showTemporaryNotice("🌳 DISTRICT " + currentDistrict
+                    + " — PHASE 4: TREE PLANTATION\nPick up plants [E / Space] and place them in open holes!");
+        }
+    }
+
+    private void activateDemoPlantationStage() {
+        demoStage = DemoStage.TREE_PLANTATION;
+        demoPlantsPlanted = 0;
+        for (Entity e : demoPlantEntities) {
+            if (e != null && e.isActive()) e.removeFromWorld();
+        }
+        demoPlantEntities.clear();
+        for (Entity e : demoHoleEntities) {
+            if (e != null && e.isActive()) e.removeFromWorld();
+        }
+        demoHoleEntities.clear();
+        p1CarryingPlant = false;
+        p2CarryingPlant = false;
+
+        double baseX = playerEntity != null ? playerEntity.getX() : 640;
+        double baseY = playerEntity != null ? playerEntity.getY() : 320;
+
+        double[][] plantOffsets = {
+            { -120, -60 }, { -80, 80 }, { -140, 20 },
+            { -60, -100 }, { -160, -40 }, { -100, 120 }
+        };
+        double[][] holeOffsets = {
+            { 80, -60 }, { 120, 40 }, { 60, 100 },
+            { 140, -20 }, { 100, -100 }, { 160, 80 }
+        };
+
+        for (int i = 0; i < 6; i++) {
+            Entity plant = FXGL.entityBuilder()
+                    .at(baseX + plantOffsets[i][0], baseY + plantOffsets[i][1])
+                    .type(EntityType.PLANT)
+                    .viewWithBBox("plant.png")
+                    .with(new CollidableComponent(true))
+                    .buildAndAttach();
+            demoPlantEntities.add(plant);
+
+            Entity hole = FXGL.entityBuilder()
+                    .at(baseX + holeOffsets[i][0], baseY + holeOffsets[i][1])
+                    .type(EntityType.HOLE)
+                    .viewWithBBox("hole.png")
+                    .with(new CollidableComponent(true))
+                    .buildAndAttach();
+            hole.setProperty("planted", false);
+            demoHoleEntities.add(hole);
+        }
+        sortingFeedback = "Pick up 6 plants [E/Space] & plant them in holes!";
+        updateTrashCounter();
+    }
+
+    private void handleTreePlantationInteraction(Entity player, int playerIndex) {
+        if (player == null) return;
+        boolean carrying = (playerIndex == 1) ? p1CarryingPlant : p2CarryingPlant;
+
+        List<Entity> plantList = (selectedGameMode == GameMode.SEQUENTIAL_DEMO)
+                ? demoPlantEntities : generatorPlantEntities;
+        List<Entity> holeList = (selectedGameMode == GameMode.SEQUENTIAL_DEMO)
+                ? demoHoleEntities : generatorHoleEntities;
+
+        if (!carrying) {
+            for (Entity plant : List.copyOf(plantList)) {
+                if (plant != null && plant.isActive() && (player.distance(plant) < 48.0 || safelyCollides(player, plant))) {
+                    plant.removeFromWorld();
+                    plantList.remove(plant);
+                    if (playerIndex == 1) {
+                        p1CarryingPlant = true;
+                    } else {
+                        p2CarryingPlant = true;
+                    }
+                    updateCarriedPlantViews();
+                    AudioManager.playTrashPickup();
+                    spawnFloatingText(player.getX(), player.getY() - 16, "+PLANT", Color.web("#39ff14"));
+                    updateTrashCounter();
+                    break;
+                }
+            }
+        } else {
+            for (Entity hole : holeList) {
+                if (hole != null && hole.isActive() && !hole.getBoolean("planted")
+                        && (player.distance(hole) < 48.0 || safelyCollides(player, hole))) {
+                    hole.setProperty("planted", true);
+
+                    hole.getViewComponent().clearChildren();
+                    hole.getViewComponent().addChild(FXGL.texture("planted.png"));
+
+                    if (playerIndex == 1) {
+                        p1CarryingPlant = false;
+                    } else {
+                        p2CarryingPlant = false;
+                    }
+                    updateCarriedPlantViews();
+
+                    if (selectedGameMode == GameMode.SEQUENTIAL_DEMO) {
+                        demoPlantsPlanted++;
+                        if (demoPlantsPlanted >= 6 && !gameEnded) {
+                            gameEnded = true;
+                            demoStage = DemoStage.COMPLETE;
+                            sortingFeedback = "Demo complete — all stages passed";
+                            if (timer != null) {
+                                timer.applyDelta(120.0);
+                            }
+                            showEndGameOverlay("WORLD RESTORED",
+                                    "All stages completed successfully!\nAdded +120 seconds bonus time.", true);
+                        }
+                    } else {
+                        generatorPlantsPlanted++;
+                        ecoScore += 100;
+                        if (timer != null) {
+                            timer.applyDelta(15.0);
+                        }
+                        if (generatorPlantsPlanted >= GENERATOR_TARGET_PLANTS) {
+                            completeCurrentChunkTask();
+                            AudioManager.playCorrectAnswer();
+                            showTemporaryNotice("STAGE 4 CLEARED!\nTrees planted and ecosystem restored!");
+                            if (infiniteMapManager != null) {
+                                infiniteMapManager.startSpreadingRestoration(() -> {
+                                    showTemporaryNotice("WORLD RESTORED! Render distance expanded.");
+                                });
+                            }
+                        }
+                    }
+                    AudioManager.playCorrectAnswer();
+                    spawnFloatingText(hole.getX(), hole.getY() - 16, "+100 PLANTED!", Color.web("#39ff14"));
+                    updateTrashCounter();
+                    break;
+                }
+            }
+        }
+    }
+
+    private void updateCarriedPlantViews() {
+        if (p1CarriedPlantView == null && playerEntity != null) {
+            ImageView iv = safeImageView("/assets/textures/plant.png", 20, 20);
+            if (iv != null) {
+                p1CarriedPlantView = iv;
+                p1CarriedPlantView.setTranslateX(-2);
+                p1CarriedPlantView.setTranslateY(-18);
+                p1CarriedPlantView.setMouseTransparent(true);
+                playerEntity.getViewComponent().addChild(p1CarriedPlantView);
+            }
+        }
+        if (p1CarriedPlantView != null) {
+            p1CarriedPlantView.setVisible(p1CarryingPlant);
+        }
+
+        if (p2CarriedPlantView == null && playerEntity2 != null) {
+            ImageView iv = safeImageView("/assets/textures/plant.png", 20, 20);
+            if (iv != null) {
+                p2CarriedPlantView = iv;
+                p2CarriedPlantView.setTranslateX(-2);
+                p2CarriedPlantView.setTranslateY(-18);
+                p2CarriedPlantView.setMouseTransparent(true);
+                playerEntity2.getViewComponent().addChild(p2CarriedPlantView);
+            }
+        }
+        if (p2CarriedPlantView != null) {
+            p2CarriedPlantView.setVisible(p2CarryingPlant);
+        }
+    }
+
     private void clearGeneratorStageEntities() {
         for (Entity e : generatorTrashEntities) {
             if (e != null && e.isActive())
@@ -1150,6 +1402,30 @@ public class MovementApp extends GameApplication {
         }
         generatorSortingWasteEntities.clear();
 
+        for (Entity e : generatorPlantEntities) {
+            if (e != null && e.isActive())
+                e.removeFromWorld();
+        }
+        generatorPlantEntities.clear();
+
+        for (Entity e : generatorHoleEntities) {
+            if (e != null && e.isActive())
+                e.removeFromWorld();
+        }
+        generatorHoleEntities.clear();
+
+        for (Entity e : demoPlantEntities) {
+            if (e != null && e.isActive())
+                e.removeFromWorld();
+        }
+        demoPlantEntities.clear();
+
+        for (Entity e : demoHoleEntities) {
+            if (e != null && e.isActive())
+                e.removeFromWorld();
+        }
+        demoHoleEntities.clear();
+
         if (collectorCarriedWasteView != null) {
             collectorCarriedWasteView.setVisible(false);
         }
@@ -1162,6 +1438,14 @@ public class MovementApp extends GameApplication {
         if (intakeWasteView != null) {
             intakeWasteView.setVisible(false);
         }
+        if (p1CarriedPlantView != null) {
+            p1CarriedPlantView.setVisible(false);
+        }
+        if (p2CarriedPlantView != null) {
+            p2CarriedPlantView.setVisible(false);
+        }
+        p1CarryingPlant = false;
+        p2CarryingPlant = false;
 
         resetSortingTestState();
     }
@@ -1193,8 +1477,10 @@ public class MovementApp extends GameApplication {
         StackPane banner = new StackPane(label);
         banner.setStyle(
                 "-fx-background-color:rgba(11,23,14,0.92);-fx-border-color:#39ff14;-fx-border-width:3px;-fx-padding:10px 24px;-fx-effect:dropshadow(three-pass-box, rgba(0,0,0,0.85), 8, 0, 3, 3);");
-        banner.setMaxWidth(680);
-        banner.setLayoutX(FXGL.getAppWidth() / 2.0 - 340);
+        double bannerWidth = 400.0;
+        banner.setPrefWidth(bannerWidth);
+        banner.setMaxWidth(bannerWidth);
+        banner.setLayoutX((FXGL.getAppWidth() - bannerWidth) / 2.0);
         banner.setLayoutY(75);
         banner.setMouseTransparent(true);
 
@@ -1427,6 +1713,8 @@ public class MovementApp extends GameApplication {
                 } else {
                     interactWithSortingP1();
                 }
+            } else if (generatorStage == GeneratorStage.TREE_PLANTATION) {
+                handleTreePlantationInteraction(playerEntity, 1);
             }
             return;
         }
@@ -1441,6 +1729,8 @@ public class MovementApp extends GameApplication {
                 interactWithDemoCollection(playerEntity);
             } else if (demoStage == DemoStage.SORTING) {
                 interactWithSortingP1();
+            } else if (demoStage == DemoStage.TREE_PLANTATION) {
+                handleTreePlantationInteraction(playerEntity, 1);
             }
             return;
         }
@@ -1503,6 +1793,8 @@ public class MovementApp extends GameApplication {
                             + " RESTORED! (+30s Bonus, +500 pts)\nWalk through gateway into District "
                             + (currentDistrict + 1) + "!");
                 }
+            } else if (generatorStage == GeneratorStage.TREE_PLANTATION) {
+                handleTreePlantationInteraction(playerEntity2 != null ? playerEntity2 : playerEntity, 2);
             }
             return;
         }
@@ -1517,6 +1809,8 @@ public class MovementApp extends GameApplication {
                 interactWithDemoCollection(playerEntity2 != null ? playerEntity2 : playerEntity);
             } else if (demoStage == DemoStage.SORTING) {
                 interactWithSortingP2();
+            } else if (demoStage == DemoStage.TREE_PLANTATION) {
+                handleTreePlantationInteraction(playerEntity2 != null ? playerEntity2 : playerEntity, 2);
             }
             return;
         }
@@ -1737,16 +2031,10 @@ public class MovementApp extends GameApplication {
                                 + " RESTORED! (+30s Bonus, +500 pts)\nWalk through gateway into District "
                                 + (currentDistrict + 1) + "!");
                     }
-                    if (selectedGameMode == GameMode.SEQUENTIAL_DEMO && sortingTask.isComplete() && !gameEnded) {
+                    if (selectedGameMode == GameMode.SEQUENTIAL_DEMO && sortingTask.isComplete() && demoStage == DemoStage.SORTING) {
                         hideSortingBins();
-                        gameEnded = true;
-                        demoStage = DemoStage.COMPLETE;
-                        sortingFeedback = "Demo complete — all three stages passed";
-                        if (timer != null) {
-                            timer.applyDelta(120.0);
-                        }
-                        showEndGameOverlay("WORLD RESTORED",
-                                "All 3 stages completed successfully!\nAdded +120 seconds bonus time.", true);
+                        activateDemoPlantationStage();
+                        showTemporaryNotice("STAGE 3 CLEARED!\nWalk to the tree plantation area for Stage 4!");
                     }
                     return;
                 }
@@ -1815,12 +2103,150 @@ public class MovementApp extends GameApplication {
         if (questionLabel == null || currentActiveQuestion == null) {
             return;
         }
-        StringBuilder text = new StringBuilder(currentActiveQuestion.prompt());
-        for (int i = 0; i < Math.min(3, currentActiveQuestion.choices().size()); i++) {
-            text.append("\n").append(i + 1).append(". ").append(currentActiveQuestion.choices().get(i));
+        if (questionPanel != null) {
+            questionPanel.setOpacity(1.0);
         }
-        questionLabel.setText(text.toString());
-        questionFeedbackLabel.setText("Press 1, 2, or 3 to answer");
+        questionLabel.setText(currentActiveQuestion.prompt());
+        if (questionFeedbackLabel != null) {
+            questionFeedbackLabel.setText("Click an option below to answer:");
+            questionFeedbackLabel.setStyle("-fx-text-fill: #523c28; -fx-font-family: 'Press Start 2P', 'Monospaced'; -fx-font-size: 9px;");
+        }
+
+        if (questionChoicesContainer != null) {
+            questionChoicesContainer.getChildren().clear();
+            List<String> choices = currentActiveQuestion.choices();
+            String[] prefixes = { "1", "2", "3", "4" };
+            HBox currentRow = null;
+            for (int i = 0; i < choices.size(); i++) {
+                if (i % 2 == 0) {
+                    currentRow = new HBox(8);
+                    currentRow.setAlignment(Pos.CENTER);
+                    questionChoicesContainer.getChildren().add(currentRow);
+                }
+
+                final int choiceIndex = i;
+                String prefix = i < prefixes.length ? prefixes[i] : String.valueOf(i + 1);
+                String choiceText = prefix + ". " + choices.get(i);
+
+                Button btnChoice = new Button(choiceText);
+                btnChoice.setWrapText(true);
+                btnChoice.setMaxWidth(Double.MAX_VALUE);
+                btnChoice.setPrefWidth(260);
+                HBox.setHgrow(btnChoice, Priority.ALWAYS);
+                btnChoice.setAlignment(Pos.CENTER_LEFT);
+                btnChoice.setPadding(new Insets(6, 10, 6, 10));
+                btnChoice.setCursor(Cursor.HAND);
+                btnChoice.setStyle(
+                        "-fx-background-color: #6c5139;"
+                        + "-fx-border-color: #8d6b4c #3d2919 #3d2919 #8d6b4c;"
+                        + "-fx-border-width: 2px;"
+                        + "-fx-text-fill: #fdfbf7;"
+                        + "-fx-font-family: 'Press Start 2P', 'Monospaced', monospace;"
+                        + "-fx-font-weight: bold;"
+                        + "-fx-font-size: 9.5px;"
+                        + "-fx-alignment: center-left;");
+
+                btnChoice.setOnMouseEntered(e -> {
+                    if (!questionAnswerLocked) {
+                        btnChoice.setStyle(
+                                "-fx-background-color: #523c28;"
+                                + "-fx-border-color: #ffd700 #281a0e #281a0e #ffd700;"
+                                + "-fx-border-width: 2px;"
+                                + "-fx-text-fill: #ffd700;"
+                                + "-fx-font-family: 'Press Start 2P', 'Monospaced', monospace;"
+                                + "-fx-font-weight: bold;"
+                                + "-fx-font-size: 9.5px;"
+                                + "-fx-alignment: center-left;");
+                        AudioManager.playButtonClick();
+                    }
+                });
+
+                btnChoice.setOnMouseExited(e -> {
+                    if (!questionAnswerLocked) {
+                        btnChoice.setStyle(
+                                "-fx-background-color: #6c5139;"
+                                + "-fx-border-color: #8d6b4c #3d2919 #3d2919 #8d6b4c;"
+                                + "-fx-border-width: 2px;"
+                                + "-fx-text-fill: #fdfbf7;"
+                                + "-fx-font-family: 'Press Start 2P', 'Monospaced', monospace;"
+                                + "-fx-font-weight: bold;"
+                                + "-fx-font-size: 9.5px;"
+                                + "-fx-alignment: center-left;");
+                    }
+                });
+
+                btnChoice.setOnAction(e -> {
+                    if (!questionAnswerLocked) {
+                        answerTestQuestion(choiceIndex);
+                    }
+                });
+
+                if (currentRow != null) {
+                    currentRow.getChildren().add(btnChoice);
+                }
+            }
+        }
+    }
+
+    private void highlightSelectedChoiceButton(int choiceIndex, boolean isWrong) {
+        if (questionChoicesContainer != null) {
+            int buttonCounter = 0;
+            for (Node rowNode : questionChoicesContainer.getChildren()) {
+                if (rowNode instanceof HBox row) {
+                    for (Node child : row.getChildren()) {
+                        if (child instanceof Button btn) {
+                            btn.setDisable(true);
+                            if (buttonCounter == choiceIndex) {
+                                if (isWrong) {
+                                    btn.setStyle(
+                                            "-fx-background-color: #8b2525;"
+                                            + "-fx-border-color: #ff6b6b;"
+                                            + "-fx-border-width: 2px;"
+                                            + "-fx-text-fill: #ffffff;"
+                                            + "-fx-font-family: 'Press Start 2P', 'Monospaced';"
+                                            + "-fx-font-size: 9.5px;"
+                                            + "-fx-alignment: center-left;");
+                                } else {
+                                    btn.setStyle(
+                                            "-fx-background-color: #276c35;"
+                                            + "-fx-border-color: #39ff14;"
+                                            + "-fx-border-width: 2px;"
+                                            + "-fx-text-fill: #ffffff;"
+                                            + "-fx-font-family: 'Press Start 2P', 'Monospaced';"
+                                            + "-fx-font-size: 9.5px;"
+                                            + "-fx-alignment: center-left;");
+                                }
+                            }
+                            buttonCounter++;
+                        }
+                    }
+                } else if (rowNode instanceof Button btn) {
+                    btn.setDisable(true);
+                    if (buttonCounter == choiceIndex) {
+                        if (isWrong) {
+                            btn.setStyle(
+                                    "-fx-background-color: #8b2525;"
+                                    + "-fx-border-color: #ff6b6b;"
+                                    + "-fx-border-width: 2px;"
+                                    + "-fx-text-fill: #ffffff;"
+                                    + "-fx-font-family: 'Press Start 2P', 'Monospaced';"
+                                    + "-fx-font-size: 9.5px;"
+                                    + "-fx-alignment: center-left;");
+                        } else {
+                            btn.setStyle(
+                                    "-fx-background-color: #276c35;"
+                                    + "-fx-border-color: #39ff14;"
+                                    + "-fx-border-width: 2px;"
+                                    + "-fx-text-fill: #ffffff;"
+                                    + "-fx-font-family: 'Press Start 2P', 'Monospaced';"
+                                    + "-fx-font-size: 9.5px;"
+                                    + "-fx-alignment: center-left;");
+                        }
+                    }
+                    buttonCounter++;
+                }
+            }
+        }
     }
 
     private void answerTestQuestion(int choiceIndex) {
@@ -1831,7 +2257,10 @@ public class MovementApp extends GameApplication {
                 return;
             QuestionResult result = currentActiveQuestion.answer(choiceIndex);
             questionAnswerLocked = true;
-            if (result.quality() == pkg.restoration.questions.AnswerQuality.WRONG) {
+            boolean isWrong = result.quality() == pkg.restoration.questions.AnswerQuality.WRONG;
+            highlightSelectedChoiceButton(choiceIndex, isWrong);
+
+            if (isWrong) {
                 AudioManager.playWrongAnswer();
             } else {
                 AudioManager.playCorrectAnswer();
@@ -1852,26 +2281,51 @@ public class MovementApp extends GameApplication {
                         points > 0 ? "+" + points : String.format("%+.0fs", appliedDelta), fbColor);
             }
 
-            questionFeedbackLabel.setText(
-                    result.quality() + ": " + result.feedback() + String.format(" (%+.0f seconds)", appliedDelta));
+            if (questionFeedbackLabel != null) {
+                questionFeedbackLabel.setText(
+                        result.quality() + ": " + result.feedback() + String.format(" (%+.0f seconds)", appliedDelta));
+                questionFeedbackLabel.setStyle(isWrong
+                        ? "-fx-text-fill: #8b2525; -fx-font-family: 'Press Start 2P', 'Monospaced'; -fx-font-size: 10px; -fx-font-weight: bold;"
+                        : "-fx-text-fill: #276c35; -fx-font-family: 'Press Start 2P', 'Monospaced'; -fx-font-size: 10px; -fx-font-weight: bold;");
+            }
+
             Entity targetEntity = currentActiveQuestionEntity;
             currentActiveQuestionEntity = null;
             currentActiveQuestion = null;
 
-            FXGL.runOnce(() -> {
-                if (targetEntity != null && targetEntity.isActive()) {
-                    targetEntity.removeFromWorld();
-                }
-                if (questionPanel != null)
-                    questionPanel.setVisible(false);
-                questionAnswerLocked = false;
+            if (questionPanel != null) {
+                questionPanel.setOpacity(1.0);
+            }
 
-                if (generatorQuestionsAnswered >= GENERATOR_TARGET_QUESTIONS) {
-                    infiniteMapManager.unlockCurrentRegion();
-                    completeCurrentChunkTask();
-                    showTemporaryNotice("💡 ECO-GRID ONLINE!\nProceed into next sector for Eco-Sorting.");
+            FXGL.runOnce(() -> {
+                if (questionPanel != null) {
+                    FadeTransition fade = new FadeTransition(Duration.seconds(0.5), questionPanel);
+                    fade.setFromValue(1.0);
+                    fade.setToValue(0.0);
+                    fade.setOnFinished(e -> {
+                        if (targetEntity != null && targetEntity.isActive()) {
+                            targetEntity.removeFromWorld();
+                        }
+                        if (questionPanel != null) {
+                            questionPanel.setVisible(false);
+                            questionPanel.setOpacity(1.0);
+                        }
+                        questionAnswerLocked = false;
+
+                        if (generatorQuestionsAnswered >= GENERATOR_TARGET_QUESTIONS) {
+                            infiniteMapManager.unlockCurrentRegion();
+                            completeCurrentChunkTask();
+                            showTemporaryNotice("💡 ECO-GRID ONLINE!\nProceed into next sector for Eco-Sorting.");
+                        }
+                    });
+                    fade.play();
+                } else {
+                    if (targetEntity != null && targetEntity.isActive()) {
+                        targetEntity.removeFromWorld();
+                    }
+                    questionAnswerLocked = false;
                 }
-            }, Duration.seconds(1.2));
+            }, Duration.seconds(2.5));
             return;
         }
 
@@ -1886,39 +2340,70 @@ public class MovementApp extends GameApplication {
         }
         QuestionResult result = currentActiveQuestion.answer(choiceIndex);
         questionAnswerLocked = true;
-        if (result.quality() == pkg.restoration.questions.AnswerQuality.WRONG) {
+        boolean isWrong = result.quality() == pkg.restoration.questions.AnswerQuality.WRONG;
+        highlightSelectedChoiceButton(choiceIndex, isWrong);
+
+        if (isWrong) {
             AudioManager.playWrongAnswer();
         } else {
             AudioManager.playCorrectAnswer();
         }
         double appliedDelta = TaskTimer.apply(timer, result.asTaskResult());
         testQuestionIndex++;
-        questionFeedbackLabel.setText(result.quality() + ": " + result.feedback()
-                + String.format(" (%+.0f seconds)", appliedDelta));
+        if (questionFeedbackLabel != null) {
+            questionFeedbackLabel.setText(result.quality() + ": " + result.feedback()
+                    + String.format(" (%+.0f seconds)", appliedDelta));
+            questionFeedbackLabel.setStyle(isWrong
+                    ? "-fx-text-fill: #8b2525; -fx-font-family: 'Press Start 2P', 'Monospaced'; -fx-font-size: 10px; -fx-font-weight: bold;"
+                    : "-fx-text-fill: #276c35; -fx-font-family: 'Press Start 2P', 'Monospaced'; -fx-font-size: 10px; -fx-font-weight: bold;");
+        }
 
         Entity targetEntity = currentActiveQuestionEntity;
         currentActiveQuestionEntity = null;
         currentActiveQuestion = null;
 
-        FXGL.runOnce(() -> {
-            if (targetEntity != null && targetEntity.isActive()) {
-                if (selectedGameMode == GameMode.QUESTION_TEST
-                        && testQuestionIndex < testQuestions.size()) {
-                    targetEntity.setProperty("question", testQuestions.get(testQuestionIndex));
-                } else {
-                    targetEntity.removeFromWorld();
-                }
-            }
-            if (questionPanel != null) {
-                questionPanel.setVisible(false);
-            }
-            questionAnswerLocked = false;
+        if (questionPanel != null) {
+            questionPanel.setOpacity(1.0);
+        }
 
-            if (selectedGameMode == GameMode.SEQUENTIAL_DEMO
-                    && testQuestionIndex >= testQuestions.size()) {
-                activateDemoSortingStage();
+        FXGL.runOnce(() -> {
+            if (questionPanel != null) {
+                FadeTransition fade = new FadeTransition(Duration.seconds(0.5), questionPanel);
+                fade.setFromValue(1.0);
+                fade.setToValue(0.0);
+                fade.setOnFinished(e -> {
+                    if (targetEntity != null && targetEntity.isActive()) {
+                        if (selectedGameMode == GameMode.QUESTION_TEST
+                                && testQuestionIndex < testQuestions.size()) {
+                            targetEntity.setProperty("question", testQuestions.get(testQuestionIndex));
+                        } else {
+                            targetEntity.removeFromWorld();
+                        }
+                    }
+                    if (questionPanel != null) {
+                        questionPanel.setVisible(false);
+                        questionPanel.setOpacity(1.0);
+                    }
+                    questionAnswerLocked = false;
+
+                    if (selectedGameMode == GameMode.SEQUENTIAL_DEMO
+                            && testQuestionIndex >= testQuestions.size()) {
+                        activateDemoSortingStage();
+                    }
+                });
+                fade.play();
+            } else {
+                if (targetEntity != null && targetEntity.isActive()) {
+                    if (selectedGameMode == GameMode.QUESTION_TEST
+                            && testQuestionIndex < testQuestions.size()) {
+                        targetEntity.setProperty("question", testQuestions.get(testQuestionIndex));
+                    } else {
+                        targetEntity.removeFromWorld();
+                    }
+                }
+                questionAnswerLocked = false;
             }
-        }, Duration.seconds(1.2));
+        }, Duration.seconds(2.5));
     }
 
     private void spawnRandomTrash() {
@@ -2188,39 +2673,16 @@ public class MovementApp extends GameApplication {
             addHudNode(topBarRightCard);
         }
 
-        if (selectedGameMode != GameMode.SORTING_TEST
-                && selectedGameMode != GameMode.SEQUENTIAL_DEMO) {
+        if (selectedGameMode != GameMode.SORTING_TEST) {
 
-            Pane iconOverlayPane = new Pane();
-            iconOverlayPane.setPrefSize(44, 32);
+            hudIconPane = new Pane();
+            hudIconPane.setPrefSize(44, 32);
 
-            ImageView bottleIv = safeImageView("/assets/textures/bottle.png", 28, 28);
-            if (bottleIv == null) {
-                bottleIv = safeImageView("/assets/ui/menu/bottle.png", 28, 28);
-            }
-            if (bottleIv != null) {
-                bottleIv.setLayoutX(0);
-                bottleIv.setLayoutY(2);
-                bottleIv.setRotate(-12.0);
-                iconOverlayPane.getChildren().add(bottleIv);
-            }
-
-            ImageView trashIv = safeImageView("/assets/textures/trash.png", 28, 28);
-            if (trashIv == null) {
-                trashIv = safeImageView("/assets/textures/trashbag.png", 28, 28);
-            }
-            if (trashIv != null) {
-                trashIv.setLayoutX(14);
-                trashIv.setLayoutY(4);
-                trashIv.setRotate(12.0);
-                iconOverlayPane.getChildren().add(trashIv);
-            }
-
-            trashCounterText = new Text("0/10");
+            trashCounterText = new Text("0/6");
             trashCounterText.setFont(Font.font("Monospaced", FontWeight.BOLD, 22));
             trashCounterText.setFill(Color.web("#39ff14"));
 
-            HBox trashHUDBox = new HBox(8, iconOverlayPane, trashCounterText);
+            HBox trashHUDBox = new HBox(8, hudIconPane, trashCounterText);
             trashHUDBox.setAlignment(Pos.CENTER_LEFT);
             trashHUDBox.setStyle(
                     "-fx-background-color: rgba(9, 17, 24, 0.88);"
@@ -2293,7 +2755,7 @@ public class MovementApp extends GameApplication {
             currentMapRadius++;
             infiniteMapManager.unlockLayer(currentMapRadius);
             
-            GeneratorStage[] stages = {GeneratorStage.TRASH_COLLECTION, GeneratorStage.QUESTION, GeneratorStage.SORTING};
+            GeneratorStage[] stages = {GeneratorStage.TRASH_COLLECTION, GeneratorStage.QUESTION, GeneratorStage.SORTING, GeneratorStage.TREE_PLANTATION};
             java.util.Random rand = new java.util.Random();
             
             for (int dx = -currentMapRadius; dx <= currentMapRadius; dx++) {
@@ -2307,6 +2769,51 @@ public class MovementApp extends GameApplication {
     }
 
     private void updateTrashCounter() {
+        if (hudIconPane != null) {
+            hudIconPane.getChildren().clear();
+
+            boolean isPlantationStage = (isInfiniteGameMode() && generatorStage == GeneratorStage.TREE_PLANTATION)
+                    || (selectedGameMode == GameMode.SEQUENTIAL_DEMO && demoStage == DemoStage.TREE_PLANTATION);
+
+            if (isPlantationStage) {
+                ImageView plantIv = safeImageView("/assets/textures/plant.png", 28, 28);
+                if (plantIv != null) {
+                    plantIv.setLayoutX(8);
+                    plantIv.setLayoutY(2);
+                    hudIconPane.getChildren().add(plantIv);
+                }
+            } else if (generatorStage == GeneratorStage.QUESTION || (selectedGameMode == GameMode.SEQUENTIAL_DEMO && demoStage == DemoStage.QUESTION)) {
+                ImageView questionIv = safeImageView("/assets/textures/question.png", 28, 28);
+                if (questionIv != null) {
+                    questionIv.setLayoutX(8);
+                    questionIv.setLayoutY(2);
+                    hudIconPane.getChildren().add(questionIv);
+                }
+            } else {
+                ImageView bottleIv = safeImageView("/assets/textures/bottle.png", 28, 28);
+                if (bottleIv == null) {
+                    bottleIv = safeImageView("/assets/ui/menu/bottle.png", 28, 28);
+                }
+                if (bottleIv != null) {
+                    bottleIv.setLayoutX(0);
+                    bottleIv.setLayoutY(2);
+                    bottleIv.setRotate(-12.0);
+                    hudIconPane.getChildren().add(bottleIv);
+                }
+
+                ImageView trashIv = safeImageView("/assets/textures/trash.png", 28, 28);
+                if (trashIv == null) {
+                    trashIv = safeImageView("/assets/textures/trashbag.png", 28, 28);
+                }
+                if (trashIv != null) {
+                    trashIv.setLayoutX(14);
+                    trashIv.setLayoutY(4);
+                    trashIv.setRotate(12.0);
+                    hudIconPane.getChildren().add(trashIv);
+                }
+            }
+        }
+
         if (trashCounterText != null) {
             switch (selectedGameMode) {
                 case SINGLE_PLAYER -> {
@@ -2317,11 +2824,40 @@ public class MovementApp extends GameApplication {
                                 GENERATOR_TARGET_QUESTIONS));
                         case SORTING -> trashCounterText.setText(
                                 String.format("%d/%d", generatorSortedCount, GENERATOR_TARGET_SORTING));
-                        default -> {}
+                        case TREE_PLANTATION -> trashCounterText.setText(
+                                String.format("%d/%d", generatorPlantsPlanted, GENERATOR_TARGET_PLANTS));
+                    }
+                }
+                case SEQUENTIAL_DEMO -> {
+                    switch (demoStage) {
+                        case COLLECTION -> trashCounterText.setText(
+                                String.format("%d/%d", demoCollectionTask != null ? demoCollectionTask.collectedItems() : 0, demoCollectionItems.size() + (demoCollectionTask != null ? demoCollectionTask.collectedItems() : 0)));
+                        case QUESTION -> trashCounterText.setText(
+                                String.format("%d/%d", testQuestionIndex, testQuestions.size()));
+                        case SORTING -> trashCounterText.setText(
+                                String.format("%d/%d", sortingTask != null ? sortingTask.sortedItems() : 0, demoSortingItemCount));
+                        case TREE_PLANTATION -> trashCounterText.setText(
+                                String.format("%d/%d", demoPlantsPlanted, 6));
+                        case COMPLETE -> trashCounterText.setText("6/6");
                     }
                 }
                 case MAP_GENERATOR -> trashCounterText.setText(String.format("%d", collectedTrash));
-                default -> trashCounterText.setText(String.format("%d/%d", collectedTrash, TOTAL_TRASH));
+                default -> {
+                    if (isInfiniteCoopMode()) {
+                        switch (generatorStage) {
+                            case TRASH_COLLECTION -> trashCounterText.setText(
+                                    String.format("%d/%d", generatorTrashCollected, GENERATOR_TARGET_TRASH));
+                            case QUESTION -> trashCounterText.setText(String.format("%d/%d", generatorQuestionsAnswered,
+                                    GENERATOR_TARGET_QUESTIONS));
+                            case SORTING -> trashCounterText.setText(
+                                    String.format("%d/%d", generatorSortedCount, GENERATOR_TARGET_SORTING));
+                            case TREE_PLANTATION -> trashCounterText.setText(
+                                    String.format("%d/%d", generatorPlantsPlanted, GENERATOR_TARGET_PLANTS));
+                        }
+                    } else {
+                        trashCounterText.setText(String.format("%d/%d", collectedTrash, TOTAL_TRASH));
+                    }
+                }
             }
         }
     }
@@ -2336,7 +2872,7 @@ public class MovementApp extends GameApplication {
                 levelNoticeText.setFill(Color.web("#ffd700"));
                 levelNoticeText.setStroke(Color.BLACK);
                 levelNoticeText.setStrokeWidth(2.0);
-                levelNoticeText.setX(FXGL.getAppWidth() / 2.0 - 270);
+                levelNoticeText.setX((FXGL.getAppWidth() - levelNoticeText.getLayoutBounds().getWidth()) / 2.0);
                 levelNoticeText.setY(100);
                 FXGL.addUINode(levelNoticeText);
             }
@@ -2418,6 +2954,7 @@ public class MovementApp extends GameApplication {
                         case TRASH_COLLECTION -> setupGeneratorStage1(targetChunkX, targetChunkY);
                         case QUESTION -> setupGeneratorStage2(targetChunkX, targetChunkY);
                         case SORTING -> setupGeneratorStage3(targetChunkX, targetChunkY);
+                        case TREE_PLANTATION -> setupGeneratorStage4(targetChunkX, targetChunkY);
                     }
                 }
 
@@ -2458,6 +2995,8 @@ public class MovementApp extends GameApplication {
                                 currentDistrict, generatorQuestionsAnswered, GENERATOR_TARGET_QUESTIONS));
                         case SORTING -> modeStatusText.setText(String.format("District %d: Phase 3 — Recycling Station (%d / %d)",
                                 currentDistrict, generatorSortedCount, GENERATOR_TARGET_SORTING));
+                        case TREE_PLANTATION -> modeStatusText.setText(String.format("District %d: Phase 4 — Tree Plantation (%d / %d)",
+                                currentDistrict, generatorPlantsPlanted, GENERATOR_TARGET_PLANTS));
                         default -> {}
                     }
                 } else {
@@ -2470,6 +3009,9 @@ public class MovementApp extends GameApplication {
                                 currentDistrict, generatorQuestionsAnswered, GENERATOR_TARGET_QUESTIONS));
                         case SORTING -> modeStatusText.setText(
                                 String.format("District %d: Phase 3 — Co-op Sorting (%s)", currentDistrict, sortingFeedback));
+                        case TREE_PLANTATION -> modeStatusText.setText(String.format(
+                                "District %d: Phase 4 — Co-op Tree Plantation (%d / %d)",
+                                currentDistrict, generatorPlantsPlanted, GENERATOR_TARGET_PLANTS));
                         default -> {}
                     }
                 }
@@ -2484,7 +3026,7 @@ public class MovementApp extends GameApplication {
             modeStatusText.setText(String.format("Question Test — Answered: %d / %d",
                     testQuestionIndex, testQuestions.size()));
         } else if (selectedGameMode == GameMode.SEQUENTIAL_DEMO) {
-            if (demoStage == DemoStage.SORTING || demoStage == DemoStage.COMPLETE) {
+            if (demoStage == DemoStage.SORTING) {
                 if (!demoSorterLocked && playerIsInsideSortingZone(playerEntity2)) {
                     demoSorterLocked = true;
                     sortingFeedback = "P2 locked in zone — collect, deliver, and sort";
@@ -2606,6 +3148,30 @@ public class MovementApp extends GameApplication {
                     }
                     interactPromptText.setVisible(nearWaste);
                 }
+            } else if (generatorStage == GeneratorStage.TREE_PLANTATION) {
+                if (!p1CarryingPlant) {
+                    boolean nearPlant = false;
+                    for (Entity plant : generatorPlantEntities) {
+                        if (plant != null && plant.isActive() && playerEntity != null
+                                && (playerEntity.distance(plant) < 48.0 || safelyCollides(playerEntity, plant))) {
+                            nearPlant = true;
+                            break;
+                        }
+                    }
+                    interactPromptText.setText("Press [E / Space] to Pick Up Plant");
+                    interactPromptText.setVisible(nearPlant);
+                } else {
+                    boolean nearHole = false;
+                    for (Entity hole : generatorHoleEntities) {
+                        if (hole != null && hole.isActive() && !hole.getBoolean("planted") && playerEntity != null
+                                && (playerEntity.distance(hole) < 48.0 || safelyCollides(playerEntity, hole))) {
+                            nearHole = true;
+                            break;
+                        }
+                    }
+                    interactPromptText.setText("Press [E / Space] to Plant Tree into Hole");
+                    interactPromptText.setVisible(nearHole);
+                }
             }
         } else {
             boolean showStandardTrashPrompt = selectedGameMode != GameMode.SORTING_TEST
@@ -2688,14 +3254,16 @@ public class MovementApp extends GameApplication {
             return;
         }
         String status = switch (demoStage) {
-            case COLLECTION -> String.format("Stage 1/3 — Collect garbage: %d / %d",
+            case COLLECTION -> String.format("Stage 1/4 — Collect garbage: %d / %d",
                     demoCollectionTask.collectedItems(),
                     demoCollectionTask.collectedItems() + demoCollectionItems.size());
-            case QUESTION -> String.format("Stage 2/3 — Questions: %d / %d",
+            case QUESTION -> String.format("Stage 2/4 — Questions: %d / %d",
                     testQuestionIndex, testQuestions.size());
-            case SORTING -> String.format("Stage 3/3 — Sort garbage: %d / %d%n%s",
+            case SORTING -> String.format("Stage 3/4 — Sort garbage: %d / %d%n%s",
                     sortingTask.sortedItems(), demoSortingItemCount, sortingFeedback);
-            case COMPLETE -> "Demo complete — collection, questions, and sorting passed";
+            case TREE_PLANTATION -> String.format("Stage 4/4 — Plant Trees: %d / 6",
+                    demoPlantsPlanted);
+            case COMPLETE -> "Demo complete — collection, questions, sorting, and tree plantation passed";
         };
         demoStatusText.setText(status);
     }
@@ -3909,6 +4477,7 @@ public class MovementApp extends GameApplication {
         COLLECTION,
         QUESTION,
         SORTING,
+        TREE_PLANTATION,
         COMPLETE
     }
 

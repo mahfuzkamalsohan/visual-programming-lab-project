@@ -5,6 +5,8 @@ public enum EntityType {
     WALL,
     TRASH,
     QUESTION_POINT,
+    PLANT,
+    HOLE,
     DEMO_COLLECTION_ITEM,
     DEMO_QUESTION_POINT,
     DEMO_SORTING_ZONE,
