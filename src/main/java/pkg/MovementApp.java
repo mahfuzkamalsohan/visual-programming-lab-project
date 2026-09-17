@@ -1569,12 +1569,12 @@ public class MovementApp extends GameApplication {
         if (isCutsceneActive) {
             return;
         }
+        String upper = msg.toUpperCase();
         String minimalMessage;
-        if (msg.contains("ECO-GRID ONLINE")) {
-            minimalMessage = "NEXT AREA OPEN";
-        } else if (msg.contains("WORLD RESTORED")) {
-            minimalMessage = "NEW AREA OPEN";
-        } else if (msg.contains("CLEARED") || msg.contains("RESTORED")) {
+        if (upper.contains("UNLOCK") || upper.contains("ECO-GRID") || upper.contains("WORLD RESTORED")
+                || upper.contains("GATEWAY") || upper.contains("NEW AREA") || upper.contains("NEXT AREA")) {
+            minimalMessage = "NEW AREA UNLOCKED";
+        } else if (upper.contains("CLEARED") || upper.contains("RESTORED")) {
             minimalMessage = "AREA CLEARED";
         } else {
             return;
@@ -1591,12 +1591,18 @@ public class MovementApp extends GameApplication {
 
         StackPane banner = new StackPane(label);
         banner.setStyle(
-                "-fx-background-color:rgba(11,23,14,0.92);-fx-border-color:#39ff14;-fx-border-width:3px;-fx-padding:10px 24px;-fx-effect:dropshadow(three-pass-box, rgba(0,0,0,0.85), 8, 0, 3, 3);");
-        double bannerWidth = 400.0;
+                "-fx-background-color:rgba(11,23,14,0.92);"
+                        + "-fx-border-color:#39ff14;"
+                        + "-fx-border-width:2.5px;"
+                        + "-fx-border-radius:5px;"
+                        + "-fx-background-radius:5px;"
+                        + "-fx-padding:10px 20px;"
+                        + "-fx-effect:dropshadow(three-pass-box, rgba(0,0,0,0.85), 8, 0, 3, 3);");
+        double bannerWidth = 260.0;
         banner.setPrefWidth(bannerWidth);
         banner.setMaxWidth(bannerWidth);
-        banner.setLayoutX((FXGL.getAppWidth() - bannerWidth) / 2.0);
-        banner.setLayoutY(75);
+        banner.setLayoutX(FXGL.getAppWidth() - bannerWidth - 20);
+        banner.setLayoutY(FXGL.getAppHeight() - 65);
         banner.setMouseTransparent(true);
 
         currentNoticeNode = banner;
@@ -3093,14 +3099,8 @@ public class MovementApp extends GameApplication {
             return;
         if (collectedTrash >= TOTAL_TRASH) {
             if (levelNoticeText == null) {
-                levelNoticeText = new Text("LEVEL 1 CLEARED! AREA RESTORED");
-                levelNoticeText.setFont(Font.font("Monospaced", FontWeight.BOLD, 28));
-                levelNoticeText.setFill(Color.web("#ffd700"));
-                levelNoticeText.setStroke(Color.BLACK);
-                levelNoticeText.setStrokeWidth(2.0);
-                levelNoticeText.setX((FXGL.getAppWidth() - levelNoticeText.getLayoutBounds().getWidth()) / 2.0);
-                levelNoticeText.setY(100);
-                FXGL.addUINode(levelNoticeText);
+                showTemporaryNotice("AREA CLEARED");
+                levelNoticeText = new Text();
             }
             if (trashCounterText != null) {
                 trashCounterText
