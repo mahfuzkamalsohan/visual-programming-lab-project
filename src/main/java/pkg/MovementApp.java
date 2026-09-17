@@ -140,6 +140,7 @@ public class MovementApp extends GameApplication {
 
     private Entity playerEntity;
     private Entity playerEntity2;
+    private Entity rabbitEntity;
     private PlayerComponent playerComponent;
     private PlayerComponent playerComponent2;
 
@@ -151,7 +152,8 @@ public class MovementApp extends GameApplication {
         TRASH_COLLECTION,
         QUESTION,
         SORTING,
-        TREE_PLANTATION
+        TREE_PLANTATION,
+        ANIMAL_RESCUE
     }
 
     private GeneratorStage generatorStage = GeneratorStage.TRASH_COLLECTION;
@@ -160,6 +162,7 @@ public class MovementApp extends GameApplication {
     private final java.util.Set<String> completedChunks = new java.util.HashSet<>();
     private final java.util.Map<String, GeneratorStage> assignedTasks = new java.util.HashMap<>();
     private double boundaryWallReenableCooldown = 0.0;
+    private int nextGeneratorStageIndex = 1;
 
     private final List<Entity> generatorTrashEntities = new ArrayList<>();
     private int generatorTrashCollected = 0;
@@ -578,6 +581,7 @@ public class MovementApp extends GameApplication {
                 case QUESTION_TEST -> setupQuestionTest();
                 case SORTING_TEST -> setupSortingTest();
                 case SEQUENTIAL_DEMO -> setupSequentialDemo(level);
+                case ANIMAL_RESCUE -> setupAnimalRescueTest();
                 default -> spawnRandomTrash();
             }
         }
@@ -691,6 +695,10 @@ public class MovementApp extends GameApplication {
             questionPanel.setLayoutX((FXGL.getAppWidth() - questionPanel.getPrefWidth()) / 2.0);
             questionPanel.setLayoutY(15);
         }
+    }
+
+    private void setupAnimalRescueTest() {
+        rabbitEntity = FXGL.spawn("rabbit", 420, 220);
     }
 
     private void setupSortingTest() {
@@ -1239,6 +1247,30 @@ public class MovementApp extends GameApplication {
         }
     }
 
+    private void setupGeneratorStage5(int chunkX, int chunkY) {
+        clearGeneratorStageEntities();
+        if (infiniteMapManager != null) {
+            infiniteMapManager.setFragmentedMode(false);
+            infiniteMapManager.lockCurrentRegion(chunkX, chunkY);
+        }
+
+        double originX = (chunkX - chunkY) * 320.0;
+        double originY = (chunkX + chunkY) * 160.0;
+        int lx = 10;
+        int ly = 10;
+        double isoX = originX + (lx - ly) * 16.0;
+        double isoY = originY + (lx + ly) * 8.0;
+
+        rabbitEntity = FXGL.spawn("rabbit", isoX, isoY);
+        
+        generatorStageCompleted = false;
+        updateTrashCounter();
+        if (selectedGameMode == GameMode.SINGLE_PLAYER) {
+            showTemporaryNotice("🐾 DISTRICT " + currentDistrict
+                    + " — PHASE 5: ANIMAL RESCUE\nFind the injured rabbit and heal it!");
+        }
+    }
+
     private void activateDemoPlantationStage() {
         demoStage = DemoStage.TREE_PLANTATION;
         demoPlantsPlanted = 0;
@@ -1685,6 +1717,35 @@ public class MovementApp extends GameApplication {
 
     private void tryCollectTrashP1() {
         if (isCutsceneActive) {
+            return;
+        }
+
+        boolean isAnimalRescue = (selectedGameMode == GameMode.ANIMAL_RESCUE) 
+                               || (isInfiniteGameMode() && generatorStage == GeneratorStage.ANIMAL_RESCUE);
+        if (isAnimalRescue) {
+            if (!generatorStageCompleted && rabbitEntity != null && playerEntity != null && playerEntity.distance(rabbitEntity) < 64.0) {
+                AudioManager.playTrashPickup();
+                pkg.ui.RabbitHealingWindow window = new pkg.ui.RabbitHealingWindow(() -> {
+                    rabbitEntity.getViewComponent().clearChildren();
+                    rabbitEntity.getViewComponent().addChild(new javafx.scene.image.ImageView(new javafx.scene.image.Image(getClass().getResource("/assets/textures/healed_rabit.png").toExternalForm())));
+                    generatorStageCompleted = true;
+                    if (timer != null) timer.applyDelta(6.0);
+                    
+                    if (isInfiniteGameMode() && generatorStage == GeneratorStage.ANIMAL_RESCUE) {
+                        completeCurrentChunkTask();
+                        AudioManager.playCorrectAnswer();
+                        showTemporaryNotice("RABBIT HEALED!\nSpreading world restoration wave...");
+                        if (infiniteMapManager != null) {
+                            infiniteMapManager.startSpreadingRestoration(() -> {
+                                showTemporaryNotice("WORLD RESTORED! Render distance expanded.\nWalk into next sector.");
+                            });
+                        }
+                    } else {
+                        AudioManager.playCorrectAnswer();
+                    }
+                });
+                javafx.application.Platform.runLater(window::show);
+            }
             return;
         }
 
@@ -2327,7 +2388,6 @@ public class MovementApp extends GameApplication {
                         questionAnswerLocked = false;
 
                         if (generatorQuestionsAnswered >= GENERATOR_TARGET_QUESTIONS) {
-                            infiniteMapManager.unlockCurrentRegion();
                             completeCurrentChunkTask();
                             showTemporaryNotice("💡 ECO-GRID ONLINE!\nProceed into next sector for Eco-Sorting.");
                         }
@@ -2742,9 +2802,9 @@ public class MovementApp extends GameApplication {
 
     private void completeCurrentChunkTask() {
         if (infiniteMapManager != null) {
-            infiniteMapManager.unlockCurrentRegion();
             String chunkKey = infiniteMapManager.getCurrentChunkX() + "," + infiniteMapManager.getCurrentChunkY();
             completedChunks.add(chunkKey);
+            infiniteMapManager.unlockCurrentRegion();
         }
         generatorStageCompleted = true;
         checkAndExpandLayer();
@@ -2769,16 +2829,6 @@ public class MovementApp extends GameApplication {
             currentMapRadius++;
             infiniteMapManager.unlockLayer(currentMapRadius);
             
-            GeneratorStage[] stages = {GeneratorStage.TRASH_COLLECTION, GeneratorStage.QUESTION, GeneratorStage.SORTING, GeneratorStage.TREE_PLANTATION};
-            java.util.Random rand = new java.util.Random();
-            
-            for (int dx = -currentMapRadius; dx <= currentMapRadius; dx++) {
-                for (int dy = -currentMapRadius; dy <= currentMapRadius; dy++) {
-                    if (Math.abs(dx) == currentMapRadius || Math.abs(dy) == currentMapRadius) {
-                        assignedTasks.put(dx + "," + dy, stages[rand.nextInt(stages.length)]);
-                    }
-                }
-            }
         }
     }
 
@@ -2963,12 +3013,20 @@ public class MovementApp extends GameApplication {
                     }
                     boundaryWallReenableCooldown = 3.0; // 3-second grace period
 
-                    generatorStage = assignedTasks.getOrDefault(targetChunkX + "," + targetChunkY, GeneratorStage.TRASH_COLLECTION);
+                    String currentKey = targetChunkX + "," + targetChunkY;
+                    generatorStage = assignedTasks.get(currentKey);
+                    if (generatorStage == null) {
+                        GeneratorStage[] stages = {GeneratorStage.TRASH_COLLECTION, GeneratorStage.QUESTION, GeneratorStage.SORTING, GeneratorStage.TREE_PLANTATION, GeneratorStage.ANIMAL_RESCUE};
+                        generatorStage = stages[nextGeneratorStageIndex];
+                        assignedTasks.put(currentKey, generatorStage);
+                        nextGeneratorStageIndex = (nextGeneratorStageIndex + 1) % stages.length;
+                    }
                     switch (generatorStage) {
                         case TRASH_COLLECTION -> setupGeneratorStage1(targetChunkX, targetChunkY);
                         case QUESTION -> setupGeneratorStage2(targetChunkX, targetChunkY);
                         case SORTING -> setupGeneratorStage3(targetChunkX, targetChunkY);
                         case TREE_PLANTATION -> setupGeneratorStage4(targetChunkX, targetChunkY);
+                        case ANIMAL_RESCUE -> setupGeneratorStage5(targetChunkX, targetChunkY);
                     }
                 }
 
@@ -3186,6 +3244,13 @@ public class MovementApp extends GameApplication {
                     interactPromptText.setText("Press [E / Space] to Plant Tree into Hole");
                     interactPromptText.setVisible(nearHole);
                 }
+            } else if (generatorStage == GeneratorStage.ANIMAL_RESCUE) {
+                if (!generatorStageCompleted && rabbitEntity != null && rabbitEntity.isActive() && playerEntity != null && playerEntity.distance(rabbitEntity) < 64.0) {
+                    interactPromptText.setText("Press [E / Space] to Heal Rabbit");
+                    interactPromptText.setVisible(true);
+                } else {
+                    interactPromptText.setVisible(false);
+                }
             }
         } else {
             boolean showStandardTrashPrompt = selectedGameMode != GameMode.SORTING_TEST
@@ -3353,6 +3418,15 @@ public class MovementApp extends GameApplication {
                     .type(EntityType.BIRD)
                     .with(new BirdComponent())
                     .zIndex(150)
+                    .build();
+        }
+
+        @Spawns("rabbit")
+        public Entity spawnRabbit(SpawnData data) {
+            return FXGL.entityBuilder(data)
+                    .type(EntityType.RABBIT)
+                    .viewWithBBox("injured_rabit.png")
+                    .with(new CollidableComponent(true))
                     .build();
         }
 

@@ -8,5 +8,6 @@ public enum GameMode {
     LOCAL_COOP_SPLITSCREEN,
     LAN_HOST,
     LAN_JOIN,
-    MAP_GENERATOR
+    MAP_GENERATOR,
+    ANIMAL_RESCUE
 }

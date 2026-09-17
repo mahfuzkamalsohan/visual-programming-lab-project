@@ -13,5 +13,6 @@ public enum EntityType {
     DEMO_INTAKE,
     DEMO_BIN,
     DEMO_SORTING_WASTE,
-    BIRD
+    BIRD,
+    RABBIT
 }
