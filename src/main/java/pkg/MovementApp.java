@@ -67,7 +67,6 @@ import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.util.Duration;
 import pkg.audio.AudioManager;
-import pkg.ui.CutsceneOverlay;
 import pkg.net.GameStatePacket;
 import pkg.net.InputPacket;
 import pkg.net.NetworkManager;
@@ -82,6 +81,7 @@ import pkg.restoration.tasks.CollectionTask;
 import pkg.restoration.tasks.SortingTask;
 import pkg.restoration.tasks.TaskResult;
 import pkg.restoration.tasks.TaskTimer;
+import pkg.ui.CutsceneOverlay;
 
 public class MovementApp extends GameApplication {
 
@@ -191,6 +191,7 @@ public class MovementApp extends GameApplication {
     private int currentDistrict = 1;
     private int ecoScore = 0;
     private Label carriedItemLabel;
+    private Label sorterCarriedItemLabel;
     private Node currentNoticeNode;
 
     private NetworkManager netManager;
@@ -614,7 +615,7 @@ public class MovementApp extends GameApplication {
                 .type(EntityType.QUESTION_POINT)
                 .view(safeQuestionTexture())
                 .buildAndAttach();
-        questionPoint.setProperty("question", testQuestions.getFirst());
+        questionPoint.setProperty("question", testQuestions.getFirst().shuffled());
         createQuestionPanel();
     }
 
@@ -769,6 +770,20 @@ public class MovementApp extends GameApplication {
                 playerEntity2.getViewComponent().addChild(sorterCarriedWasteView);
             }
             sorterCarriedWasteView.setVisible(insideCarriedWaste != null);
+
+            if (sorterCarriedItemLabel == null) {
+                sorterCarriedItemLabel = new Label();
+                sorterCarriedItemLabel.setStyle(
+                        "-fx-text-fill:#ffd700;-fx-font-family:Monospaced;-fx-font-size:9px;-fx-font-weight:bold;-fx-background-color:rgba(0,0,0,0.75);-fx-padding:1px 4px;-fx-border-color:#ffd700;-fx-border-width:1px;");
+                sorterCarriedItemLabel.setTranslateX(-30);
+                sorterCarriedItemLabel.setTranslateY(-28);
+                sorterCarriedItemLabel.setMouseTransparent(true);
+                playerEntity2.getViewComponent().addChild(sorterCarriedItemLabel);
+            }
+            sorterCarriedItemLabel.setVisible(insideCarriedWaste != null);
+            if (insideCarriedWaste != null) {
+                sorterCarriedItemLabel.setText(insideCarriedWaste.name());
+            }
         }
 
         if (sortingIntakePoint != null) {
@@ -837,7 +852,7 @@ public class MovementApp extends GameApplication {
                         .view(safeQuestionTexture())
                         .buildAndAttach();
             }
-            qEntity.setProperty("question", q);
+            qEntity.setProperty("question", q.shuffled());
             qEntity.setVisible(false);
             demoQuestionEntities.add(qEntity);
         }
@@ -933,7 +948,9 @@ public class MovementApp extends GameApplication {
         sortingIntakePoint = null;
         sortingIntakeBox = null;
         collectorCarriedWasteView = null;
+        carriedItemLabel = null;
         sorterCarriedWasteView = null;
+        sorterCarriedItemLabel = null;
         intakeWasteView = null;
         sortingFeedback = "Collect every scattered garbage and sort it";
         activeSortZoneX = SORT_ZONE_X;
@@ -1083,7 +1100,7 @@ public class MovementApp extends GameApplication {
                     .type(EntityType.QUESTION_POINT)
                     .view(safeQuestionTexture())
                     .buildAndAttach();
-            qPoint.setProperty("question", testQuestions.get(i));
+            qPoint.setProperty("question", testQuestions.get(i).shuffled());
             generatorQuestionEntities.add(qPoint);
         }
         generatorStageCompleted = false;
@@ -1434,6 +1451,9 @@ public class MovementApp extends GameApplication {
         }
         if (sorterCarriedWasteView != null) {
             sorterCarriedWasteView.setVisible(false);
+        }
+        if (sorterCarriedItemLabel != null) {
+            sorterCarriedItemLabel.setVisible(false);
         }
         if (intakeWasteView != null) {
             intakeWasteView.setVisible(false);
@@ -2039,13 +2059,44 @@ public class MovementApp extends GameApplication {
                     return;
                 }
             }
-        } else if (!sortingIntake.isEmpty() && sortingIntakeBox.intersectsPlayer(playerEntity2)) {
+        } else if (!sortingIntake.isEmpty()
+                && ((sortingIntakeBox != null && sortingIntakeBox.intersectsPlayer(playerEntity2))
+                    || (sortingIntakePoint != null && playerEntity2.distance(sortingIntakePoint) < 54.0))) {
             insideCarriedWaste = sortingIntake.removeFirst();
             if (intakeWasteView != null) {
                 intakeWasteView.setVisible(!sortingIntake.isEmpty());
             }
+            if (sorterCarriedWasteView == null && playerEntity2 != null) {
+                sorterCarriedWasteView = new ImageView(FXGL.image("trashbag.png"));
+                sorterCarriedWasteView.setTranslateX(-4);
+                sorterCarriedWasteView.setTranslateY(-16);
+                sorterCarriedWasteView.setMouseTransparent(true);
+                playerEntity2.getViewComponent().addChild(sorterCarriedWasteView);
+            } else if (sorterCarriedWasteView != null && playerEntity2 != null
+                    && !playerEntity2.getViewComponent().getChildren().contains(sorterCarriedWasteView)) {
+                playerEntity2.getViewComponent().addChild(sorterCarriedWasteView);
+            }
             if (sorterCarriedWasteView != null) {
                 sorterCarriedWasteView.setVisible(true);
+                sorterCarriedWasteView.toFront();
+            }
+
+            if (sorterCarriedItemLabel == null && playerEntity2 != null) {
+                sorterCarriedItemLabel = new Label();
+                sorterCarriedItemLabel.setStyle(
+                        "-fx-text-fill:#ffd700;-fx-font-family:Monospaced;-fx-font-size:9px;-fx-font-weight:bold;-fx-background-color:rgba(0,0,0,0.85);-fx-padding:1px 4px;-fx-border-color:#ffd700;-fx-border-width:1px;");
+                sorterCarriedItemLabel.setTranslateX(-30);
+                sorterCarriedItemLabel.setTranslateY(-28);
+                sorterCarriedItemLabel.setMouseTransparent(true);
+                playerEntity2.getViewComponent().addChild(sorterCarriedItemLabel);
+            } else if (sorterCarriedItemLabel != null && playerEntity2 != null
+                    && !playerEntity2.getViewComponent().getChildren().contains(sorterCarriedItemLabel)) {
+                playerEntity2.getViewComponent().addChild(sorterCarriedItemLabel);
+            }
+            if (sorterCarriedItemLabel != null) {
+                sorterCarriedItemLabel.setText(insideCarriedWaste.name());
+                sorterCarriedItemLabel.setVisible(true);
+                sorterCarriedItemLabel.toFront();
             }
             AudioManager.playTrashPickup();
             sortingFeedback = "P2 retrieved: " + insideCarriedWaste.name() + " — Check bin labels to sort";
@@ -2057,6 +2108,9 @@ public class MovementApp extends GameApplication {
         insideCarriedWaste = null;
         if (sorterCarriedWasteView != null) {
             sorterCarriedWasteView.setVisible(false);
+        }
+        if (sorterCarriedItemLabel != null) {
+            sorterCarriedItemLabel.setVisible(false);
         }
     }
 
@@ -2375,7 +2429,7 @@ public class MovementApp extends GameApplication {
                     if (targetEntity != null && targetEntity.isActive()) {
                         if (selectedGameMode == GameMode.QUESTION_TEST
                                 && testQuestionIndex < testQuestions.size()) {
-                            targetEntity.setProperty("question", testQuestions.get(testQuestionIndex));
+                            targetEntity.setProperty("question", testQuestions.get(testQuestionIndex).shuffled());
                         } else {
                             targetEntity.removeFromWorld();
                         }
@@ -2950,6 +3004,7 @@ public class MovementApp extends GameApplication {
                     boundaryWallReenableCooldown = 3.0; // 3-second grace period
 
                     generatorStage = assignedTasks.getOrDefault(targetChunkX + "," + targetChunkY, GeneratorStage.TRASH_COLLECTION);
+                    currentDistrict = completedChunks.size() + 1;
                     switch (generatorStage) {
                         case TRASH_COLLECTION -> setupGeneratorStage1(targetChunkX, targetChunkY);
                         case QUESTION -> setupGeneratorStage2(targetChunkX, targetChunkY);
@@ -3041,7 +3096,10 @@ public class MovementApp extends GameApplication {
         }
 
         if (!gameEnded && selectedGameMode != GameMode.LAN_JOIN) {
-            timer.tick(tpf);
+            int level = isInfiniteGameMode() ? currentDistrict
+                    : (selectedGameMode == GameMode.SEQUENTIAL_DEMO && demoStage != null ? (demoStage.ordinal() + 1) : 1);
+            double depletionMultiplier = 1.0 + 0.20 * Math.max(0, level - 1);
+            timer.tick(tpf * depletionMultiplier);
             if (timer.isExpired()) {
                 gameEnded = true;
                 showEndGameOverlay("TIME EXPIRED", "The world could not be restored in time.", false);

@@ -46,4 +46,35 @@ public record EnvironmentalQuestion(
         }
         return new QuestionResult(AnswerQuality.WRONG, -wrongPenaltySeconds, wrongFeedback);
     }
+
+    public EnvironmentalQuestion shuffled(java.util.Random random) {
+        Objects.requireNonNull(random, "random");
+        List<Integer> indices = new java.util.ArrayList<>();
+        for (int i = 0; i < choices.size(); i++) {
+            indices.add(i);
+        }
+        java.util.Collections.shuffle(indices, random);
+
+        List<String> newChoices = new java.util.ArrayList<>(choices.size());
+        int newBest = -1;
+        int newSecondBest = -1;
+
+        for (int newIdx = 0; newIdx < indices.size(); newIdx++) {
+            int oldIdx = indices.get(newIdx);
+            newChoices.add(choices.get(oldIdx));
+            if (oldIdx == bestChoice) {
+                newBest = newIdx;
+            } else if (oldIdx == secondBestChoice) {
+                newSecondBest = newIdx;
+            }
+        }
+
+        return new EnvironmentalQuestion(
+                id, prompt, newChoices, newBest, newSecondBest,
+                bestRewardSeconds, wrongPenaltySeconds, correctFeedback, wrongFeedback);
+    }
+
+    public EnvironmentalQuestion shuffled() {
+        return shuffled(java.util.concurrent.ThreadLocalRandom.current());
+    }
 }

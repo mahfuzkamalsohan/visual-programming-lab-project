@@ -1,12 +1,12 @@
 package pkg.restoration.questions;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.Test;
 
 class QuestionLoaderTest {
@@ -42,5 +42,19 @@ class QuestionLoaderTest {
 
         assertEquals(6, selected.size());
         assertEquals(6, new HashSet<>(selected.stream().map(EnvironmentalQuestion::id).toList()).size());
+    }
+
+    @Test
+    void shuffledQuestionPreservesAnswerMapping() throws IOException {
+        List<EnvironmentalQuestion> questions =
+                new QuestionLoader().loadResource("assets/questions/environment.dat");
+        EnvironmentalQuestion original = questions.getFirst();
+        EnvironmentalQuestion shuffled = original.shuffled(new Random(42));
+
+        assertEquals(original.choices().size(), shuffled.choices().size());
+        assertEquals(AnswerQuality.BEST, shuffled.answer(shuffled.bestChoice()).quality());
+        assertEquals(AnswerQuality.SECOND_BEST, shuffled.answer(shuffled.secondBestChoice()).quality());
+        assertEquals(original.choices().get(original.bestChoice()), shuffled.choices().get(shuffled.bestChoice()));
+        assertEquals(original.choices().get(original.secondBestChoice()), shuffled.choices().get(shuffled.secondBestChoice()));
     }
 }
