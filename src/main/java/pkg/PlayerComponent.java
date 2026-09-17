@@ -92,6 +92,15 @@ public class PlayerComponent extends Component {
 
     @Override
     public void onUpdate(double tpf) {
+        // --- Depenetration: if already overlapping a wall, push out first ---
+        if (collidesWithWallOnly()) {
+            depenetrate();
+        }
+
+        // Track whether we were already overlapping another player at frame start
+        // so we can allow walking away from the overlap
+        overlappingPlayerAtFrameStart = isOverlappingOtherPlayer();
+
         double dx = 0, dy = 0;
 
         if (up)
@@ -178,6 +187,7 @@ public class PlayerComponent extends Component {
     }
 
     private boolean ignoreBoundaryWalls = false;
+    private boolean overlappingPlayerAtFrameStart = false;
 
     public void setIgnoreBoundaryWalls(boolean ignore) {
         this.ignoreBoundaryWalls = ignore;
@@ -187,7 +197,10 @@ public class PlayerComponent extends Component {
         return ignoreBoundaryWalls;
     }
 
-    private boolean collidesWithWall() {
+    /**
+     * Checks collision with walls only (no player-on-player check).
+     */
+    private boolean collidesWithWallOnly() {
         if (!ignoreBoundaryWalls) {
             List<Entity> walls = FXGL.getGameWorld().getEntitiesByType(EntityType.WALL);
             for (Entity wall : walls) {
@@ -196,6 +209,13 @@ public class PlayerComponent extends Component {
                 }
             }
         }
+        return false;
+    }
+
+    /**
+     * Checks if this player is currently overlapping another player entity.
+     */
+    private boolean isOverlappingOtherPlayer() {
         List<Entity> players = FXGL.getGameWorld().getEntitiesByType(EntityType.PLAYER);
         for (Entity otherPlayer : players) {
             if (otherPlayer != entity && entity.isColliding(otherPlayer)) {
@@ -203,6 +223,68 @@ public class PlayerComponent extends Component {
             }
         }
         return false;
+    }
+
+    private boolean collidesWithWall() {
+        if (collidesWithWallOnly()) {
+            return true;
+        }
+        // If players were already overlapping at frame start, allow movement
+        // (so they can walk away from each other instead of being deadlocked)
+        if (overlappingPlayerAtFrameStart) {
+            return false;
+        }
+        return isOverlappingOtherPlayer();
+    }
+
+    /**
+     * Emergency depenetration: push the player out of any overlapping wall
+     * by trying small steps in all 4 cardinal directions and picking the
+     * shortest escape.
+     */
+    private void depenetrate() {
+        double step = 1.0;
+        double maxPush = 32.0; // don't push further than 2 tiles
+
+        // Try each cardinal direction independently
+        double[][] directions = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+        double bestDist = Double.MAX_VALUE;
+        double bestDx = 0, bestDy = 0;
+
+        for (double[] dir : directions) {
+            double totalDx = 0, totalDy = 0;
+            double origX = entity.getX();
+            double origY = entity.getY();
+            boolean escaped = false;
+
+            for (double d = step; d <= maxPush; d += step) {
+                totalDx = dir[0] * d;
+                totalDy = dir[1] * d;
+                entity.setX(origX + totalDx);
+                entity.setY(origY + totalDy);
+                if (!collidesWithWallOnly()) {
+                    escaped = true;
+                    break;
+                }
+            }
+
+            entity.setX(origX);
+            entity.setY(origY);
+
+            if (escaped) {
+                double dist = Math.hypot(totalDx, totalDy);
+                if (dist < bestDist) {
+                    bestDist = dist;
+                    bestDx = totalDx;
+                    bestDy = totalDy;
+                }
+            }
+        }
+
+        if (bestDist < Double.MAX_VALUE) {
+            entity.translateX(bestDx);
+            entity.translateY(bestDy);
+        }
     }
 
     private Direction determineDirection(double dx, double dy) {

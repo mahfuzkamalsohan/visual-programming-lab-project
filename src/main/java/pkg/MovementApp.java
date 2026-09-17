@@ -383,7 +383,9 @@ public class MovementApp extends GameApplication {
     }
 
     private void handleMovement(int playerNum, Direction dir, boolean pressed) {
-        if (isCutsceneActive) {
+        if (isCutsceneActive && pressed) {
+            // Block new key presses during cutscenes, but allow key releases
+            // so direction flags don't get stuck permanently
             return;
         }
 
@@ -431,6 +433,21 @@ public class MovementApp extends GameApplication {
         }
     }
 
+    private void resetAllMovementFlags() {
+        if (playerComponent != null) {
+            playerComponent.setUp(false);
+            playerComponent.setDown(false);
+            playerComponent.setLeft(false);
+            playerComponent.setRight(false);
+        }
+        if (playerComponent2 != null) {
+            playerComponent2.setUp(false);
+            playerComponent2.setDown(false);
+            playerComponent2.setLeft(false);
+            playerComponent2.setRight(false);
+        }
+    }
+
     private void bindKey(String name, KeyCode code, Runnable onPress, Runnable onRelease) {
         FXGL.getInput().addAction(new UserAction(name) {
             @Override
@@ -470,6 +487,8 @@ public class MovementApp extends GameApplication {
 
         hudNodes.clear();
         isCutsceneActive = true;
+        // Reset all direction flags to prevent stuck movement after cutscene
+        resetAllMovementFlags();
         cutsceneOverlayNode = new CutsceneOverlay(FXGL.getAppWidth(), FXGL.getAppHeight(), () -> {
             if (cutsceneOverlayNode != null) {
                 FXGL.removeUINode(cutsceneOverlayNode);
@@ -2596,18 +2615,37 @@ public class MovementApp extends GameApplication {
             boolean p2Moving = playerComponent2 != null && playerComponent2.isMoving();
 
             if (p1Moving && !p2Moving) {
-                playerEntity.translateX(-Math.cos(angle) * excess);
-                playerEntity.translateY(-Math.sin(angle) * excess);
+                safeTetherTranslate(playerEntity, -Math.cos(angle) * excess, -Math.sin(angle) * excess);
             } else if (p2Moving && !p1Moving) {
-                playerEntity2.translateX(Math.cos(angle) * excess);
-                playerEntity2.translateY(Math.sin(angle) * excess);
+                safeTetherTranslate(playerEntity2, Math.cos(angle) * excess, Math.sin(angle) * excess);
             } else {
                 double halfCorrX = Math.cos(angle) * (excess / 2.0);
                 double halfCorrY = Math.sin(angle) * (excess / 2.0);
-                playerEntity.translateX(-halfCorrX);
-                playerEntity.translateY(-halfCorrY);
-                playerEntity2.translateX(halfCorrX);
-                playerEntity2.translateY(halfCorrY);
+                safeTetherTranslate(playerEntity, -halfCorrX, -halfCorrY);
+                safeTetherTranslate(playerEntity2, halfCorrX, halfCorrY);
+            }
+        }
+    }
+
+    /**
+     * Translate a player entity by (dx, dy) for tethering, but revert if the
+     * destination overlaps a wall to prevent clipping players into geometry.
+     */
+    private void safeTetherTranslate(Entity player, double dx, double dy) {
+        double origX = player.getX();
+        double origY = player.getY();
+        player.translateX(dx);
+        player.translateY(dy);
+
+        // Check if destination collides with walls (not other players — tether
+        // naturally brings them closer so player overlap is expected and handled
+        // by PlayerComponent's overlap-escape logic)
+        List<Entity> walls = FXGL.getGameWorld().getEntitiesByType(EntityType.WALL);
+        for (Entity wall : walls) {
+            if (player.isColliding(wall)) {
+                player.setX(origX);
+                player.setY(origY);
+                return;
             }
         }
     }
@@ -3292,12 +3330,32 @@ public class MovementApp extends GameApplication {
     }
 
     private void keepCollectorOutsideSortingZone() {
-        if (playerEntity != null
-                && playerEntity.getX() >= activeSortZoneX - 5
-                && playerEntity.getX() <= activeSortZoneX + activeSortZoneWidth
-                && playerEntity.getY() >= activeSortZoneY - 5
-                && playerEntity.getY() <= activeSortZoneY + activeSortZoneHeight) {
-            playerEntity.setX(activeSortZoneX - 28);
+        if (playerEntity == null) return;
+        double px = playerEntity.getX();
+        double py = playerEntity.getY();
+        double zoneLeft = activeSortZoneX - 5;
+        double zoneRight = activeSortZoneX + activeSortZoneWidth;
+        double zoneTop = activeSortZoneY - 5;
+        double zoneBottom = activeSortZoneY + activeSortZoneHeight;
+
+        if (px >= zoneLeft && px <= zoneRight && py >= zoneTop && py <= zoneBottom) {
+            // Find nearest edge to eject to
+            double distLeft = px - zoneLeft;
+            double distRight = zoneRight - px;
+            double distTop = py - zoneTop;
+            double distBottom = zoneBottom - py;
+
+            double minDist = Math.min(Math.min(distLeft, distRight), Math.min(distTop, distBottom));
+
+            if (minDist == distLeft) {
+                playerEntity.setX(zoneLeft - 20);
+            } else if (minDist == distRight) {
+                playerEntity.setX(zoneRight + 4);
+            } else if (minDist == distTop) {
+                playerEntity.setY(zoneTop - 20);
+            } else {
+                playerEntity.setY(zoneBottom + 4);
+            }
         }
     }
 
