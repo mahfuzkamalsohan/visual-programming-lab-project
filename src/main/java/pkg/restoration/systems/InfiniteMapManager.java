@@ -49,6 +49,7 @@ public class InfiniteMapManager {
     private int totalTrashCollectedInWorld = 0;
 
     private final List<Entity> currentBoundaryWalls = new ArrayList<>();
+    private final List<Entity> outerBoundaryWalls = new ArrayList<>();
     private boolean regionLocked = false;
     private int lockedChunkX = Integer.MIN_VALUE;
     private int lockedChunkY = Integer.MIN_VALUE;
@@ -247,6 +248,10 @@ public class InfiniteMapManager {
         return currentChunkY;
     }
 
+    public boolean isChunkUnlocked(int chunkX, int chunkY) {
+        return unlockedChunks.contains(chunkX + "," + chunkY);
+    }
+
     public static class ChunkTemplate {
         public final List<long[]> layersGids;
         public final boolean[] walls;
@@ -372,9 +377,8 @@ public class InfiniteMapManager {
                                         // Impassable water or deep hole obstacle tiles
                                         if (gid == 111 || gid == 112 || gid == 113 || gid == 118) {
                                             walls[dstIdx] = true;
-                                        }
-                                        // Ensure central roaming and spawn area is completely clear
-                                        if (lx >= 6 && lx <= 14 && ly >= 6 && ly <= 14) {
+                                        } else if (lx >= 6 && lx <= 14 && ly >= 6 && ly <= 14) {
+                                            // Ensure central roaming and spawn area is clear on non-water tiles
                                             walls[dstIdx] = false;
                                         }
 
@@ -424,18 +428,7 @@ public class InfiniteMapManager {
     }
 
     private void refreshActiveChunks() {
-        Set<String> activeKeysNeeded = new HashSet<>();
-
-        for (int dy = -ACTIVE_RADIUS; dy <= ACTIVE_RADIUS; dy++) {
-            for (int dx = -ACTIVE_RADIUS; dx <= ACTIVE_RADIUS; dx++) {
-                int cx = currentChunkX + dx;
-                int cy = currentChunkY + dy;
-                String key = cx + "," + cy;
-                if (unlockedChunks.contains(key)) {
-                    activeKeysNeeded.add(key);
-                }
-            }
-        }
+        Set<String> activeKeysNeeded = new HashSet<>(unlockedChunks);
 
         // Unload chunks outside active radius (virtualization)
         List<String> toUnload = new ArrayList<>();
@@ -472,6 +465,67 @@ public class InfiniteMapManager {
             }
         }
         refreshActiveChunks();
+        updateOuterBoundaryWalls();
+    }
+
+    public void updateOuterBoundaryWalls() {
+        for (Entity wall : outerBoundaryWalls) {
+            if (wall != null && wall.isActive()) {
+                wall.removeFromWorld();
+            }
+        }
+        outerBoundaryWalls.clear();
+
+        for (String chunkKey : unlockedChunks) {
+            String[] parts = chunkKey.split(",");
+            int cx = Integer.parseInt(parts[0]);
+            int cy = Integer.parseInt(parts[1]);
+
+            double chunkOriginX = (cx - cy) * (CHUNK_SIZE * TILE_HALF_WIDTH);
+            double chunkOriginY = (cx + cy) * (CHUNK_SIZE * TILE_HALF_HEIGHT);
+
+            // Check East neighbor (cx + 1, cy)
+            if (!unlockedChunks.contains((cx + 1) + "," + cy)) {
+                for (int ly = 0; ly < CHUNK_SIZE; ly++) {
+                    spawnOuterBoundaryTile(chunkOriginX, chunkOriginY, CHUNK_SIZE - 1, ly);
+                }
+            }
+
+            // Check West neighbor (cx - 1, cy)
+            if (!unlockedChunks.contains((cx - 1) + "," + cy)) {
+                for (int ly = 0; ly < CHUNK_SIZE; ly++) {
+                    spawnOuterBoundaryTile(chunkOriginX, chunkOriginY, 0, ly);
+                }
+            }
+
+            // Check South neighbor (cx, cy + 1)
+            if (!unlockedChunks.contains(cx + "," + (cy + 1))) {
+                for (int lx = 0; lx < CHUNK_SIZE; lx++) {
+                    spawnOuterBoundaryTile(chunkOriginX, chunkOriginY, lx, CHUNK_SIZE - 1);
+                }
+            }
+
+            // Check North neighbor (cx, cy - 1)
+            if (!unlockedChunks.contains(cx + "," + (cy - 1))) {
+                for (int lx = 0; lx < CHUNK_SIZE; lx++) {
+                    spawnOuterBoundaryTile(chunkOriginX, chunkOriginY, lx, 0);
+                }
+            }
+        }
+    }
+
+    private void spawnOuterBoundaryTile(double chunkOriginX, double chunkOriginY, int lx, int ly) {
+        double isoX = chunkOriginX + (lx - ly) * TILE_HALF_WIDTH;
+        double isoY = chunkOriginY + (lx + ly) * TILE_HALF_HEIGHT;
+
+        Entity wall = FXGL.entityBuilder()
+                .at(isoX + 8, isoY + 4)
+                .type(EntityType.WALL)
+                .bbox(new HitBox(BoundingShape.box(16, 8)))
+                .with(new CollidableComponent(true))
+                .buildAndAttach();
+        wall.setProperty("isOuterBoundary", true);
+        outerBoundaryWalls.add(wall);
     }
 
     private ChunkState getOrCreateChunkState(int chunkX, int chunkY) {
@@ -504,6 +558,9 @@ public class InfiniteMapManager {
      * Returns whether a local tile can be occupied by players and spawned items.
      */
     public boolean isWalkableTile(int chunkX, int chunkY, int localX, int localY) {
+        if (!isChunkUnlocked(chunkX, chunkY)) {
+            return false;
+        }
         if (localX < 0 || localX >= CHUNK_SIZE || localY < 0 || localY >= CHUNK_SIZE) {
             return false;
         }
@@ -551,6 +608,7 @@ public class InfiniteMapManager {
                         .bbox(new HitBox(BoundingShape.box(12, 6)))
                         .with(new CollidableComponent(true))
                         .buildAndAttach();
+                waterWall.setProperty("isOuterBoundary", true);
                 waterWalls.add(waterWall);
             }
         }
@@ -649,6 +707,13 @@ public class InfiniteMapManager {
 
     public void clearAll() {
         unlockCurrentRegion();
+        for (Entity wall : outerBoundaryWalls) {
+            if (wall != null && wall.isActive()) {
+                wall.removeFromWorld();
+            }
+        }
+        outerBoundaryWalls.clear();
+        unlockedChunks.clear();
         List<String> keys = new ArrayList<>(loadedActiveChunks.keySet());
         for (String k : keys) {
             unloadChunk(k);

@@ -92,6 +92,17 @@ public class PlayerComponent extends Component {
 
     @Override
     public void onUpdate(double tpf) {
+        if (movementFrozen) {
+            footstepTimer = FOOTSTEP_INTERVAL;
+            if (texture != null && idleAnimations != null && currentDirection != null) {
+                AnimationChannel idle = idleAnimations.get(currentDirection);
+                if (idle != null && texture.getAnimationChannel() != idle) {
+                    texture.loopAnimationChannel(idle);
+                }
+            }
+            return;
+        }
+
         // --- Depenetration: if already overlapping a wall, push out first ---
         if (collidesWithWallOnly()) {
             depenetrate();
@@ -201,12 +212,11 @@ public class PlayerComponent extends Component {
      * Checks collision with walls only (no player-on-player check).
      */
     private boolean collidesWithWallOnly() {
-        if (!ignoreBoundaryWalls) {
-            List<Entity> walls = FXGL.getGameWorld().getEntitiesByType(EntityType.WALL);
-            for (Entity wall : walls) {
-                if (entity.isColliding(wall)) {
-                    return true;
-                }
+        List<Entity> walls = FXGL.getGameWorld().getEntitiesByType(EntityType.WALL);
+        for (Entity wall : walls) {
+            boolean isPermanent = wall.<Boolean>getPropertyOptional("isOuterBoundary").orElse(false);
+            if ((!ignoreBoundaryWalls || isPermanent) && entity.isColliding(wall)) {
+                return true;
             }
         }
         return false;
@@ -305,20 +315,46 @@ public class PlayerComponent extends Component {
         return Direction.NORTH_WEST; // W + A
     }
 
+    private boolean movementFrozen = false;
+
+    public void setMovementFrozen(boolean frozen) {
+        this.movementFrozen = frozen;
+        if (frozen) {
+            stopMovement();
+        }
+    }
+
+    public boolean isMovementFrozen() {
+        return movementFrozen;
+    }
+
+    public void stopMovement() {
+        this.up = false;
+        this.down = false;
+        this.left = false;
+        this.right = false;
+        if (texture != null && idleAnimations != null && currentDirection != null) {
+            AnimationChannel idle = idleAnimations.get(currentDirection);
+            if (idle != null && texture.getAnimationChannel() != idle) {
+                texture.loopAnimationChannel(idle);
+            }
+        }
+    }
+
     public void setUp(boolean v) {
-        this.up = v;
+        if (!movementFrozen) this.up = v;
     }
 
     public void setDown(boolean v) {
-        this.down = v;
+        if (!movementFrozen) this.down = v;
     }
 
     public void setLeft(boolean v) {
-        this.left = v;
+        if (!movementFrozen) this.left = v;
     }
 
     public void setRight(boolean v) {
-        this.right = v;
+        if (!movementFrozen) this.right = v;
     }
 
     public Direction getCurrentDirection() {

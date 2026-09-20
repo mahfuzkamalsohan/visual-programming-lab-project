@@ -140,6 +140,14 @@ public class MovementApp extends GameApplication {
 
     private Entity playerEntity;
     private Entity playerEntity2;
+
+    public enum AnimalRescueType {
+        RABBIT,
+        PUPPY
+    }
+
+    private AnimalRescueType currentAnimalRescueType = AnimalRescueType.RABBIT;
+    private Entity animalRescueEntity;
     private Entity rabbitEntity;
     private PlayerComponent playerComponent;
     private PlayerComponent playerComponent2;
@@ -159,6 +167,8 @@ public class MovementApp extends GameApplication {
     private GeneratorStage generatorStage = GeneratorStage.TRASH_COLLECTION;
     private boolean generatorStageCompleted = false;
     private int currentMapRadius = 0;
+    private int currentTaskChunkX = 0;
+    private int currentTaskChunkY = 0;
     private final java.util.Set<String> completedChunks = new java.util.HashSet<>();
     private final java.util.Map<String, GeneratorStage> assignedTasks = new java.util.HashMap<>();
     private double boundaryWallReenableCooldown = 0.0;
@@ -228,6 +238,8 @@ public class MovementApp extends GameApplication {
     private boolean gameEnded;
     private Node endGameOverlayNode;
     private boolean isCutsceneActive = false;
+    private boolean isAnimalHealingActive = false;
+    private Node activeAnimalHealingOverlayNode;
     private CutsceneOverlay cutsceneOverlayNode;
     private final List<Node> hudNodes = new ArrayList<>();
 
@@ -387,13 +399,16 @@ public class MovementApp extends GameApplication {
     }
 
     private void handleMovement(int playerNum, Direction dir, boolean pressed) {
-        if (isCutsceneActive && pressed) {
-            // Block new key presses during cutscenes, but allow key releases
-            // so direction flags don't get stuck permanently
+        if ((isCutsceneActive || isAnimalHealingActive) && pressed) {
+            // Block new key presses during cutscenes or animal healing mini-games,
+            // but allow key releases so direction flags don't get stuck permanently
             return;
         }
 
         if (selectedGameMode == GameMode.LAN_JOIN) {
+            if (isCutsceneActive || isAnimalHealingActive) {
+                return;
+            }
             // Client inputs control Player 2 and send packet to Host
             switch (dir) {
                 case NORTH -> clientUp = pressed;
@@ -429,6 +444,9 @@ public class MovementApp extends GameApplication {
     }
 
     private void setComponentMovement(PlayerComponent comp, Direction dir, boolean pressed) {
+        if (comp == null || comp.isMovementFrozen()) {
+            return;
+        }
         switch (dir) {
             case NORTH -> comp.setUp(pressed);
             case SOUTH -> comp.setDown(pressed);
@@ -440,17 +458,15 @@ public class MovementApp extends GameApplication {
     }
 
     private void resetAllMovementFlags() {
+        clientUp = false;
+        clientDown = false;
+        clientLeft = false;
+        clientRight = false;
         if (playerComponent != null) {
-            playerComponent.setUp(false);
-            playerComponent.setDown(false);
-            playerComponent.setLeft(false);
-            playerComponent.setRight(false);
+            playerComponent.stopMovement();
         }
         if (playerComponent2 != null) {
-            playerComponent2.setUp(false);
-            playerComponent2.setDown(false);
-            playerComponent2.setLeft(false);
-            playerComponent2.setRight(false);
+            playerComponent2.stopMovement();
         }
     }
 
@@ -476,6 +492,9 @@ public class MovementApp extends GameApplication {
         playerEntity2 = null;
         playerComponent = null;
         playerComponent2 = null;
+        animalRescueEntity = null;
+        rabbitEntity = null;
+        currentAnimalRescueType = AnimalRescueType.RABBIT;
 
         AudioManager.playGameMusic();
         FXGL.getGameScene().setBackgroundColor(Color.web("#17231e"));
@@ -490,6 +509,12 @@ public class MovementApp extends GameApplication {
             FXGL.removeUINode(cutsceneOverlayNode);
             cutsceneOverlayNode = null;
         }
+
+        if (activeAnimalHealingOverlayNode != null) {
+            FXGL.removeUINode(activeAnimalHealingOverlayNode);
+            activeAnimalHealingOverlayNode = null;
+        }
+        isAnimalHealingActive = false;
 
         hudNodes.clear();
         isCutsceneActive = true;
@@ -555,6 +580,8 @@ public class MovementApp extends GameApplication {
             generatorStageCompleted = false;
             completedChunks.clear();
             currentMapRadius = 0;
+            currentTaskChunkX = 0;
+            currentTaskChunkY = 0;
             assignedTasks.clear();
             assignedTasks.put("0,0", GeneratorStage.TRASH_COLLECTION);
             infiniteMapManager.unlockLayer(0);
@@ -725,7 +752,12 @@ public class MovementApp extends GameApplication {
     }
 
     private void setupAnimalRescueTest() {
-        rabbitEntity = FXGL.spawn("rabbit", 420, 220);
+        if (currentAnimalRescueType == AnimalRescueType.RABBIT) {
+            animalRescueEntity = FXGL.spawn("rabbit", 420, 220);
+        } else {
+            animalRescueEntity = FXGL.spawn("puppy", 420, 220);
+        }
+        rabbitEntity = animalRescueEntity;
     }
 
     private void setupSortingTest() {
@@ -1099,6 +1131,8 @@ public class MovementApp extends GameApplication {
     }
 
     private void setupGeneratorStage1(int chunkX, int chunkY) {
+        currentTaskChunkX = chunkX;
+        currentTaskChunkY = chunkY;
         clearGeneratorStageEntities();
         if (infiniteMapManager != null) {
             infiniteMapManager.setFragmentedMode(false);
@@ -1136,6 +1170,8 @@ public class MovementApp extends GameApplication {
     }
 
     private void setupGeneratorStage2(int chunkX, int chunkY) {
+        currentTaskChunkX = chunkX;
+        currentTaskChunkY = chunkY;
         clearGeneratorStageEntities();
         if (infiniteMapManager != null) {
             infiniteMapManager.setFragmentedMode(false);
@@ -1178,6 +1214,8 @@ public class MovementApp extends GameApplication {
     }
 
     private void setupGeneratorStage3(int chunkX, int chunkY) {
+        currentTaskChunkX = chunkX;
+        currentTaskChunkY = chunkY;
         clearGeneratorStageEntities();
         if (infiniteMapManager != null) {
             infiniteMapManager.setFragmentedMode(false);
@@ -1254,6 +1292,8 @@ public class MovementApp extends GameApplication {
     }
 
     private void setupGeneratorStage4(int chunkX, int chunkY) {
+        currentTaskChunkX = chunkX;
+        currentTaskChunkY = chunkY;
         clearGeneratorStageEntities();
         if (infiniteMapManager != null) {
             infiniteMapManager.setFragmentedMode(false);
@@ -1308,6 +1348,8 @@ public class MovementApp extends GameApplication {
     }
 
     private void setupGeneratorStage5(int chunkX, int chunkY) {
+        currentTaskChunkX = chunkX;
+        currentTaskChunkY = chunkY;
         clearGeneratorStageEntities();
         if (infiniteMapManager != null) {
             infiniteMapManager.setFragmentedMode(false);
@@ -1321,13 +1363,19 @@ public class MovementApp extends GameApplication {
         double isoX = originX + (lx - ly) * 16.0;
         double isoY = originY + (lx + ly) * 8.0;
 
-        rabbitEntity = FXGL.spawn("rabbit", isoX, isoY);
+        if (currentAnimalRescueType == AnimalRescueType.RABBIT) {
+            animalRescueEntity = FXGL.spawn("rabbit", isoX, isoY);
+        } else {
+            animalRescueEntity = FXGL.spawn("puppy", isoX, isoY);
+        }
+        rabbitEntity = animalRescueEntity;
 
         generatorStageCompleted = false;
         updateTrashCounter();
         if (selectedGameMode == GameMode.SINGLE_PLAYER) {
+            String animalName = (currentAnimalRescueType == AnimalRescueType.RABBIT) ? "rabbit" : "puppy";
             showTemporaryNotice("🐾 DISTRICT " + currentDistrict
-                    + " — PHASE 5: ANIMAL RESCUE\nFind the injured rabbit and heal it!");
+                    + " — PHASE 5: ANIMAL RESCUE\nFind the injured " + animalName + " and heal it!");
         }
     }
 
@@ -1496,6 +1544,12 @@ public class MovementApp extends GameApplication {
     }
 
     private void clearGeneratorStageEntities() {
+        if (animalRescueEntity != null && animalRescueEntity.isActive()) {
+            animalRescueEntity.removeFromWorld();
+        }
+        animalRescueEntity = null;
+        rabbitEntity = null;
+
         for (Entity e : generatorTrashEntities) {
             if (e != null && e.isActive())
                 e.removeFromWorld();
@@ -1796,41 +1850,127 @@ public class MovementApp extends GameApplication {
         boolean isAnimalRescue = (selectedGameMode == GameMode.ANIMAL_RESCUE)
                 || (isInfiniteGameMode() && generatorStage == GeneratorStage.ANIMAL_RESCUE);
         if (isAnimalRescue) {
-            if (!generatorStageCompleted && rabbitEntity != null && player != null
-                    && player.distance(rabbitEntity) < 64.0) {
-                AudioManager.playTrashPickup();
-                pkg.ui.RabbitHealingWindow window = new pkg.ui.RabbitHealingWindow(() -> {
-                    rabbitEntity.getViewComponent().clearChildren();
-                    rabbitEntity.getViewComponent()
-                            .addChild(new javafx.scene.image.ImageView(new javafx.scene.image.Image(
-                                    getClass().getResource("/assets/textures/healed_rabit.png").toExternalForm())));
-                    generatorStageCompleted = true;
-                    if (timer != null)
-                        timer.applyDelta(6.0);
-
-                    if (isInfiniteGameMode() && generatorStage == GeneratorStage.ANIMAL_RESCUE) {
-                        completeCurrentChunkTask();
-                        AudioManager.playCorrectAnswer();
-                        showTemporaryNotice("RABBIT HEALED!\nSpreading world restoration wave...");
-                        if (infiniteMapManager != null) {
-                            infiniteMapManager.startSpreadingRestoration(() -> {
-                                showTemporaryNotice(
-                                        "WORLD RESTORED! Render distance expanded.\nWalk into next sector.");
-                            });
-                        }
-                    } else {
-                        AudioManager.playCorrectAnswer();
-                    }
-                });
-                javafx.application.Platform.runLater(window::show);
+            if (isAnimalHealingActive) {
+                return false;
             }
-            return true;
+            Entity targetAnimal = animalRescueEntity != null ? animalRescueEntity : rabbitEntity;
+            if (!generatorStageCompleted && targetAnimal != null && player != null
+                    && (player.distance(targetAnimal) < 70.0 || safelyCollides(player, targetAnimal))) {
+                
+                isAnimalHealingActive = true;
+                resetAllMovementFlags();
+                if (playerComponent != null) {
+                    playerComponent.setMovementFrozen(true);
+                }
+                if (playerComponent2 != null) {
+                    playerComponent2.setMovementFrozen(true);
+                }
+
+                AudioManager.playTrashPickup();
+
+                Runnable onCloseOverlay = () -> {
+                    activeAnimalHealingOverlayNode = null;
+                    isAnimalHealingActive = false;
+                    resetAllMovementFlags();
+                    if (playerComponent != null) {
+                        playerComponent.setMovementFrozen(false);
+                    }
+                    if (playerComponent2 != null) {
+                        playerComponent2.setMovementFrozen(false);
+                    }
+                };
+
+                if (currentAnimalRescueType == AnimalRescueType.RABBIT) {
+                    pkg.ui.RabbitHealingWindow window = new pkg.ui.RabbitHealingWindow(() -> {
+                        activeAnimalHealingOverlayNode = null;
+                        isAnimalHealingActive = false;
+                        resetAllMovementFlags();
+                        if (playerComponent != null) {
+                            playerComponent.setMovementFrozen(false);
+                        }
+                        if (playerComponent2 != null) {
+                            playerComponent2.setMovementFrozen(false);
+                        }
+
+                        targetAnimal.getViewComponent().clearChildren();
+                        targetAnimal.getViewComponent()
+                                .addChild(new javafx.scene.image.ImageView(new javafx.scene.image.Image(
+                                        getClass().getResource("/assets/textures/healed_rabit.png").toExternalForm())));
+                        generatorStageCompleted = true;
+                        if (timer != null)
+                            timer.applyDelta(6.0);
+
+                        if (isInfiniteGameMode() && generatorStage == GeneratorStage.ANIMAL_RESCUE) {
+                            completeCurrentChunkTask();
+                            AudioManager.playCorrectAnswer();
+                            showTemporaryNotice("RABBIT HEALED!\nSpreading world restoration wave...");
+                            if (infiniteMapManager != null) {
+                                infiniteMapManager.startSpreadingRestoration(() -> {
+                                    showTemporaryNotice(
+                                            "WORLD RESTORED! Render distance expanded.\nWalk into next sector.");
+                                });
+                            }
+                        } else {
+                            AudioManager.playCorrectAnswer();
+                        }
+                        currentAnimalRescueType = AnimalRescueType.PUPPY;
+                        updateTrashCounter();
+                    }, onCloseOverlay);
+                    activeAnimalHealingOverlayNode = window;
+                    javafx.application.Platform.runLater(window::show);
+                } else {
+                    pkg.ui.PuppyHealingWindow window = new pkg.ui.PuppyHealingWindow(() -> {
+                        activeAnimalHealingOverlayNode = null;
+                        isAnimalHealingActive = false;
+                        resetAllMovementFlags();
+                        if (playerComponent != null) {
+                            playerComponent.setMovementFrozen(false);
+                        }
+                        if (playerComponent2 != null) {
+                            playerComponent2.setMovementFrozen(false);
+                        }
+
+                        ImageView healedIv = safeImageView("/assets/textures/healed_puppy.png", 32, 28);
+                        if (healedIv == null) {
+                            healedIv = new ImageView(new Image(
+                                    getClass().getResource("/assets/textures/healed_puppy.png").toExternalForm()));
+                            healedIv.setFitWidth(32);
+                            healedIv.setFitHeight(28);
+                            healedIv.setPreserveRatio(true);
+                        }
+                        targetAnimal.getViewComponent().clearChildren();
+                        targetAnimal.getViewComponent().addChild(healedIv);
+                        generatorStageCompleted = true;
+                        if (timer != null)
+                            timer.applyDelta(6.0);
+
+                        if (isInfiniteGameMode() && generatorStage == GeneratorStage.ANIMAL_RESCUE) {
+                            completeCurrentChunkTask();
+                            AudioManager.playCorrectAnswer();
+                            showTemporaryNotice("PUPPY HEALED!\nSpreading world restoration wave...");
+                            if (infiniteMapManager != null) {
+                                infiniteMapManager.startSpreadingRestoration(() -> {
+                                    showTemporaryNotice(
+                                            "WORLD RESTORED! Render distance expanded.\nWalk into next sector.");
+                                });
+                            }
+                        } else {
+                            AudioManager.playCorrectAnswer();
+                        }
+                        currentAnimalRescueType = AnimalRescueType.RABBIT;
+                        updateTrashCounter();
+                    }, onCloseOverlay);
+                    activeAnimalHealingOverlayNode = window;
+                    javafx.application.Platform.runLater(window::show);
+                }
+                return true;
+            }
         }
         return false;
     }
 
     private void tryCollectTrashP1() {
-        if (isCutsceneActive) {
+        if (isCutsceneActive || isAnimalHealingActive) {
             return;
         }
 
@@ -1906,7 +2046,7 @@ public class MovementApp extends GameApplication {
     }
 
     private void tryCollectTrashP2() {
-        if (isCutsceneActive) {
+        if (isCutsceneActive || isAnimalHealingActive) {
             return;
         }
 
@@ -2731,7 +2871,7 @@ public class MovementApp extends GameApplication {
     }
 
     private void enforcePlayerTether() {
-        if (playerEntity == null || playerEntity2 == null)
+        if (playerEntity == null || playerEntity2 == null || isCutsceneActive || isAnimalHealingActive)
             return;
         double dist = playerEntity.distance(playerEntity2);
         if (dist > MAX_TETHER_DISTANCE) {
@@ -2962,7 +3102,7 @@ public class MovementApp extends GameApplication {
 
     private void completeCurrentChunkTask() {
         if (infiniteMapManager != null) {
-            String chunkKey = infiniteMapManager.getCurrentChunkX() + "," + infiniteMapManager.getCurrentChunkY();
+            String chunkKey = currentTaskChunkX + "," + currentTaskChunkY;
             completedChunks.add(chunkKey);
             infiniteMapManager.unlockCurrentRegion();
         }
@@ -2973,24 +3113,29 @@ public class MovementApp extends GameApplication {
     private void checkAndExpandLayer() {
         if (infiniteMapManager == null)
             return;
-        boolean layerComplete = true;
-        for (int dx = -currentMapRadius; dx <= currentMapRadius; dx++) {
-            for (int dy = -currentMapRadius; dy <= currentMapRadius; dy++) {
-                if (Math.abs(dx) == currentMapRadius || Math.abs(dy) == currentMapRadius) {
-                    if (!completedChunks.contains(dx + "," + dy)) {
-                        layerComplete = false;
-                        break;
+        while (true) {
+            boolean layerComplete = true;
+            for (int dx = -currentMapRadius; dx <= currentMapRadius; dx++) {
+                for (int dy = -currentMapRadius; dy <= currentMapRadius; dy++) {
+                    if (Math.abs(dx) == currentMapRadius || Math.abs(dy) == currentMapRadius) {
+                        if (!completedChunks.contains(dx + "," + dy)) {
+                            layerComplete = false;
+                            break;
+                        }
                     }
                 }
+                if (!layerComplete)
+                    break;
             }
-            if (!layerComplete)
+
+            if (layerComplete) {
+                currentMapRadius++;
+                infiniteMapManager.unlockLayer(currentMapRadius);
+                AudioManager.playCorrectAnswer();
+                showTemporaryNotice("🌍 DISTRICT MAP EXPANDED!\nLayer " + currentMapRadius + " unlocked — new sectors await exploration!");
+            } else {
                 break;
-        }
-
-        if (layerComplete) {
-            currentMapRadius++;
-            infiniteMapManager.unlockLayer(currentMapRadius);
-
+            }
         }
     }
 
@@ -3015,6 +3160,15 @@ public class MovementApp extends GameApplication {
                     questionIv.setLayoutX(8);
                     questionIv.setLayoutY(2);
                     hudIconPane.getChildren().add(questionIv);
+                }
+            } else if (generatorStage == GeneratorStage.ANIMAL_RESCUE
+                    || selectedGameMode == GameMode.ANIMAL_RESCUE) {
+                String animalIcon = (currentAnimalRescueType == AnimalRescueType.RABBIT) ? "/assets/textures/healed_rabit.png" : "/assets/textures/healed_puppy.png";
+                ImageView animalIv = safeImageView(animalIcon, 28, 28);
+                if (animalIv != null) {
+                    animalIv.setLayoutX(8);
+                    animalIv.setLayoutY(2);
+                    hudIconPane.getChildren().add(animalIv);
                 }
             } else {
                 ImageView bottleIv = safeImageView("/assets/textures/bottle.png", 28, 28);
@@ -3053,6 +3207,8 @@ public class MovementApp extends GameApplication {
                                 String.format("%d/%d", generatorSortedCount, GENERATOR_TARGET_SORTING));
                         case TREE_PLANTATION -> trashCounterText.setText(
                                 String.format("%d/%d", generatorPlantsPlanted, GENERATOR_TARGET_PLANTS));
+                        case ANIMAL_RESCUE -> trashCounterText.setText(
+                                generatorStageCompleted ? "1/1" : "0/1");
                     }
                 }
                 case SEQUENTIAL_DEMO -> {
@@ -3085,6 +3241,8 @@ public class MovementApp extends GameApplication {
                                     String.format("%d/%d", generatorSortedCount, GENERATOR_TARGET_SORTING));
                             case TREE_PLANTATION -> trashCounterText.setText(
                                     String.format("%d/%d", generatorPlantsPlanted, GENERATOR_TARGET_PLANTS));
+                            case ANIMAL_RESCUE -> trashCounterText.setText(
+                                    generatorStageCompleted ? "1/1" : "0/1");
                         }
                     } else {
                         trashCounterText.setText(String.format("%d/%d", collectedTrash, TOTAL_TRASH));
@@ -3112,7 +3270,7 @@ public class MovementApp extends GameApplication {
 
     @Override
     protected void onUpdate(double tpf) {
-        if (isCutsceneActive || timer == null)
+        if (isCutsceneActive || isAnimalHealingActive || timer == null)
             return;
 
         if (selectedGameMode == GameMode.LOCAL_COOP_SPLITSCREEN
@@ -3151,11 +3309,15 @@ public class MovementApp extends GameApplication {
                 int p2LocalX = (int) Math.floor(p2TileX) - p2CurX * InfiniteMapManager.CHUNK_SIZE;
                 int p2LocalY = (int) Math.floor(p2TileY) - p2CurY * InfiniteMapManager.CHUNK_SIZE;
 
-                boolean p1Entered = !completedChunks.contains(p1Key)
+                boolean p1Entered = infiniteMapManager != null
+                        && infiniteMapManager.isChunkUnlocked(p1CurX, p1CurY)
+                        && !completedChunks.contains(p1Key)
                         && p1LocalX >= 3 && p1LocalX <= (InfiniteMapManager.CHUNK_SIZE - 4)
                         && p1LocalY >= 3 && p1LocalY <= (InfiniteMapManager.CHUNK_SIZE - 4);
 
-                boolean p2Entered = (playerEntity2 != null) && !completedChunks.contains(p2Key)
+                boolean p2Entered = (playerEntity2 != null) && infiniteMapManager != null
+                        && infiniteMapManager.isChunkUnlocked(p2CurX, p2CurY)
+                        && !completedChunks.contains(p2Key)
                         && p2LocalX >= 3 && p2LocalX <= (InfiniteMapManager.CHUNK_SIZE - 4)
                         && p2LocalY >= 3 && p2LocalY <= (InfiniteMapManager.CHUNK_SIZE - 4);
 
@@ -3421,13 +3583,25 @@ public class MovementApp extends GameApplication {
                     interactPromptText.setVisible(nearHole);
                 }
             } else if (generatorStage == GeneratorStage.ANIMAL_RESCUE) {
-                if (!generatorStageCompleted && rabbitEntity != null && rabbitEntity.isActive() && playerEntity != null
-                        && playerEntity.distance(rabbitEntity) < 64.0) {
-                    interactPromptText.setText("Press [E / Space] to Heal Rabbit");
+                Entity targetAnimal = animalRescueEntity != null ? animalRescueEntity : rabbitEntity;
+                if (!generatorStageCompleted && targetAnimal != null && targetAnimal.isActive() && playerEntity != null
+                        && (playerEntity.distance(targetAnimal) < 70.0 || safelyCollides(playerEntity, targetAnimal))) {
+                    String animalName = (currentAnimalRescueType == AnimalRescueType.RABBIT) ? "Rabbit" : "Puppy";
+                    interactPromptText.setText("Press [E / Space] to Heal " + animalName);
                     interactPromptText.setVisible(true);
                 } else {
                     interactPromptText.setVisible(false);
                 }
+            }
+        } else if (selectedGameMode == GameMode.ANIMAL_RESCUE) {
+            Entity targetAnimal = animalRescueEntity != null ? animalRescueEntity : rabbitEntity;
+            if (!generatorStageCompleted && targetAnimal != null && targetAnimal.isActive() && playerEntity != null
+                    && (playerEntity.distance(targetAnimal) < 70.0 || safelyCollides(playerEntity, targetAnimal))) {
+                String animalName = (currentAnimalRescueType == AnimalRescueType.RABBIT) ? "Rabbit" : "Puppy";
+                interactPromptText.setText("Press [E / Space] to Heal " + animalName);
+                interactPromptText.setVisible(true);
+            } else if (interactPromptText != null) {
+                interactPromptText.setVisible(false);
             }
         } else {
             boolean showStandardTrashPrompt = selectedGameMode != GameMode.SORTING_TEST
@@ -3624,6 +3798,24 @@ public class MovementApp extends GameApplication {
             return FXGL.entityBuilder(data)
                     .type(EntityType.RABBIT)
                     .viewWithBBox("injured_rabit.png")
+                    .with(new CollidableComponent(true))
+                    .build();
+        }
+
+        @Spawns("puppy")
+        public Entity spawnPuppy(SpawnData data) {
+            ImageView iv = safeImageView("/assets/textures/injured_puppy.png", 32, 28);
+            if (iv == null) {
+                iv = new ImageView(new Image(
+                        getClass().getResource("/assets/textures/injured_puppy.png").toExternalForm()));
+                iv.setFitWidth(32);
+                iv.setFitHeight(28);
+                iv.setPreserveRatio(true);
+            }
+            return FXGL.entityBuilder(data)
+                    .type(EntityType.PUPPY)
+                    .view(iv)
+                    .bbox(new HitBox(BoundingShape.box(24, 24)))
                     .with(new CollidableComponent(true))
                     .build();
         }
