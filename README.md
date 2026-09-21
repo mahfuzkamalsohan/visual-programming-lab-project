@@ -126,7 +126,7 @@ flowchart LR
 
 ## ⌨️ Controls Guide
 
-### 🎮 Player 1 Controls
+### Player 1 Controls
 
 | Key | Action |
 | :---: | :--- |
@@ -134,7 +134,7 @@ flowchart LR
 | <kbd>E</kbd> / <kbd>Space</kbd> | Interact (Collect bottle/trash, Answer question, Pick/Place plant, Sort waste, Heal animal) |
 | <kbd>1</kbd> / <kbd>2</kbd> / <kbd>3</kbd> | Select Quiz Option (at Question Point) |
 
-### 🕹️ Player 2 Controls (Shared-Screen Co-op)
+### Player 2 Controls (Shared-Screen Co-op)
 
 | Key | Action |
 | :---: | :--- |
