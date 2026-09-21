@@ -35,8 +35,8 @@ As players complete tasks, the game world **physically transforms in real-time**
 | **Ahmed Samin Yasar** | `230041113` | Animal Rescue,  Quizzes, Map & World Building, Music & Sound Effects |
 | **Mahfuz Kamal Sohan** | `230041130` | Tree Plantation, Menu & UI, Assets & Animation, LAN Implementation |
 
-**Course:** CSE 4402 — Visual Programming Laboratory  
-**Department:** Computer Science and Engineering (CSE)
+**Course:** CSE 4402 — Visual Programming Laboratory <br>
+**Department:** Computer Science and Engineering (CSE) <br>
 **Institution:** Islamic University of Technology
 
 </div>
