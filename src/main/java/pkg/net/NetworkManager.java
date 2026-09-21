@@ -109,10 +109,12 @@ public class NetworkManager {
             return;
         }
         String payload = String.format(Locale.US,
-                "STATE:%.2f,%.2f,%d,%d,%.2f,%.2f,%d,%d,%.2f,%d,%d",
+                "STATE:%.2f,%.2f,%d,%d,%.2f,%.2f,%d,%d,%.2f,%d,%d,%d,%d,%d,%d,%d,%d",
                 state.p1X, state.p1Y, state.p1DirIndex, state.p1Moving ? 1 : 0,
                 state.p2X, state.p2Y, state.p2DirIndex, state.p2Moving ? 1 : 0,
-                state.remainingTime, state.trashMask, state.collectedTrash);
+                state.remainingTime, state.trashMask, state.collectedTrash,
+                state.worldSeed, state.currentDistrict, state.generatorStageOrdinal, state.ecoScore,
+                state.currentTaskChunkX, state.currentTaskChunkY);
         sendRawPayload(payload);
     }
 
@@ -175,8 +177,14 @@ public class NetworkManager {
                 double time = Double.parseDouble(parts[8]);
                 int mask = parts.length >= 10 ? Integer.parseInt(parts[9]) : 0xFF;
                 int collected = parts.length >= 11 ? Integer.parseInt(parts[10]) : 0;
+                long seed = parts.length >= 12 ? Long.parseLong(parts[11]) : 0L;
+                int district = parts.length >= 13 ? Integer.parseInt(parts[12]) : 1;
+                int stageOrdinal = parts.length >= 14 ? Integer.parseInt(parts[13]) : 0;
+                int ecoScore = parts.length >= 15 ? Integer.parseInt(parts[14]) : 0;
+                int chunkX = parts.length >= 16 ? Integer.parseInt(parts[15]) : 0;
+                int chunkY = parts.length >= 17 ? Integer.parseInt(parts[16]) : 0;
 
-                return new GameStatePacket(p1X, p1Y, p1Dir, p1Moving, p2X, p2Y, p2Dir, p2Moving, time, mask, collected);
+                return new GameStatePacket(p1X, p1Y, p1Dir, p1Moving, p2X, p2Y, p2Dir, p2Moving, time, mask, collected, seed, district, stageOrdinal, ecoScore, chunkX, chunkY);
             }
         } catch (Exception ignored) {
         }

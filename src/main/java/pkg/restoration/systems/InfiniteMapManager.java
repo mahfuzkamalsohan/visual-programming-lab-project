@@ -341,6 +341,10 @@ public class InfiniteMapManager {
         loadMapTemplates();
     }
 
+    public long getWorldSeed() {
+        return worldSeed;
+    }
+
     private void loadMapTemplates() {
         String[] mapFiles = { "tmx/chunk1.tmx", "tmx/chunk2.tmx", "tmx/chunk3.tmx", "tmx/chunk4.tmx" };
         for (String relativePath : mapFiles) {

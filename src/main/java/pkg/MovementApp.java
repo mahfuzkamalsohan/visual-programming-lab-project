@@ -124,7 +124,10 @@ public class MovementApp extends GameApplication {
     public static String targetHostIp = "127.0.0.1";
 
     public static boolean isInfiniteCoopMode() {
-        return selectedGameMode == GameMode.MAP_GENERATOR || selectedGameMode == GameMode.LOCAL_COOP_SPLITSCREEN;
+        return selectedGameMode == GameMode.MAP_GENERATOR
+                || selectedGameMode == GameMode.LOCAL_COOP_SPLITSCREEN
+                || selectedGameMode == GameMode.LAN_HOST
+                || selectedGameMode == GameMode.LAN_JOIN;
     }
 
     public static boolean isInfiniteGameMode() {
@@ -220,6 +223,10 @@ public class MovementApp extends GameApplication {
     private final Map<Integer, Entity> trashEntities = new java.util.HashMap<>();
 
     private boolean clientUp, clientDown, clientLeft, clientRight, clientInteract;
+    private long lastSyncedWorldSeed = 0L;
+    private int lastSyncedStage = -1;
+    private int lastSyncedChunkX = Integer.MIN_VALUE;
+    private int lastSyncedChunkY = Integer.MIN_VALUE;
 
     private Entity questionPoint;
     private VBox questionPanel;
@@ -1117,7 +1124,10 @@ public class MovementApp extends GameApplication {
                 }
             }
         }
-        Collections.shuffle(candidates);
+        long seed = (infiniteMapManager != null ? infiniteMapManager.getWorldSeed() : 12345L)
+                ^ ((long) chunkX * 73856093L) ^ ((long) chunkY * 19349663L);
+        java.util.Random seededRandom = new java.util.Random(seed);
+        Collections.shuffle(candidates, seededRandom);
 
         List<int[]> positions = new ArrayList<>(count);
         for (int[] candidate : candidates) {
@@ -1149,6 +1159,9 @@ public class MovementApp extends GameApplication {
 
         List<int[]> tilePositions = randomWalkableGeneratorTilePositions(
                 GENERATOR_TARGET_TRASH, chunkX, chunkY, 3, 18);
+        long seed = (infiniteMapManager != null ? infiniteMapManager.getWorldSeed() : 12345L)
+                ^ ((long) chunkX * 73856093L) ^ ((long) chunkY * 19349663L);
+        java.util.Random seededRandom = new java.util.Random(seed);
         for (int i = 0; i < tilePositions.size(); i++) {
             int[] pos = tilePositions.get(i);
             int lx = pos[0];
@@ -1162,7 +1175,7 @@ public class MovementApp extends GameApplication {
                     .viewWithBBox(textureName)
                     .with(new CollidableComponent(true))
                     .buildAndAttach();
-            trash.setRotation(FXGL.random(0, 360));
+            trash.setRotation(seededRandom.nextInt(360));
             generatorTrashEntities.add(trash);
         }
         generatorStageCompleted = false;
@@ -1978,6 +1991,13 @@ public class MovementApp extends GameApplication {
             return;
         }
 
+        if (selectedGameMode == GameMode.LAN_JOIN) {
+            clientInteract = true;
+            sendClientInputPacket();
+            clientInteract = false;
+            return;
+        }
+
         if (handleAnimalRescueInteraction(playerEntity)) {
             return;
         }
@@ -1989,7 +2009,6 @@ public class MovementApp extends GameApplication {
                         if (trash != null && trash.isActive() && playerEntity != null
                                 && playerEntity.distance(trash) < 48.0) {
                             trash.removeFromWorld();
-                            generatorTrashEntities.remove(trash);
                             generatorTrashCollected++;
                             collectedTrash++;
                             ecoScore += 50;
@@ -2030,12 +2049,6 @@ public class MovementApp extends GameApplication {
             }
             return;
         }
-        if (selectedGameMode == GameMode.LAN_JOIN) {
-            clientInteract = true;
-            sendClientInputPacket();
-            clientInteract = false;
-            return;
-        }
         if (selectedGameMode == GameMode.SEQUENTIAL_DEMO) {
             switch (demoStage) {
                 case COLLECTION -> interactWithDemoCollection(playerEntity);
@@ -2069,7 +2082,6 @@ public class MovementApp extends GameApplication {
                         if (trash != null && trash.isActive() && playerEntity2 != null
                                 && playerEntity2.distance(trash) < 48.0) {
                             trash.removeFromWorld();
-                            generatorTrashEntities.remove(trash);
                             generatorTrashCollected++;
                             collectedTrash++;
                             ecoScore += 50;
@@ -2969,6 +2981,41 @@ public class MovementApp extends GameApplication {
     }
 
     private void applyRemoteGameState(GameStatePacket packet) {
+        if (selectedGameMode != GameMode.LAN_JOIN) {
+            return;
+        }
+
+        boolean seedChanged = packet.worldSeed != 0 && (infiniteMapManager == null || infiniteMapManager.getWorldSeed() != packet.worldSeed);
+        boolean stageChanged = lastSyncedStage != packet.generatorStageOrdinal;
+        boolean chunkChanged = lastSyncedChunkX != packet.currentTaskChunkX || lastSyncedChunkY != packet.currentTaskChunkY;
+
+        if (seedChanged || stageChanged || chunkChanged) {
+            lastSyncedWorldSeed = packet.worldSeed;
+            lastSyncedStage = packet.generatorStageOrdinal;
+            lastSyncedChunkX = packet.currentTaskChunkX;
+            lastSyncedChunkY = packet.currentTaskChunkY;
+
+            if (seedChanged || infiniteMapManager == null) {
+                if (infiniteMapManager != null) {
+                    infiniteMapManager.clearAll();
+                }
+                infiniteMapManager = new InfiniteMapManager(packet.worldSeed);
+            }
+
+            if (packet.generatorStageOrdinal < GeneratorStage.values().length) {
+                this.generatorStage = GeneratorStage.values()[packet.generatorStageOrdinal];
+            }
+            this.currentDistrict = packet.currentDistrict;
+
+            switch (this.generatorStage) {
+                case TRASH_COLLECTION -> setupGeneratorStage1(packet.currentTaskChunkX, packet.currentTaskChunkY);
+                case QUESTION -> setupGeneratorStage2(packet.currentTaskChunkX, packet.currentTaskChunkY);
+                case SORTING -> setupGeneratorStage3(packet.currentTaskChunkX, packet.currentTaskChunkY);
+                case TREE_PLANTATION -> setupGeneratorStage4(packet.currentTaskChunkX, packet.currentTaskChunkY);
+                case ANIMAL_RESCUE -> setupGeneratorStage5(packet.currentTaskChunkX, packet.currentTaskChunkY);
+            }
+        }
+
         if (playerEntity != null) {
             playerEntity.setPosition(packet.p1X, packet.p1Y);
             if (playerComponent != null) {
@@ -2988,9 +3035,30 @@ public class MovementApp extends GameApplication {
         if (timer != null) {
             timer.setCurrentSeconds(packet.remainingTime);
         }
+        this.ecoScore = packet.ecoScore;
+        this.currentDistrict = packet.currentDistrict;
         this.collectedTrash = packet.collectedTrash;
+        this.generatorTrashCollected = packet.collectedTrash;
         updateTrashCounter();
         checkLevelCompletion();
+
+        if (this.generatorStage == GeneratorStage.TRASH_COLLECTION
+                && packet.collectedTrash >= GENERATOR_TARGET_TRASH
+                && !generatorStageCompleted) {
+            completeCurrentChunkTask();
+            if (infiniteMapManager != null) {
+                infiniteMapManager.startSpreadingRestoration(null);
+            }
+        }
+
+        // Sync active bottles in generatorTrashEntities
+        for (int i = 0; i < generatorTrashEntities.size(); i++) {
+            Entity bottle = generatorTrashEntities.get(i);
+            boolean isActiveOnHost = (packet.trashMask & (1 << i)) != 0;
+            if (!isActiveOnHost && bottle != null && bottle.isActive()) {
+                bottle.removeFromWorld();
+            }
+        }
 
         for (Map.Entry<Integer, Entity> entry : trashEntities.entrySet()) {
             int idx = entry.getKey();
@@ -2998,6 +3066,12 @@ public class MovementApp extends GameApplication {
             if (!isActiveOnHost && entry.getValue() != null && entry.getValue().isActive()) {
                 entry.getValue().removeFromWorld();
             }
+        }
+
+        if (infiniteMapManager != null && playerEntity != null && playerEntity2 != null) {
+            double avgX = (playerEntity.getX() + playerEntity2.getX()) / 2.0;
+            double avgY = (playerEntity.getY() + playerEntity2.getY()) / 2.0;
+            infiniteMapManager.updatePlayerPosition(avgX, avgY);
         }
     }
 
@@ -3517,14 +3591,29 @@ public class MovementApp extends GameApplication {
 
         if (selectedGameMode == GameMode.LAN_HOST && netManager != null && playerEntity != null
                 && playerEntity2 != null) {
+            int genTrashMask = 0;
+            for (int i = 0; i < generatorTrashEntities.size(); i++) {
+                Entity t = generatorTrashEntities.get(i);
+                if (t != null && t.isActive()) {
+                    genTrashMask |= (1 << i);
+                }
+            }
+            int activeMask = isInfiniteGameMode() ? genTrashMask : trashMask;
+            long currentSeed = infiniteMapManager != null ? infiniteMapManager.getWorldSeed() : 0L;
             GameStatePacket packet = new GameStatePacket(
                     playerEntity.getX(), playerEntity.getY(), playerComponent.getCurrentDirection().index,
                     playerComponent.isMoving(),
                     playerEntity2.getX(), playerEntity2.getY(), playerComponent2.getCurrentDirection().index,
                     playerComponent2.isMoving(),
                     timer.currentSeconds(),
-                    trashMask,
-                    collectedTrash);
+                    activeMask,
+                    collectedTrash,
+                    currentSeed,
+                    currentDistrict,
+                    generatorStage.ordinal(),
+                    ecoScore,
+                    currentTaskChunkX,
+                    currentTaskChunkY);
             netManager.sendGameState(packet);
         }
 
