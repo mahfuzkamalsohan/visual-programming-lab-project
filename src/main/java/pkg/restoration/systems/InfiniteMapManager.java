@@ -1,5 +1,6 @@
 package pkg.restoration.systems;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
@@ -54,8 +55,6 @@ public class InfiniteMapManager {
     private int lockedChunkX = Integer.MIN_VALUE;
     private int lockedChunkY = Integer.MIN_VALUE;
     private boolean fragmentedMode = false;
-    private double rippleRadius = 52.0;
-    private static final double MAX_RIPPLE_RADIUS = 52.0;
 
     private double currentRestorationRatio = 1.0;
     private int currentStage = 5;
@@ -91,29 +90,36 @@ public class InfiniteMapManager {
             }
         }
         long gid = originalGid;
-        if (originalGid == 35 || originalGid == 36 || originalGid == 37 || originalGid == 38) {
-            if (ratio <= 0.10) {
-                gid = 17;
-            } else if (ratio <= 0.50) {
-                gid = 18;
-            } else if (ratio <= 0.75) {
-                gid = 20;
+        switch ((int) originalGid) {
+            case 35, 36, 37, 38 -> {
+                if (ratio <= 0.10) {
+                    gid = 17;
+                } else if (ratio <= 0.50) {
+                    gid = 18;
+                } else if (ratio <= 0.75) {
+                    gid = 20;
+                }
             }
-        } else if (originalGid == 20) {
-            if (ratio <= 0.10) {
-                gid = 17;
-            } else if (ratio <= 0.50) {
-                gid = 18;
+            case 20 -> {
+                if (ratio <= 0.10) {
+                    gid = 17;
+                } else if (ratio <= 0.50) {
+                    gid = 18;
+                }
             }
-        } else if (originalGid == 19) {
-            if (ratio <= 0.10) {
-                gid = 17;
-            } else if (ratio <= 0.25) {
-                gid = 18;
+            case 19 -> {
+                if (ratio <= 0.10) {
+                    gid = 17;
+                } else if (ratio <= 0.25) {
+                    gid = 18;
+                }
             }
-        } else if (originalGid == 18) {
-            if (ratio <= 0.10) {
-                gid = 17;
+            case 18 -> {
+                if (ratio <= 0.10) {
+                    gid = 17;
+                }
+            }
+            default -> {
             }
         }
         return gid;
@@ -280,8 +286,8 @@ public class InfiniteMapManager {
     }
 
     public static class ChunkState {
-        final int chunkX;
-        final int chunkY;
+        public final int chunkX;
+        public final int chunkY;
         final ChunkTemplate template;
         final List<TrashItemState> trashItems = new ArrayList<>();
         public boolean isRestored = false;
@@ -291,6 +297,19 @@ public class InfiniteMapManager {
             this.chunkX = chunkX;
             this.chunkY = chunkY;
             this.template = template;
+        }
+
+        public int getChunkX() {
+            return chunkX;
+        }
+
+        public int getChunkY() {
+            return chunkY;
+        }
+
+        @Override
+        public String toString() {
+            return "ChunkState(" + chunkX + "," + chunkY + ")";
         }
     }
 
@@ -317,7 +336,7 @@ public class InfiniteMapManager {
                 this.spritesheetImage = new Image(is);
             }
         } catch (Throwable t) {
-            t.printStackTrace();
+            System.err.println("Failed to load map spritesheet: " + t.getMessage());
         }
         loadMapTemplates();
     }
@@ -333,7 +352,7 @@ public class InfiniteMapManager {
                 try (InputStream is = resourceURL.openStream()) {
                     map = new TMXLevelLoader().parse(is);
                 }
-                if (map == null || map.getLayers().isEmpty())
+                if (map.getLayers().isEmpty())
                     continue;
 
                 List<Layer> tileLayers = new ArrayList<>();
@@ -367,7 +386,8 @@ public class InfiniteMapManager {
                                     int srcIdx = gy * mw + gx;
                                     int dstIdx = ly * CHUNK_SIZE + lx;
 
-                                    long gid = (srcIdx >= 0 && srcIdx < data.size()) ? data.get(srcIdx) : 0L;
+                                    Long val = (srcIdx >= 0 && srcIdx < data.size()) ? data.get(srcIdx) : null;
+                                    long gid = (val != null) ? val : 0L;
                                     if (layerIdx == 0 && gid <= 0) {
                                         gid = 36L;
                                     }
@@ -395,8 +415,8 @@ public class InfiniteMapManager {
                         templates.add(new ChunkTemplate(layersGids, walls, trashCandidates));
                     }
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
+            } catch (IOException | RuntimeException e) {
+                System.err.println("Error loading map template " + relativePath + ": " + e.getMessage());
             }
         }
 

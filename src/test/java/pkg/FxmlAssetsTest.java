@@ -111,4 +111,22 @@ class FxmlAssetsTest {
             }
         }
     }
+
+    @Test
+    void gameEndOverlayContainsRequiredControls() throws Exception {
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder builder = factory.newDocumentBuilder();
+        try (InputStream stream = getClass().getResourceAsStream("/assets/ui/fxml/game_end_overlay.fxml")) {
+            assertNotNull(stream);
+            Document doc = builder.parse(stream);
+            Element root = doc.getDocumentElement();
+            assertNotNull(root);
+            String content = new String(getClass().getResourceAsStream("/assets/ui/fxml/game_end_overlay.fxml").readAllBytes());
+            assertTrue(content.contains("fx:id=\"endTitleLabel\""));
+            assertTrue(content.contains("fx:id=\"endSubtitleLabel\""));
+            assertTrue(content.contains("fx:id=\"endScoreLabel\""));
+            assertTrue(content.contains("fx:id=\"btnRetry\""));
+            assertTrue(content.contains("fx:id=\"btnMainMenu\""));
+        }
+    }
 }

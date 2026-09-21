@@ -42,9 +42,7 @@ import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
-import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
@@ -746,7 +744,7 @@ public class MovementApp extends GameApplication {
         addHudNode(questionPanel);
     }
 
-    private void attachQuestionPanelToEntity(Entity targetEntity) {
+    private void attachQuestionPanel() {
         createQuestionPanel();
         if (questionPanel != null) {
             if (questionPanel.getParent() == null) {
@@ -1985,46 +1983,50 @@ public class MovementApp extends GameApplication {
         }
 
         if (isInfiniteGameMode()) {
-            if (generatorStage == GeneratorStage.TRASH_COLLECTION) {
-                for (Entity trash : List.copyOf(generatorTrashEntities)) {
-                    if (trash != null && trash.isActive() && playerEntity != null
-                            && playerEntity.distance(trash) < 48.0) {
-                        trash.removeFromWorld();
-                        generatorTrashEntities.remove(trash);
-                        generatorTrashCollected++;
-                        collectedTrash++;
-                        ecoScore += 50;
-                        AudioManager.playTrashPickup();
-                        if (infiniteMapManager != null) {
-                            infiniteMapManager.onBottleCollected(generatorTrashCollected, GENERATOR_TARGET_TRASH);
-                        }
-                        if (timer != null)
-                            timer.applyDelta(10.0);
-                        spawnFloatingText(playerEntity.getX(), playerEntity.getY() - 16, "+50",
-                                Color.web("#39ff14"));
-                        updateTrashCounter();
-                        if (generatorTrashCollected >= GENERATOR_TARGET_TRASH) {
-                            completeCurrentChunkTask();
-                            AudioManager.playCorrectAnswer();
-                            showTemporaryNotice("STAGE 1 CLEARED!\nSpreading world restoration wave...");
+            switch (generatorStage) {
+                case TRASH_COLLECTION -> {
+                    for (Entity trash : List.copyOf(generatorTrashEntities)) {
+                        if (trash != null && trash.isActive() && playerEntity != null
+                                && playerEntity.distance(trash) < 48.0) {
+                            trash.removeFromWorld();
+                            generatorTrashEntities.remove(trash);
+                            generatorTrashCollected++;
+                            collectedTrash++;
+                            ecoScore += 50;
+                            AudioManager.playTrashPickup();
                             if (infiniteMapManager != null) {
-                                infiniteMapManager.startSpreadingRestoration(() -> {
-                                    showTemporaryNotice(
-                                            "WORLD RESTORED! Render distance expanded.\nWalk into next sector for Eco-Grid Challenge.");
-                                });
+                                infiniteMapManager.onBottleCollected(generatorTrashCollected, GENERATOR_TARGET_TRASH);
                             }
+                            if (timer != null)
+                                timer.applyDelta(10.0);
+                            spawnFloatingText(playerEntity.getX(), playerEntity.getY() - 16, "+50",
+                                    Color.web("#39ff14"));
+                            updateTrashCounter();
+                            if (generatorTrashCollected >= GENERATOR_TARGET_TRASH) {
+                                completeCurrentChunkTask();
+                                AudioManager.playCorrectAnswer();
+                                showTemporaryNotice("STAGE 1 CLEARED!\nSpreading world restoration wave...");
+                                if (infiniteMapManager != null) {
+                                    infiniteMapManager.startSpreadingRestoration(() -> {
+                                        showTemporaryNotice(
+                                                "WORLD RESTORED! Render distance expanded.\nWalk into next sector for Eco-Grid Challenge.");
+                                    });
+                                }
+                            }
+                            break;
                         }
-                        break;
                     }
                 }
-            } else if (generatorStage == GeneratorStage.SORTING) {
-                if (selectedGameMode == GameMode.SINGLE_PLAYER) {
-                    interactWithSoloSorting();
-                } else {
-                    interactWithSortingP1();
+                case SORTING -> {
+                    if (selectedGameMode == GameMode.SINGLE_PLAYER) {
+                        interactWithSoloSorting();
+                    } else {
+                        interactWithSortingP1();
+                    }
                 }
-            } else if (generatorStage == GeneratorStage.TREE_PLANTATION) {
-                handleTreePlantationInteraction(playerEntity, 1);
+                case TREE_PLANTATION -> handleTreePlantationInteraction(playerEntity, 1);
+                default -> {
+                }
             }
             return;
         }
@@ -2035,12 +2037,12 @@ public class MovementApp extends GameApplication {
             return;
         }
         if (selectedGameMode == GameMode.SEQUENTIAL_DEMO) {
-            if (demoStage == DemoStage.COLLECTION) {
-                interactWithDemoCollection(playerEntity);
-            } else if (demoStage == DemoStage.SORTING) {
-                interactWithSortingP1();
-            } else if (demoStage == DemoStage.TREE_PLANTATION) {
-                handleTreePlantationInteraction(playerEntity, 1);
+            switch (demoStage) {
+                case COLLECTION -> interactWithDemoCollection(playerEntity);
+                case SORTING -> interactWithSortingP1();
+                case TREE_PLANTATION -> handleTreePlantationInteraction(playerEntity, 1);
+                default -> {
+                }
             }
             return;
         }
@@ -2061,54 +2063,58 @@ public class MovementApp extends GameApplication {
         }
 
         if (isInfiniteCoopMode()) {
-            if (generatorStage == GeneratorStage.TRASH_COLLECTION) {
-                for (Entity trash : List.copyOf(generatorTrashEntities)) {
-                    if (trash != null && trash.isActive() && playerEntity2 != null
-                            && playerEntity2.distance(trash) < 48.0) {
-                        trash.removeFromWorld();
-                        generatorTrashEntities.remove(trash);
-                        generatorTrashCollected++;
-                        collectedTrash++;
-                        ecoScore += 50;
-                        AudioManager.playTrashPickup();
-                        if (infiniteMapManager != null) {
-                            infiniteMapManager.onBottleCollected(generatorTrashCollected, GENERATOR_TARGET_TRASH);
-                        }
-                        if (timer != null)
-                            timer.applyDelta(10.0);
-                        spawnFloatingText(playerEntity2.getX(), playerEntity2.getY() - 16, "+50",
-                                Color.web("#d7e77f"));
-                        updateTrashCounter();
-                        if (generatorTrashCollected >= GENERATOR_TARGET_TRASH) {
-                            completeCurrentChunkTask();
-                            AudioManager.playCorrectAnswer();
-                            showTemporaryNotice("STAGE 1 CLEARED!\nSpreading world restoration wave...");
+            switch (generatorStage) {
+                case TRASH_COLLECTION -> {
+                    for (Entity trash : List.copyOf(generatorTrashEntities)) {
+                        if (trash != null && trash.isActive() && playerEntity2 != null
+                                && playerEntity2.distance(trash) < 48.0) {
+                            trash.removeFromWorld();
+                            generatorTrashEntities.remove(trash);
+                            generatorTrashCollected++;
+                            collectedTrash++;
+                            ecoScore += 50;
+                            AudioManager.playTrashPickup();
                             if (infiniteMapManager != null) {
-                                infiniteMapManager.startSpreadingRestoration(() -> {
-                                    showTemporaryNotice(
-                                            "WORLD RESTORED! Render distance expanded.\nWalk into next sector for Eco-Grid Challenge.");
-                                });
+                                infiniteMapManager.onBottleCollected(generatorTrashCollected, GENERATOR_TARGET_TRASH);
                             }
+                            if (timer != null)
+                                timer.applyDelta(10.0);
+                            spawnFloatingText(playerEntity2.getX(), playerEntity2.getY() - 16, "+50",
+                                    Color.web("#d7e77f"));
+                            updateTrashCounter();
+                            if (generatorTrashCollected >= GENERATOR_TARGET_TRASH) {
+                                completeCurrentChunkTask();
+                                AudioManager.playCorrectAnswer();
+                                showTemporaryNotice("STAGE 1 CLEARED!\nSpreading world restoration wave...");
+                                if (infiniteMapManager != null) {
+                                    infiniteMapManager.startSpreadingRestoration(() -> {
+                                        showTemporaryNotice(
+                                                "WORLD RESTORED! Render distance expanded.\nWalk into next sector for Eco-Grid Challenge.");
+                                    });
+                                }
+                            }
+                            break;
                         }
-                        break;
                     }
                 }
-            } else if (generatorStage == GeneratorStage.SORTING) {
-                interactWithSortingP2();
-                if (sortingTask != null && sortingTask.isComplete()) {
-                    hideSortingBins();
-                    generatorSortedCount = GENERATOR_TARGET_SORTING;
-                    infiniteMapManager.unlockCurrentRegion();
-                    completeCurrentChunkTask();
-                    ecoScore += 500;
-                    if (timer != null)
-                        timer.applyDelta(30.0);
-                    showTemporaryNotice("🎉 DISTRICT " + currentDistrict
-                            + " RESTORED! (+30s Bonus, +500 pts)\nWalk through gateway into District "
-                            + (currentDistrict + 1) + "!");
+                case SORTING -> {
+                    interactWithSortingP2();
+                    if (sortingTask != null && sortingTask.isComplete()) {
+                        hideSortingBins();
+                        generatorSortedCount = GENERATOR_TARGET_SORTING;
+                        infiniteMapManager.unlockCurrentRegion();
+                        completeCurrentChunkTask();
+                        ecoScore += 500;
+                        if (timer != null)
+                            timer.applyDelta(30.0);
+                        showTemporaryNotice("🎉 DISTRICT " + currentDistrict
+                                + " RESTORED! (+30s Bonus, +500 pts)\nWalk through gateway into District "
+                                + (currentDistrict + 1) + "!");
+                    }
                 }
-            } else if (generatorStage == GeneratorStage.TREE_PLANTATION) {
-                handleTreePlantationInteraction(playerEntity2 != null ? playerEntity2 : playerEntity, 2);
+                case TREE_PLANTATION -> handleTreePlantationInteraction(playerEntity2 != null ? playerEntity2 : playerEntity, 2);
+                default -> {
+                }
             }
             return;
         }
@@ -2119,12 +2125,12 @@ public class MovementApp extends GameApplication {
             return;
         }
         if (selectedGameMode == GameMode.SEQUENTIAL_DEMO) {
-            if (demoStage == DemoStage.COLLECTION) {
-                interactWithDemoCollection(playerEntity2 != null ? playerEntity2 : playerEntity);
-            } else if (demoStage == DemoStage.SORTING) {
-                interactWithSortingP2();
-            } else if (demoStage == DemoStage.TREE_PLANTATION) {
-                handleTreePlantationInteraction(playerEntity2 != null ? playerEntity2 : playerEntity, 2);
+            switch (demoStage) {
+                case COLLECTION -> interactWithDemoCollection(playerEntity2 != null ? playerEntity2 : playerEntity);
+                case SORTING -> interactWithSortingP2();
+                case TREE_PLANTATION -> handleTreePlantationInteraction(playerEntity2 != null ? playerEntity2 : playerEntity, 2);
+                default -> {
+                }
             }
             return;
         }
@@ -2548,58 +2554,63 @@ public class MovementApp extends GameApplication {
         if (questionChoicesContainer != null) {
             int buttonCounter = 0;
             for (Node rowNode : questionChoicesContainer.getChildren()) {
-                if (rowNode instanceof HBox row) {
-                    for (Node child : row.getChildren()) {
-                        if (child instanceof Button btn) {
-                            btn.setDisable(true);
-                            if (buttonCounter == choiceIndex) {
-                                if (isWrong) {
-                                    btn.setStyle(
-                                            "-fx-background-color: #8b2525;"
-                                                    + "-fx-border-color: #ff6b6b;"
-                                                    + "-fx-border-width: 2px;"
-                                                    + "-fx-text-fill: #ffffff;"
-                                                    + "-fx-font-family: 'Press Start 2P', 'Monospaced';"
-                                                    + "-fx-font-size: 9.5px;"
-                                                    + "-fx-alignment: center-left;");
-                                } else {
-                                    btn.setStyle(
-                                            "-fx-background-color: #276c35;"
-                                                    + "-fx-border-color: #39ff14;"
-                                                    + "-fx-border-width: 2px;"
-                                                    + "-fx-text-fill: #ffffff;"
-                                                    + "-fx-font-family: 'Press Start 2P', 'Monospaced';"
-                                                    + "-fx-font-size: 9.5px;"
-                                                    + "-fx-alignment: center-left;");
+                switch (rowNode) {
+                    case HBox row -> {
+                        for (Node child : row.getChildren()) {
+                            if (child instanceof Button btn) {
+                                btn.setDisable(true);
+                                if (buttonCounter == choiceIndex) {
+                                    if (isWrong) {
+                                        btn.setStyle(
+                                                "-fx-background-color: #8b2525;"
+                                                        + "-fx-border-color: #ff6b6b;"
+                                                        + "-fx-border-width: 2px;"
+                                                        + "-fx-text-fill: #ffffff;"
+                                                        + "-fx-font-family: 'Press Start 2P', 'Monospaced';"
+                                                        + "-fx-font-size: 9.5px;"
+                                                        + "-fx-alignment: center-left;");
+                                    } else {
+                                        btn.setStyle(
+                                                "-fx-background-color: #276c35;"
+                                                        + "-fx-border-color: #39ff14;"
+                                                        + "-fx-border-width: 2px;"
+                                                        + "-fx-text-fill: #ffffff;"
+                                                        + "-fx-font-family: 'Press Start 2P', 'Monospaced';"
+                                                        + "-fx-font-size: 9.5px;"
+                                                        + "-fx-alignment: center-left;");
+                                    }
                                 }
+                                buttonCounter++;
                             }
-                            buttonCounter++;
                         }
                     }
-                } else if (rowNode instanceof Button btn) {
-                    btn.setDisable(true);
-                    if (buttonCounter == choiceIndex) {
-                        if (isWrong) {
-                            btn.setStyle(
-                                    "-fx-background-color: #8b2525;"
-                                            + "-fx-border-color: #ff6b6b;"
-                                            + "-fx-border-width: 2px;"
-                                            + "-fx-text-fill: #ffffff;"
-                                            + "-fx-font-family: 'Press Start 2P', 'Monospaced';"
-                                            + "-fx-font-size: 9.5px;"
-                                            + "-fx-alignment: center-left;");
-                        } else {
-                            btn.setStyle(
-                                    "-fx-background-color: #276c35;"
-                                            + "-fx-border-color: #39ff14;"
-                                            + "-fx-border-width: 2px;"
-                                            + "-fx-text-fill: #ffffff;"
-                                            + "-fx-font-family: 'Press Start 2P', 'Monospaced';"
-                                            + "-fx-font-size: 9.5px;"
-                                            + "-fx-alignment: center-left;");
+                    case Button btn -> {
+                        btn.setDisable(true);
+                        if (buttonCounter == choiceIndex) {
+                            if (isWrong) {
+                                btn.setStyle(
+                                        "-fx-background-color: #8b2525;"
+                                                + "-fx-border-color: #ff6b6b;"
+                                                + "-fx-border-width: 2px;"
+                                                + "-fx-text-fill: #ffffff;"
+                                                + "-fx-font-family: 'Press Start 2P', 'Monospaced';"
+                                                + "-fx-font-size: 9.5px;"
+                                                + "-fx-alignment: center-left;");
+                            } else {
+                                btn.setStyle(
+                                        "-fx-background-color: #276c35;"
+                                                + "-fx-border-color: #39ff14;"
+                                                + "-fx-border-width: 2px;"
+                                                + "-fx-text-fill: #ffffff;"
+                                                + "-fx-font-family: 'Press Start 2P', 'Monospaced';"
+                                                + "-fx-font-size: 9.5px;"
+                                                + "-fx-alignment: center-left;");
+                            }
                         }
+                        buttonCounter++;
                     }
-                    buttonCounter++;
+                    default -> {
+                    }
                 }
             }
         }
@@ -3462,7 +3473,7 @@ public class MovementApp extends GameApplication {
             timer.tick(tpf * depletionMultiplier);
             if (timer.isExpired()) {
                 gameEnded = true;
-                showEndGameOverlay("TIME EXPIRED", "The world could not be restored in time.", false);
+                showEndGameOverlay("Time Expired", "", false);
             }
         }
 
@@ -3482,7 +3493,7 @@ public class MovementApp extends GameApplication {
                 if (currentActiveQuestionEntity != nearEntity && !questionAnswerLocked) {
                     currentActiveQuestionEntity = nearEntity;
                     currentActiveQuestion = (EnvironmentalQuestion) nearEntity.getProperties().getObject("question");
-                    attachQuestionPanelToEntity(nearEntity);
+                    attachQuestionPanel();
                     refreshQuestionPanelForCurrent();
                 }
                 if (questionPanel != null) {
@@ -3521,85 +3532,95 @@ public class MovementApp extends GameApplication {
             if (generatorStageCompleted) {
                 interactPromptText.setText("District Sector Cleared! Walk through gateway into next zone ->");
                 interactPromptText.setVisible(true);
-            } else if (generatorStage == GeneratorStage.TRASH_COLLECTION) {
-                boolean nearTrash = false;
-                for (Entity trash : generatorTrashEntities) {
-                    if (trash != null && trash.isActive() && playerEntity != null
-                            && (playerEntity.distance(trash) < 48.0 || safelyCollides(playerEntity, trash))) {
-                        nearTrash = true;
-                        break;
+            } else {
+                switch (generatorStage) {
+                    case TRASH_COLLECTION -> {
+                        boolean nearTrash = false;
+                        for (Entity trash : generatorTrashEntities) {
+                            if (trash != null && trash.isActive() && playerEntity != null
+                                    && (playerEntity.distance(trash) < 48.0 || safelyCollides(playerEntity, trash))) {
+                                nearTrash = true;
+                                break;
+                            }
+                        }
+                        interactPromptText.setText("Press [E / Space] to Clean Waste (+10s, +50 pts)");
+                        interactPromptText.setVisible(nearTrash);
                     }
-                }
-                interactPromptText.setText("Press [E / Space] to Clean Waste (+10s, +50 pts)");
-                interactPromptText.setVisible(nearTrash);
-            } else if (generatorStage == GeneratorStage.QUESTION) {
-                interactPromptText.setText("Press [1, 2, or 3] to Answer Terminal Question");
-                interactPromptText.setVisible(playerNearQuestionPoint);
-            } else if (generatorStage == GeneratorStage.SORTING) {
-                if (outsideCarriedWaste != null) {
-                    boolean nearBin = false;
-                    for (Map.Entry<Entity, String> bin : sortingBins.entrySet()) {
-                        InteractionBox binBox = sortingBinBoxes.get(bin.getKey());
-                        if ((binBox != null && binBox.intersectsPlayer(playerEntity))
-                                || (playerEntity != null && playerEntity.distance(bin.getKey()) < 56.0)) {
-                            BinInfo info = getBinInfo(bin.getValue());
-                            interactPromptText.setText(
-                                    "Press [E / Space] to Deposit in " + info.category + " Bin");
-                            nearBin = true;
-                            break;
+                    case QUESTION -> {
+                        interactPromptText.setText("Press [1, 2, or 3] to Answer Terminal Question");
+                        interactPromptText.setVisible(playerNearQuestionPoint);
+                    }
+                    case SORTING -> {
+                        if (outsideCarriedWaste != null) {
+                            boolean nearBin = false;
+                            for (Map.Entry<Entity, String> bin : sortingBins.entrySet()) {
+                                InteractionBox binBox = sortingBinBoxes.get(bin.getKey());
+                                if ((binBox != null && binBox.intersectsPlayer(playerEntity))
+                                        || (playerEntity != null && playerEntity.distance(bin.getKey()) < 56.0)) {
+                                    BinInfo info = getBinInfo(bin.getValue());
+                                    interactPromptText.setText(
+                                            "Press [E / Space] to Deposit in " + info.category + " Bin");
+                                    nearBin = true;
+                                    break;
+                                }
+                            }
+                            if (!nearBin) {
+                                interactPromptText
+                                        .setText("Carrying: " + outsideCarriedWaste.name() + " — Find the matching bin");
+                            }
+                            interactPromptText.setVisible(true);
+                        } else {
+                            boolean nearWaste = false;
+                            for (Map.Entry<Entity, WasteItem> entry : sortingWasteEntities.entrySet()) {
+                                InteractionBox pickupBox = sortingPickupBoxes.get(entry.getKey());
+                                if ((pickupBox != null && pickupBox.intersectsPlayer(playerEntity))
+                                        || (playerEntity != null && playerEntity.distance(entry.getKey()) < 48.0)) {
+                                    interactPromptText.setText("Press [E / Space] to Pick Up " + entry.getValue().name());
+                                    nearWaste = true;
+                                    break;
+                                }
+                            }
+                            interactPromptText.setVisible(nearWaste);
                         }
                     }
-                    if (!nearBin) {
-                        interactPromptText
-                                .setText("Carrying: " + outsideCarriedWaste.name() + " — Find the matching bin");
-                    }
-                    interactPromptText.setVisible(true);
-                } else {
-                    boolean nearWaste = false;
-                    for (Map.Entry<Entity, WasteItem> entry : sortingWasteEntities.entrySet()) {
-                        InteractionBox pickupBox = sortingPickupBoxes.get(entry.getKey());
-                        if ((pickupBox != null && pickupBox.intersectsPlayer(playerEntity))
-                                || (playerEntity != null && playerEntity.distance(entry.getKey()) < 48.0)) {
-                            interactPromptText.setText("Press [E / Space] to Pick Up " + entry.getValue().name());
-                            nearWaste = true;
-                            break;
+                    case TREE_PLANTATION -> {
+                        if (!p1CarryingPlant) {
+                            boolean nearPlant = false;
+                            for (Entity plant : generatorPlantEntities) {
+                                if (plant != null && plant.isActive() && playerEntity != null
+                                        && (playerEntity.distance(plant) < 48.0 || safelyCollides(playerEntity, plant))) {
+                                    nearPlant = true;
+                                    break;
+                                }
+                            }
+                            interactPromptText.setText("Press [E / Space] to Pick Up Plant");
+                            interactPromptText.setVisible(nearPlant);
+                        } else {
+                            boolean nearHole = false;
+                            for (Entity hole : generatorHoleEntities) {
+                                if (hole != null && hole.isActive() && !hole.getBoolean("planted") && playerEntity != null
+                                        && (playerEntity.distance(hole) < 48.0 || safelyCollides(playerEntity, hole))) {
+                                    nearHole = true;
+                                    break;
+                                }
+                            }
+                            interactPromptText.setText("Press [E / Space] to Plant Tree into Hole");
+                            interactPromptText.setVisible(nearHole);
                         }
                     }
-                    interactPromptText.setVisible(nearWaste);
-                }
-            } else if (generatorStage == GeneratorStage.TREE_PLANTATION) {
-                if (!p1CarryingPlant) {
-                    boolean nearPlant = false;
-                    for (Entity plant : generatorPlantEntities) {
-                        if (plant != null && plant.isActive() && playerEntity != null
-                                && (playerEntity.distance(plant) < 48.0 || safelyCollides(playerEntity, plant))) {
-                            nearPlant = true;
-                            break;
+                    case ANIMAL_RESCUE -> {
+                        Entity targetAnimal = animalRescueEntity != null ? animalRescueEntity : rabbitEntity;
+                        if (!generatorStageCompleted && targetAnimal != null && targetAnimal.isActive() && playerEntity != null
+                                && (playerEntity.distance(targetAnimal) < 70.0 || safelyCollides(playerEntity, targetAnimal))) {
+                            String animalName = (currentAnimalRescueType == AnimalRescueType.RABBIT) ? "Rabbit" : "Puppy";
+                            interactPromptText.setText("Press [E / Space] to Heal " + animalName);
+                            interactPromptText.setVisible(true);
+                        } else {
+                            interactPromptText.setVisible(false);
                         }
                     }
-                    interactPromptText.setText("Press [E / Space] to Pick Up Plant");
-                    interactPromptText.setVisible(nearPlant);
-                } else {
-                    boolean nearHole = false;
-                    for (Entity hole : generatorHoleEntities) {
-                        if (hole != null && hole.isActive() && !hole.getBoolean("planted") && playerEntity != null
-                                && (playerEntity.distance(hole) < 48.0 || safelyCollides(playerEntity, hole))) {
-                            nearHole = true;
-                            break;
-                        }
+                    default -> {
                     }
-                    interactPromptText.setText("Press [E / Space] to Plant Tree into Hole");
-                    interactPromptText.setVisible(nearHole);
-                }
-            } else if (generatorStage == GeneratorStage.ANIMAL_RESCUE) {
-                Entity targetAnimal = animalRescueEntity != null ? animalRescueEntity : rabbitEntity;
-                if (!generatorStageCompleted && targetAnimal != null && targetAnimal.isActive() && playerEntity != null
-                        && (playerEntity.distance(targetAnimal) < 70.0 || safelyCollides(playerEntity, targetAnimal))) {
-                    String animalName = (currentAnimalRescueType == AnimalRescueType.RABBIT) ? "Rabbit" : "Puppy";
-                    interactPromptText.setText("Press [E / Space] to Heal " + animalName);
-                    interactPromptText.setVisible(true);
-                } else {
-                    interactPromptText.setVisible(false);
                 }
             }
         } else if (selectedGameMode == GameMode.ANIMAL_RESCUE) {
@@ -5112,62 +5133,6 @@ public class MovementApp extends GameApplication {
         container.getChildren().add(overlay);
     }
 
-    private static void showPixelMainMenuConfirmation() {
-        boolean wasFullScreen = FXGL.getPrimaryStage().isFullScreen();
-        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-        try {
-            alert.initOwner(FXGL.getPrimaryStage());
-        } catch (Exception ignored) {
-        }
-        alert.setTitle("Main Menu");
-        alert.setHeaderText("RETURN TO MAIN MENU?");
-        alert.setContentText("Are you sure you want to return to the main menu?\nUnsaved progress will be lost!");
-        try {
-            alert.getDialogPane().getStylesheets()
-                    .add(MovementApp.class.getResource("/assets/ui/css/pixel_style.css").toExternalForm());
-        } catch (Exception ignored) {
-        }
-        Optional<ButtonType> result = alert.showAndWait();
-        if (result.isPresent() && result.get() == ButtonType.OK) {
-            AudioManager.playMenuMusic();
-            FXGL.getGameController().gotoMainMenu();
-        }
-        if (wasFullScreen) {
-            javafx.application.Platform.runLater(() -> {
-                if (!FXGL.getPrimaryStage().isFullScreen()) {
-                    FXGL.getPrimaryStage().setFullScreen(true);
-                }
-            });
-        }
-    }
-
-    private static void showPixelExitConfirmation() {
-        boolean wasFullScreen = FXGL.getPrimaryStage().isFullScreen();
-        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-        try {
-            alert.initOwner(FXGL.getPrimaryStage());
-        } catch (Exception ignored) {
-        }
-        alert.setTitle("Exit Game");
-        alert.setHeaderText("EXIT RESTORATION?");
-        alert.setContentText("Are you sure you want to quit the game?");
-        try {
-            alert.getDialogPane().getStylesheets()
-                    .add(MovementApp.class.getResource("/assets/ui/css/pixel_style.css").toExternalForm());
-        } catch (Exception ignored) {
-        }
-        Optional<ButtonType> result = alert.showAndWait();
-        if (result.isPresent() && result.get() == ButtonType.OK) {
-            FXGL.getGameController().exit();
-        } else if (wasFullScreen) {
-            javafx.application.Platform.runLater(() -> {
-                if (!FXGL.getPrimaryStage().isFullScreen()) {
-                    FXGL.getPrimaryStage().setFullScreen(true);
-                }
-            });
-        }
-    }
-
     private void showEndGameOverlay(String titleText, String subtitleText, boolean isVictory) {
         if (endGameOverlayNode != null) {
             FXGL.removeUINode(endGameOverlayNode);
@@ -5175,7 +5140,6 @@ public class MovementApp extends GameApplication {
         }
 
         boolean isNewHighScore = HighScoreDatabase.getInstance().recordScore(selectedGameMode, "Player", ecoScore);
-        int modeHighScore = HighScoreDatabase.getInstance().getHighScore(selectedGameMode);
 
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/assets/ui/fxml/game_end_overlay.fxml"));
@@ -5197,14 +5161,23 @@ public class MovementApp extends GameApplication {
                 }
             }
             if (subtitleLabel != null) {
-                subtitleLabel.setText(subtitleText);
+                if (!isVictory || subtitleText == null || subtitleText.isBlank()) {
+                    subtitleLabel.setText("");
+                    subtitleLabel.setVisible(false);
+                    subtitleLabel.setManaged(false);
+                } else {
+                    subtitleLabel.setText(subtitleText);
+                    subtitleLabel.setVisible(true);
+                    subtitleLabel.setManaged(true);
+                }
             }
             if (scoreLabel != null) {
                 if (isNewHighScore && ecoScore > 0) {
-                    scoreLabel.setText("NEW HIGH SCORE! Eco-Score: " + ecoScore + " | High: " + modeHighScore);
+                    scoreLabel.setText("Score: " + ecoScore + " (New High Score)");
                     scoreLabel.setStyle("-fx-text-fill:#ffd700; -fx-font-size:16px; -fx-font-weight:bold;");
                 } else {
-                    scoreLabel.setText("Earned Eco-Score: " + ecoScore + " | High Score: " + modeHighScore);
+                    scoreLabel.setText("Score: " + ecoScore);
+                    scoreLabel.setStyle("-fx-text-fill:#ffd700; -fx-font-size:16px; -fx-font-weight:bold;");
                 }
             }
             if (btnRetry != null) {
@@ -5469,22 +5442,6 @@ public class MovementApp extends GameApplication {
         content.getChildren().addAll(title, subtitle, innerBox);
         overlay.getChildren().add(content);
         parentPane.getChildren().add(overlay);
-    }
-
-    private static Button createWoodStyledButton(String label) {
-        Button btn = new Button(label);
-        btn.setPrefWidth(320);
-        btn.setPrefHeight(38);
-        String baseStyle = "-fx-background-color: #6c5139; -fx-border-color: #8d6b4c #3d2919 #3d2919 #8d6b4c; " +
-                "-fx-border-width: 3px; -fx-text-fill: #fdfbf7; -fx-font-family: 'Monospaced', monospace; " +
-                "-fx-font-size: 11px; -fx-font-weight: bold; -fx-cursor: hand;";
-        String hoverStyle = "-fx-background-color: #523c28; -fx-border-color: #6c5139 #281a0e #281a0e #6c5139; " +
-                "-fx-border-width: 3px; -fx-text-fill: #c59f73; -fx-font-family: 'Monospaced', monospace; " +
-                "-fx-font-size: 11px; -fx-font-weight: bold; -fx-cursor: hand;";
-        btn.setStyle(baseStyle);
-        btn.setOnMouseEntered(e -> btn.setStyle(hoverStyle));
-        btn.setOnMouseExited(e -> btn.setStyle(baseStyle));
-        return btn;
     }
 
     private static String formatModeName(GameMode mode) {
