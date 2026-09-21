@@ -24,6 +24,8 @@ public class PlayerComponent extends Component {
     private static final double CHARACTER_SCALE = 1.5;
 
     private boolean up, down, left, right;
+    private boolean isRemote = false;
+    private boolean remoteMoving = false;
 
     private AnimatedTexture texture;
     private Map<Direction, AnimationChannel> walkAnimations;
@@ -99,6 +101,19 @@ public class PlayerComponent extends Component {
                 if (idle != null && texture.getAnimationChannel() != idle) {
                     texture.loopAnimationChannel(idle);
                 }
+            }
+            return;
+        }
+
+        if (isRemote) {
+            if (remoteMoving) {
+                footstepTimer += tpf;
+                if (footstepTimer >= FOOTSTEP_INTERVAL) {
+                    footstepTimer = 0.0;
+                    pkg.audio.AudioManager.playFootstep();
+                }
+            } else {
+                footstepTimer = FOOTSTEP_INTERVAL;
             }
             return;
         }
@@ -333,6 +348,7 @@ public class PlayerComponent extends Component {
         this.down = false;
         this.left = false;
         this.right = false;
+        this.isRemote = false;
         if (texture != null && idleAnimations != null && currentDirection != null) {
             AnimationChannel idle = idleAnimations.get(currentDirection);
             if (idle != null && texture.getAnimationChannel() != idle) {
@@ -342,19 +358,31 @@ public class PlayerComponent extends Component {
     }
 
     public void setUp(boolean v) {
-        if (!movementFrozen) this.up = v;
+        if (!movementFrozen) {
+            this.up = v;
+            this.isRemote = false;
+        }
     }
 
     public void setDown(boolean v) {
-        if (!movementFrozen) this.down = v;
+        if (!movementFrozen) {
+            this.down = v;
+            this.isRemote = false;
+        }
     }
 
     public void setLeft(boolean v) {
-        if (!movementFrozen) this.left = v;
+        if (!movementFrozen) {
+            this.left = v;
+            this.isRemote = false;
+        }
     }
 
     public void setRight(boolean v) {
-        if (!movementFrozen) this.right = v;
+        if (!movementFrozen) {
+            this.right = v;
+            this.isRemote = false;
+        }
     }
 
     public Direction getCurrentDirection() {
@@ -366,13 +394,25 @@ public class PlayerComponent extends Component {
     }
 
     public boolean isMoving() {
-        return up || down || left || right;
+        return isRemote ? remoteMoving : (up || down || left || right);
+    }
+
+    public boolean isRemote() {
+        return isRemote;
+    }
+
+    public void setRemote(boolean isRemote) {
+        this.isRemote = isRemote;
     }
 
     public void setRemoteState(Direction dir, boolean isMoving) {
-        this.currentDirection = dir;
-        if (texture != null) {
-            AnimationChannel channel = isMoving ? walkAnimations.get(dir) : idleAnimations.get(dir);
+        this.isRemote = true;
+        this.remoteMoving = isMoving;
+        if (dir != null) {
+            this.currentDirection = dir;
+        }
+        if (texture != null && walkAnimations != null && idleAnimations != null) {
+            AnimationChannel channel = isMoving ? walkAnimations.get(currentDirection) : idleAnimations.get(currentDirection);
             if (channel != null && texture.getAnimationChannel() != channel) {
                 texture.loopAnimationChannel(channel);
             }
