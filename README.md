@@ -124,7 +124,7 @@ flowchart LR
 
 ---
 
-## ⌨️ Controls Guide
+## ⚙️ Controls Guide
 
 ### Player 1 Controls
 
@@ -141,7 +141,7 @@ flowchart LR
 | <kbd>↑</kbd> / <kbd>←</kbd> / <kbd>↓</kbd> / <kbd>→</kbd> | Move Up / Left / Down / Right |
 | <kbd>/</kbd> / <kbd>NumPad 0</kbd> | Interact / Action |
 
-### ⚙️ General & UI Controls
+### General & UI Controls
 
 | Key | Action |
 | :---: | :--- |
