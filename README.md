@@ -188,20 +188,22 @@ flowchart LR
 
 ## 📊 Team Contribution Matrix
 
-| Feature / Module | Abu Sayem Rafi (`230041106`) | Ahmed Samin Yasar (`230041113`) | Mahfuz Kamal Sohan (`230041130`) |
-| :--- | :---: | :---: | :---: |
-| **Garbage & Bottle Collection** | 🌟 Primary Lead | — | — |
-| **Environmental Quizzes** | 🌟 Primary Lead | — | — |
-| **Garbage Sorting (4 Bins)** | 🌟 Primary Lead | — | — |
-| **Game HUD & Visual Notifications** | 🌟 Primary Lead | — | — |
-| **Shared-Screen Co-op & Tethering** | 🌟 Primary Lead | — | — |
-| **Animal Rescue & Medical Clinic** | — | 🌟 Primary Lead | — |
-| **Map & World Building (TMX / Chunks)** | — | 🌟 Primary Lead | — |
-| **Music & Sound Effects** | — | 🌟 Primary Lead | — |
-| **Tree Plantation & Reforestation** | — | — | 🌟 Primary Lead |
-| **Menu System & UI Overlays** | — | — | 🌟 Primary Lead |
-| **Assets & Animation (Aseprite)** | — | — | 🌟 Primary Lead |
-| **LAN Multiplayer Implementation** | — | — | 🌟 Primary Lead |
+| Feature / Module | Contributor |
+|:---|:---:|
+| 🗑️ *Garbage & Bottle Collection* | **Rafi, Sohan**|
+| 🧠 *Environmental Quizzes* | **Samin, Rafi** |
+| ♻️ *Garbage Sorting (4 Bins)* | **Rafi**  |
+| 🎮 *Game HUD* | **Rafi, Sohan** |
+| 🖥️ *Menu System & UI Overlays* | **Sohan** |
+| 🐾 *Animal Rescue & Medical Clinic* | **Samin** |
+| 🎵 *Music & Sound Effects* | **Samin, Rafi** |
+| 🌱 *Tree Plantation & Reforestation* | **Sohan** |
+| 🗺️ *Map & World Building (TMX / Chunks)* | **Samin, Sohan** |
+| 🎨 *Pixel Assets & Animation (Aseprite)* | **Sohan, Samin** |
+| 🌐 *LAN Multiplayer Implementation* | **Sohan** |
+| 🤝 *Shared-Screen Co-op & Tethering* | **Sohan, Rafi** |
+  
+  <i>Special thanks (rabbit and puppy art) : <a href = "https://github.com/SilentCipher-Star/">Silent Cipher</i>
 
 ---
 
