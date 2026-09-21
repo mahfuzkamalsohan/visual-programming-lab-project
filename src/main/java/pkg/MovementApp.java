@@ -4681,7 +4681,7 @@ public class MovementApp extends GameApplication {
             });
 
             VBox stBox = new VBox(10, stTitle, lblFallbackVol, sliderFallbackVol, btnToggleFullscreen, btnSettingsBack);
-            stBox.setAlignment(Pos.CENTER_LEFT);
+            stBox.setAlignment(Pos.CENTER);
             stBox.setVisible(false);
             stBox.setManaged(false);
 
@@ -5437,21 +5437,23 @@ public class MovementApp extends GameApplication {
         content.getStyleClass().add("pixel-settings-panel");
         content.setMaxSize(400, 540);
         content.setPrefSize(400, 540);
-        content.setAlignment(Pos.CENTER_LEFT);
+        content.setAlignment(Pos.CENTER);
         content.setPadding(new Insets(24));
 
         Label title = new Label("SETTINGS");
         title.getStyleClass().add("pixel-title");
         title.setStyle(
                 "-fx-font-size: 28px; -fx-text-fill: #6c5139; -fx-font-family: 'Press Start 2P', 'Monospaced', monospace;");
+        title.setAlignment(Pos.CENTER);
 
         Label subtitle = new Label("★ GAME OPTIONS ★");
         subtitle.getStyleClass().add("pixel-subtitle");
         subtitle.setStyle(
                 "-fx-font-size: 12px; -fx-text-fill: #6c5139; -fx-font-family: 'Press Start 2P', 'Monospaced', monospace;");
+        subtitle.setAlignment(Pos.CENTER);
 
         VBox innerBox = new VBox(14);
-        innerBox.setAlignment(Pos.CENTER_LEFT);
+        innerBox.setAlignment(Pos.CENTER);
         VBox.setMargin(innerBox, new Insets(14, 0, 0, 0));
 
         Button btnToggleMusic = new Button("Music: " + (AudioManager.isMusicEnabled() ? "ON" : "OFF"));
@@ -5481,11 +5483,12 @@ public class MovementApp extends GameApplication {
         });
 
         VBox volumeBox = new VBox(6);
-        volumeBox.setAlignment(Pos.CENTER_LEFT);
+        volumeBox.setAlignment(Pos.CENTER);
         Label lblVol = new Label(String.format("MUSIC VOLUME: %d%%", Math.round(AudioManager.getMusicVolume() * 100)));
         lblVol.getStyleClass().add("pixel-subtitle");
         lblVol.setStyle(
                 "-fx-font-size: 11px; -fx-text-fill: #6c5139; -fx-font-family: 'Press Start 2P', 'Monospaced', monospace;");
+        lblVol.setAlignment(Pos.CENTER);
 
         Slider sliderVol = new Slider(0.0, 100.0, AudioManager.getMusicVolume() * 100);
         sliderVol.getStyleClass().add("pixel-slider");

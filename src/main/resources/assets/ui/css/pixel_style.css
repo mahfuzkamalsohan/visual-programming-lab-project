@@ -203,11 +203,15 @@
 .pixel-settings-panel .pixel-title, .pixel-about-panel .pixel-title {
     -fx-text-fill: #6c5139;
     -fx-effect: none;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
 }
 
 .pixel-settings-panel .pixel-subtitle, .pixel-about-panel .pixel-subtitle {
     -fx-text-fill: #523c28;
     -fx-effect: none;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
 }
 
 .pixel-settings-panel .pixel-button, .pixel-about-panel .pixel-button {

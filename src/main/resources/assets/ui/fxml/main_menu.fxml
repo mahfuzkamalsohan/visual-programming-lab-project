@@ -49,17 +49,17 @@
 
         <!-- Settings Card -->
         <VBox id="settingsBox" fx:id="settingsBox" visible="false" managed="false"
-            alignment="CENTER_LEFT" spacing="12.0" styleClass="pixel-settings-panel" maxWidth="400.0"
+            alignment="CENTER" spacing="12.0" styleClass="pixel-settings-panel" maxWidth="400.0"
             maxHeight="540.0" translateX="-240.0">
             <padding>
                 <Insets top="24.0" right="24.0" bottom="24.0" left="24.0" />
             </padding>
             <children>
-                <Label text="SETTINGS" styleClass="pixel-title" style="-fx-font-size: 28px; -fx-text-fill: #6c5139;" />
+                <Label text="SETTINGS" styleClass="pixel-title" style="-fx-font-size: 28px; -fx-text-fill: #6c5139;" alignment="CENTER" textAlignment="CENTER" />
                 <Label text="★ GAME OPTIONS ★" styleClass="pixel-subtitle"
-                    style="-fx-font-size: 12px; -fx-text-fill: #6c5139;" />
+                    style="-fx-font-size: 12px; -fx-text-fill: #6c5139;" alignment="CENTER" textAlignment="CENTER" />
 
-                <VBox spacing="14.0" alignment="CENTER_LEFT">
+                <VBox spacing="14.0" alignment="CENTER">
                     <VBox.margin>
                         <Insets top="14.0" />
                     </VBox.margin>
@@ -71,10 +71,10 @@
                             text="Sound Effects: ON" prefWidth="320.0" prefHeight="38.0"
                             styleClass="pixel-button" />
                         <!-- Music Volume Slider Controls -->
-                        <VBox spacing="6.0" alignment="CENTER_LEFT">
+                        <VBox spacing="6.0" alignment="CENTER">
                             <children>
                                 <Label id="lblMusicVolume" fx:id="lblMusicVolume" text="MUSIC VOLUME: 50%"
-                                    styleClass="pixel-subtitle" style="-fx-font-size: 11px; -fx-text-fill: #6c5139;" />
+                                    styleClass="pixel-subtitle" style="-fx-font-size: 11px; -fx-text-fill: #6c5139;" alignment="CENTER" textAlignment="CENTER" />
                                 <Slider id="sliderMusicVolume" fx:id="sliderMusicVolume" min="0.0" max="100.0"
                                     value="50.0" prefWidth="320.0" styleClass="pixel-slider" />
                             </children>
