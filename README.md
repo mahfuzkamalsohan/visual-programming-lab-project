@@ -6,11 +6,10 @@
   <img src="https://readme-typing-svg.herokuapp.com?font=Press+Start+2P&duration=2600&width=550&pause=800&color=2ECC71&center=true&vCenter=true&lines=%E2%99%BB%EF%B8%8F+Recycle+Rethink+Restore+%F0%9F%8C%BF;" />
 </p>
 <p  align="center">  <img  src="https://img.shields.io/badge/Java-21-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white"/>  <img  src="https://img.shields.io/badge/JavaFX-21-FF6F00?style=for-the-badge&logo=java&logoColor=white"/>  <img  src="https://img.shields.io/badge/FXGL-17.3-00B4D8?style=for-the-badge&logo=game-and-watch&logoColor=white"/>  </p>  <p  align="center">  <img  src="https://img.shields.io/badge/Gradle-8.10-02303A?style=flat-square&logo=gradle&logoColor=white"/>  <img  src="https://img.shields.io/badge/Tiled-269539?style=flat-square&logo=tiled&logoColor=white"/>  <img  src="https://img.shields.io/badge/Aseprite-7D5BA6?style=flat-square&logo=aseprite&logoColor=white"/>  <img  src="https://img.shields.io/badge/GitHub-181717?style=flat-square&logo=github&logoColor=white"/>  </p>
-
+---
 ## ▶️ Video Link
-
 👉 <a href = "https://www.youtube.com/watch?v=4dO_S5ldA9Q&feature=youtu.be"> Click here to see the video presentation
-
+---
 ## 🌿 Project Overview
 
 **Restoration** is an 8-bit retro 2D isometric cooperative eco-survival and educational game built with **Java 21**, **JavaFX**, and **FXGL**.
