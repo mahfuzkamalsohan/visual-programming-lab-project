@@ -64,6 +64,12 @@
                         <Insets top="14.0" />
                     </VBox.margin>
                     <children>
+                        <Button id="btnToggleMusic" fx:id="btnToggleMusic"
+                            text="Music: ON" prefWidth="320.0" prefHeight="38.0"
+                            styleClass="pixel-button" />
+                        <Button id="btnToggleSfx" fx:id="btnToggleSfx"
+                            text="Sound Effects: ON" prefWidth="320.0" prefHeight="38.0"
+                            styleClass="pixel-button" />
                         <!-- Music Volume Slider Controls -->
                         <VBox spacing="6.0" alignment="CENTER_LEFT">
                             <children>
@@ -74,10 +80,13 @@
                             </children>
                         </VBox>
                         <Button id="btnToggleFullscreen" fx:id="btnToggleFullscreen"
-                            text="Toggle Fullscreen" prefWidth="320.0" prefHeight="40.0"
+                            text="Toggle Fullscreen" prefWidth="320.0" prefHeight="38.0"
+                            styleClass="pixel-button" />
+                        <Button id="btnViewHighScores" fx:id="btnViewHighScores"
+                            text="View High Scores" prefWidth="320.0" prefHeight="38.0"
                             styleClass="pixel-button" />
                         <Button id="btnSettingsBack" fx:id="btnSettingsBack" text="Back"
-                            prefWidth="320.0" prefHeight="40.0" styleClass="pixel-button" />
+                            prefWidth="320.0" prefHeight="38.0" styleClass="pixel-button" />
                     </children>
                 </VBox>
             </children>

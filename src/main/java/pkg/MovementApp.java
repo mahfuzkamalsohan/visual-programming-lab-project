@@ -300,7 +300,12 @@ public class MovementApp extends GameApplication {
 
     @Override
     protected void onPreInit() {
+        try {
+            Font.loadFont(MovementApp.class.getResourceAsStream("/assets/ui/fonts/PressStart2P-Regular.ttf"), 12);
+        } catch (Exception ignored) {
+        }
         AudioManager.init();
+        HighScoreDatabase.getInstance().load();
         AudioManager.playMenuMusic();
     }
 
@@ -536,6 +541,7 @@ public class MovementApp extends GameApplication {
                     }
                 }
             }
+            showTopHighScoreBanner();
         });
         FXGL.addUINode(cutsceneOverlayNode);
 
@@ -1454,7 +1460,7 @@ public class MovementApp extends GameApplication {
                     }
                     updateCarriedPlantViews();
                     AudioManager.playTrashPickup();
-                    spawnFloatingText(player.getX(), player.getY() - 16, "+PLANT", Color.web("#39ff14"));
+                    spawnFloatingText(player.getX(), player.getY() - 30, "🌱 PLANT PICKED UP!", Color.web("#39ff14"));
                     updateTrashCounter();
                     break;
                 }
@@ -1856,7 +1862,7 @@ public class MovementApp extends GameApplication {
             Entity targetAnimal = animalRescueEntity != null ? animalRescueEntity : rabbitEntity;
             if (!generatorStageCompleted && targetAnimal != null && player != null
                     && (player.distance(targetAnimal) < 70.0 || safelyCollides(player, targetAnimal))) {
-                
+
                 isAnimalHealingActive = true;
                 resetAllMovementFlags();
                 if (playerComponent != null) {
@@ -3132,7 +3138,8 @@ public class MovementApp extends GameApplication {
                 currentMapRadius++;
                 infiniteMapManager.unlockLayer(currentMapRadius);
                 AudioManager.playCorrectAnswer();
-                showTemporaryNotice("🌍 DISTRICT MAP EXPANDED!\nLayer " + currentMapRadius + " unlocked — new sectors await exploration!");
+                showTemporaryNotice("🌍 DISTRICT MAP EXPANDED!\nLayer " + currentMapRadius
+                        + " unlocked — new sectors await exploration!");
             } else {
                 break;
             }
@@ -3163,7 +3170,9 @@ public class MovementApp extends GameApplication {
                 }
             } else if (generatorStage == GeneratorStage.ANIMAL_RESCUE
                     || selectedGameMode == GameMode.ANIMAL_RESCUE) {
-                String animalIcon = (currentAnimalRescueType == AnimalRescueType.RABBIT) ? "/assets/textures/healed_rabit.png" : "/assets/textures/healed_puppy.png";
+                String animalIcon = (currentAnimalRescueType == AnimalRescueType.RABBIT)
+                        ? "/assets/textures/healed_rabit.png"
+                        : "/assets/textures/healed_puppy.png";
                 ImageView animalIv = safeImageView(animalIcon, 28, 28);
                 if (animalIv != null) {
                     animalIv.setLayoutX(8);
@@ -4287,10 +4296,43 @@ public class MovementApp extends GameApplication {
                     });
                 }
 
+                Button btnToggleMusic = (Button) findFxmlNode(menuRoot, loader, "btnToggleMusic");
+                if (btnToggleMusic != null) {
+                    btnToggleMusic.setText("Music: " + (AudioManager.isMusicEnabled() ? "ON" : "OFF"));
+                    btnToggleMusic.setOnAction(e -> {
+                        boolean newState = !AudioManager.isMusicEnabled();
+                        AudioManager.setMusicEnabled(newState);
+                        btnToggleMusic.setText("Music: " + (newState ? "ON" : "OFF"));
+                        if (newState) {
+                            AudioManager.playButtonClick();
+                        }
+                    });
+                }
+
+                Button btnToggleSfx = (Button) findFxmlNode(menuRoot, loader, "btnToggleSfx");
+                if (btnToggleSfx != null) {
+                    btnToggleSfx.setText("Sound Effects: " + (AudioManager.isSfxEnabled() ? "ON" : "OFF"));
+                    btnToggleSfx.setOnAction(e -> {
+                        boolean newState = !AudioManager.isSfxEnabled();
+                        AudioManager.setSfxEnabled(newState);
+                        btnToggleSfx.setText("Sound Effects: " + (newState ? "ON" : "OFF"));
+                        if (newState) {
+                            AudioManager.playButtonClick();
+                        }
+                    });
+                }
+
                 if (btnToggleFullscreen != null) {
                     btnToggleFullscreen.setOnAction(e -> {
                         AudioManager.playButtonClick();
                         FXGL.getPrimaryStage().setFullScreen(!FXGL.getPrimaryStage().isFullScreen());
+                    });
+                }
+                Button btnViewHighScores = (Button) findFxmlNode(menuRoot, loader, "btnViewHighScores");
+                if (btnViewHighScores != null) {
+                    btnViewHighScores.setOnAction(e -> {
+                        AudioManager.playButtonClick();
+                        showHighScoresWindow(getContentRoot(), null);
                     });
                 }
                 if (btnSettingsBack != null) {
@@ -4634,6 +4676,7 @@ public class MovementApp extends GameApplication {
         private static final double PAUSE_ITEM_SPACING = 75.0;
 
         private static final double RESUME_BASE_TILT = -1.5;
+        private static final double SETTINGS_BASE_TILT = 0.5;
         private static final double MAINMENU_BASE_TILT = 1.5;
         private static final double EXIT_BASE_TILT = -1.0;
         private static final double HOVER_TILT_DELTA = 2.5;
@@ -4691,9 +4734,16 @@ public class MovementApp extends GameApplication {
                         HOVER_TILT_DELTA,
                         () -> fireResume());
 
-                Node btnMainMenuTablet = createTabletItem("/assets/ui/menu/main_menu.png", "Main Menu",
+                Node btnSettingsTablet = createTabletItem("/assets/ui/menu/settings.png", "Settings",
                         centerX,
                         PAUSE_BASE_Y + 1 * PAUSE_ITEM_SPACING,
+                        SETTINGS_BASE_TILT,
+                        HOVER_TILT_DELTA,
+                        () -> showPauseSettingsWindow(getContentRoot()));
+
+                Node btnMainMenuTablet = createTabletItem("/assets/ui/menu/main_menu.png", "Main Menu",
+                        centerX,
+                        PAUSE_BASE_Y + 2 * PAUSE_ITEM_SPACING,
                         MAINMENU_BASE_TILT,
                         HOVER_TILT_DELTA,
                         () -> showInScenePixelConfirmation(
@@ -4715,7 +4765,7 @@ public class MovementApp extends GameApplication {
 
                 Node btnExitTablet = createTabletItem("/assets/ui/menu/exit.png", "Exit Game",
                         centerX,
-                        PAUSE_BASE_Y + 2 * PAUSE_ITEM_SPACING,
+                        PAUSE_BASE_Y + 3 * PAUSE_ITEM_SPACING,
                         EXIT_BASE_TILT,
                         HOVER_TILT_DELTA,
                         () -> showInScenePixelConfirmation(
@@ -4724,7 +4774,7 @@ public class MovementApp extends GameApplication {
                                 "Are you sure you want to quit the game?",
                                 () -> FXGL.getGameController().exit()));
 
-                pauseMenuBox.getChildren().addAll(btnResumeTablet, btnMainMenuTablet, btnExitTablet);
+                pauseMenuBox.getChildren().addAll(btnResumeTablet, btnSettingsTablet, btnMainMenuTablet, btnExitTablet);
             } catch (IOException | RuntimeException ex) {
                 menuRoot = createFallbackPauseMenu();
             }
@@ -5123,6 +5173,10 @@ public class MovementApp extends GameApplication {
             FXGL.removeUINode(endGameOverlayNode);
             endGameOverlayNode = null;
         }
+
+        boolean isNewHighScore = HighScoreDatabase.getInstance().recordScore(selectedGameMode, "Player", ecoScore);
+        int modeHighScore = HighScoreDatabase.getInstance().getHighScore(selectedGameMode);
+
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/assets/ui/fxml/game_end_overlay.fxml"));
             endGameOverlayNode = loader.load();
@@ -5146,7 +5200,12 @@ public class MovementApp extends GameApplication {
                 subtitleLabel.setText(subtitleText);
             }
             if (scoreLabel != null) {
-                scoreLabel.setText("⭐ Earned Eco-Score: " + ecoScore);
+                if (isNewHighScore && ecoScore > 0) {
+                    scoreLabel.setText("NEW HIGH SCORE! Eco-Score: " + ecoScore + " | High: " + modeHighScore);
+                    scoreLabel.setStyle("-fx-text-fill:#ffd700; -fx-font-size:16px; -fx-font-weight:bold;");
+                } else {
+                    scoreLabel.setText("Earned Eco-Score: " + ecoScore + " | High Score: " + modeHighScore);
+                }
             }
             if (btnRetry != null) {
                 btnRetry.setOnAction(e -> {
@@ -5200,5 +5259,299 @@ public class MovementApp extends GameApplication {
             double dist = Math.hypot(entity.getCenter().getX() - centerX, entity.getCenter().getY() - centerY);
             return bboxOverlap || dist < 36.0;
         }
+    }
+
+    public static void showHighScoresWindow(Pane parentPane, Runnable onClose) {
+        if (parentPane == null)
+            return;
+
+        try {
+            Font.loadFont(MovementApp.class.getResourceAsStream("/assets/ui/fonts/PressStart2P-Regular.ttf"), 12);
+        } catch (Exception ignored) {
+        }
+
+        StackPane overlay = new StackPane();
+        overlay.setPrefSize(1280, 720);
+        overlay.setStyle("-fx-background-color: rgba(0,0,0,0.85);");
+        try {
+            overlay.getStylesheets()
+                    .add(MovementApp.class.getResource("/assets/ui/css/pixel_style.css").toExternalForm());
+        } catch (Exception ignored) {
+        }
+
+        VBox content = new VBox(14);
+        content.getStyleClass().add("pixel-settings-panel");
+        content.setMaxSize(760, 560);
+        content.setPrefSize(760, 560);
+        content.setAlignment(Pos.TOP_CENTER);
+        content.setPadding(new Insets(24));
+
+        Label title = new Label("HIGH SCORES DATABASE");
+        title.getStyleClass().add("pixel-title");
+        title.setStyle(
+                "-fx-font-size: 22px; -fx-text-fill: #6c5139; -fx-font-family: 'Press Start 2P', 'Monospaced', monospace;");
+
+        Label subtitle = new Label("★ Top saved Eco-Scores for Single Player & Multiplayer ★");
+        subtitle.getStyleClass().add("pixel-subtitle");
+        subtitle.setStyle(
+                "-fx-font-size: 11px; -fx-text-fill: #523c28; -fx-font-family: 'Press Start 2P', 'Monospaced', monospace;");
+
+        VBox listContainer = new VBox(8);
+        listContainer.setPadding(new Insets(8));
+
+        List<GameMode> displayModes = List.of(
+                GameMode.SINGLE_PLAYER,
+                GameMode.LOCAL_COOP_SPLITSCREEN,
+                GameMode.LAN_HOST);
+
+        Map<GameMode, Integer> scores = HighScoreDatabase.getInstance().getAllHighScores();
+        for (GameMode mode : displayModes) {
+            int high = scores.getOrDefault(mode, 0);
+
+            HBox modeRow = new HBox(12);
+            modeRow.setAlignment(Pos.CENTER_LEFT);
+            modeRow.setPadding(new Insets(10, 16, 10, 16));
+            modeRow.setStyle("-fx-background-color: #e6cb9c; -fx-border-color: #6c5139; -fx-border-width: 2px;");
+
+            Label modeName = new Label(formatModeName(mode));
+            modeName.getStyleClass().add("pixel-subtitle");
+            modeName.setStyle(
+                    "-fx-text-fill: #361e0b; -fx-font-size: 11px; -fx-font-family: 'Press Start 2P', 'Monospaced', monospace;");
+
+            javafx.scene.layout.Region spacer = new javafx.scene.layout.Region();
+            HBox.setHgrow(spacer, Priority.ALWAYS);
+
+            Label scoreVal = new Label("★ " + high + " pts");
+            scoreVal.getStyleClass().add("pixel-subtitle");
+            scoreVal.setStyle(
+                    "-fx-text-fill: #523c28; -fx-font-size: 11px; -fx-font-family: 'Press Start 2P', 'Monospaced', monospace;");
+
+            modeRow.getChildren().addAll(modeName, spacer, scoreVal);
+            listContainer.getChildren().add(modeRow);
+        }
+
+        javafx.scene.control.ScrollPane scrollPane = new javafx.scene.control.ScrollPane(listContainer);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setPrefHeight(360);
+        scrollPane.setStyle(
+                "-fx-background: transparent; -fx-background-color: transparent; -fx-viewport-background-color: transparent;");
+
+        Button btnClose = new Button("Close Leaderboard");
+        btnClose.getStyleClass().add("pixel-button");
+        btnClose.setStyle("-fx-font-family: 'Press Start 2P', 'Monospaced', monospace;");
+        btnClose.setPrefWidth(320);
+        btnClose.setPrefHeight(38);
+        btnClose.setOnAction(e -> {
+            AudioManager.playButtonClick();
+            parentPane.getChildren().remove(overlay);
+            if (onClose != null)
+                onClose.run();
+        });
+
+        content.getChildren().addAll(title, subtitle, scrollPane, btnClose);
+        overlay.getChildren().add(content);
+        parentPane.getChildren().add(overlay);
+    }
+
+    public static void showPauseSettingsWindow(Pane parentPane) {
+        if (parentPane == null)
+            return;
+
+        try {
+            Font.loadFont(MovementApp.class.getResourceAsStream("/assets/ui/fonts/PressStart2P-Regular.ttf"), 12);
+        } catch (Exception ignored) {
+        }
+
+        StackPane overlay = new StackPane();
+        overlay.setPrefSize(1280, 720);
+        overlay.setStyle("-fx-background-color: rgba(0,0,0,0.85);");
+        try {
+            overlay.getStylesheets()
+                    .add(MovementApp.class.getResource("/assets/ui/css/pixel_style.css").toExternalForm());
+        } catch (Exception ignored) {
+        }
+
+        VBox content = new VBox(12);
+        content.getStyleClass().add("pixel-settings-panel");
+        content.setMaxSize(400, 540);
+        content.setPrefSize(400, 540);
+        content.setAlignment(Pos.CENTER_LEFT);
+        content.setPadding(new Insets(24));
+
+        Label title = new Label("SETTINGS");
+        title.getStyleClass().add("pixel-title");
+        title.setStyle(
+                "-fx-font-size: 28px; -fx-text-fill: #6c5139; -fx-font-family: 'Press Start 2P', 'Monospaced', monospace;");
+
+        Label subtitle = new Label("★ GAME OPTIONS ★");
+        subtitle.getStyleClass().add("pixel-subtitle");
+        subtitle.setStyle(
+                "-fx-font-size: 12px; -fx-text-fill: #6c5139; -fx-font-family: 'Press Start 2P', 'Monospaced', monospace;");
+
+        VBox innerBox = new VBox(14);
+        innerBox.setAlignment(Pos.CENTER_LEFT);
+        VBox.setMargin(innerBox, new Insets(14, 0, 0, 0));
+
+        Button btnToggleMusic = new Button("Music: " + (AudioManager.isMusicEnabled() ? "ON" : "OFF"));
+        btnToggleMusic.getStyleClass().add("pixel-button");
+        btnToggleMusic.setStyle("-fx-font-family: 'Press Start 2P', 'Monospaced', monospace;");
+        btnToggleMusic.setPrefWidth(320);
+        btnToggleMusic.setPrefHeight(38);
+        btnToggleMusic.setOnAction(e -> {
+            boolean newState = !AudioManager.isMusicEnabled();
+            AudioManager.setMusicEnabled(newState);
+            btnToggleMusic.setText("Music: " + (newState ? "ON" : "OFF"));
+            if (newState)
+                AudioManager.playButtonClick();
+        });
+
+        Button btnToggleSfx = new Button("Sound Effects: " + (AudioManager.isSfxEnabled() ? "ON" : "OFF"));
+        btnToggleSfx.getStyleClass().add("pixel-button");
+        btnToggleSfx.setStyle("-fx-font-family: 'Press Start 2P', 'Monospaced', monospace;");
+        btnToggleSfx.setPrefWidth(320);
+        btnToggleSfx.setPrefHeight(38);
+        btnToggleSfx.setOnAction(e -> {
+            boolean newState = !AudioManager.isSfxEnabled();
+            AudioManager.setSfxEnabled(newState);
+            btnToggleSfx.setText("Sound Effects: " + (newState ? "ON" : "OFF"));
+            if (newState)
+                AudioManager.playButtonClick();
+        });
+
+        VBox volumeBox = new VBox(6);
+        volumeBox.setAlignment(Pos.CENTER_LEFT);
+        Label lblVol = new Label(String.format("MUSIC VOLUME: %d%%", Math.round(AudioManager.getMusicVolume() * 100)));
+        lblVol.getStyleClass().add("pixel-subtitle");
+        lblVol.setStyle(
+                "-fx-font-size: 11px; -fx-text-fill: #6c5139; -fx-font-family: 'Press Start 2P', 'Monospaced', monospace;");
+
+        Slider sliderVol = new Slider(0.0, 100.0, AudioManager.getMusicVolume() * 100);
+        sliderVol.getStyleClass().add("pixel-slider");
+        sliderVol.setPrefWidth(320);
+        sliderVol.valueProperty().addListener((obs, oldVal, newVal) -> {
+            double volPercent = newVal.doubleValue();
+            AudioManager.setMusicVolume(volPercent / 100.0);
+            lblVol.setText(String.format("MUSIC VOLUME: %d%%", Math.round(volPercent)));
+        });
+        volumeBox.getChildren().addAll(lblVol, sliderVol);
+
+        Button btnFullscreen = new Button("Toggle Fullscreen");
+        btnFullscreen.getStyleClass().add("pixel-button");
+        btnFullscreen.setStyle("-fx-font-family: 'Press Start 2P', 'Monospaced', monospace;");
+        btnFullscreen.setPrefWidth(320);
+        btnFullscreen.setPrefHeight(38);
+        btnFullscreen.setOnAction(e -> {
+            AudioManager.playButtonClick();
+            FXGL.getPrimaryStage().setFullScreen(!FXGL.getPrimaryStage().isFullScreen());
+        });
+
+        Button btnHighScores = new Button("View High Scores");
+        btnHighScores.getStyleClass().add("pixel-button");
+        btnHighScores.setStyle("-fx-font-family: 'Press Start 2P', 'Monospaced', monospace;");
+        btnHighScores.setPrefWidth(320);
+        btnHighScores.setPrefHeight(38);
+        btnHighScores.setOnAction(e -> {
+            AudioManager.playButtonClick();
+            showHighScoresWindow(parentPane, null);
+        });
+
+        Button btnBack = new Button("Back");
+        btnBack.getStyleClass().add("pixel-button");
+        btnBack.setStyle("-fx-font-family: 'Press Start 2P', 'Monospaced', monospace;");
+        btnBack.setPrefWidth(320);
+        btnBack.setPrefHeight(38);
+        btnBack.setOnAction(e -> {
+            AudioManager.playButtonClick();
+            parentPane.getChildren().remove(overlay);
+        });
+
+        innerBox.getChildren().addAll(btnToggleMusic, btnToggleSfx, volumeBox, btnFullscreen, btnHighScores, btnBack);
+        content.getChildren().addAll(title, subtitle, innerBox);
+        overlay.getChildren().add(content);
+        parentPane.getChildren().add(overlay);
+    }
+
+    private static Button createWoodStyledButton(String label) {
+        Button btn = new Button(label);
+        btn.setPrefWidth(320);
+        btn.setPrefHeight(38);
+        String baseStyle = "-fx-background-color: #6c5139; -fx-border-color: #8d6b4c #3d2919 #3d2919 #8d6b4c; " +
+                "-fx-border-width: 3px; -fx-text-fill: #fdfbf7; -fx-font-family: 'Monospaced', monospace; " +
+                "-fx-font-size: 11px; -fx-font-weight: bold; -fx-cursor: hand;";
+        String hoverStyle = "-fx-background-color: #523c28; -fx-border-color: #6c5139 #281a0e #281a0e #6c5139; " +
+                "-fx-border-width: 3px; -fx-text-fill: #c59f73; -fx-font-family: 'Monospaced', monospace; " +
+                "-fx-font-size: 11px; -fx-font-weight: bold; -fx-cursor: hand;";
+        btn.setStyle(baseStyle);
+        btn.setOnMouseEntered(e -> btn.setStyle(hoverStyle));
+        btn.setOnMouseExited(e -> btn.setStyle(baseStyle));
+        return btn;
+    }
+
+    private static String formatModeName(GameMode mode) {
+        if (mode == null)
+            return "Unknown";
+        return switch (mode) {
+            case SINGLE_PLAYER -> "Single Player";
+            case LOCAL_COOP_SPLITSCREEN -> "Multiplayer (Shared-Screen)";
+            case LAN_HOST -> "Multiplayer (LAN Host)";
+            case LAN_JOIN -> "Multiplayer (LAN Join)";
+            default -> {
+                String name = mode.name().replace("_", " ");
+                StringBuilder sb = new StringBuilder();
+                for (String word : name.split(" ")) {
+                    if (!word.isEmpty()) {
+                        sb.append(Character.toUpperCase(word.charAt(0)))
+                                .append(word.substring(1).toLowerCase()).append(" ");
+                    }
+                }
+                yield sb.toString().trim();
+            }
+        };
+    }
+
+    private void showTopHighScoreBanner() {
+        int modeHigh = HighScoreDatabase.getInstance().getHighScore(selectedGameMode);
+        String modeTitle = formatModeName(selectedGameMode).toUpperCase();
+
+        StackPane banner = new StackPane();
+        banner.setPrefWidth(520);
+        banner.setPrefHeight(42);
+        banner.setMaxWidth(520);
+        banner.setMaxHeight(42);
+        banner.setLayoutX((1280 - 520) / 2.0);
+        banner.setLayoutY(16);
+        banner.setMouseTransparent(true);
+        banner.setStyle("-fx-background-color: rgba(11, 23, 14, 0.94); " +
+                "-fx-border-color: #ffd700; -fx-border-width: 2px; " +
+                "-fx-border-radius: 6px; -fx-background-radius: 6px;");
+
+        Text text = new Text("★ " + modeTitle + " HIGH SCORE: " + modeHigh + " PTS ★");
+        text.setFont(Font.font("Monospaced", FontWeight.BOLD, 14));
+        text.setFill(Color.web("#ffd700"));
+        banner.getChildren().add(text);
+
+        FXGL.addUINode(banner);
+
+        banner.setOpacity(0.0);
+        banner.setScaleY(0.4);
+
+        FadeTransition fadeIn = new FadeTransition(Duration.seconds(0.4), banner);
+        fadeIn.setFromValue(0.0);
+        fadeIn.setToValue(1.0);
+
+        ScaleTransition scaleIn = new ScaleTransition(Duration.seconds(0.4), banner);
+        scaleIn.setFromY(0.4);
+        scaleIn.setToY(1.0);
+
+        fadeIn.play();
+        scaleIn.play();
+
+        FXGL.runOnce(() -> {
+            FadeTransition fadeOut = new FadeTransition(Duration.seconds(0.6), banner);
+            fadeOut.setFromValue(1.0);
+            fadeOut.setToValue(0.0);
+            fadeOut.setOnFinished(e -> FXGL.removeUINode(banner));
+            fadeOut.play();
+        }, Duration.seconds(3.5));
     }
 }

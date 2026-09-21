@@ -1,7 +1,7 @@
 Restoration
 ===========
 
-Restoration is a fullscreen Java / JavaFX / FXGL 2D isometric survival-question game. The player moves through endless generated districts inside a continuous city map, opens sealed gates by answering questions or walking through decision doors, and survives by keeping the restoration timer above zero.
+Restoration is a Java / JavaFX / FXGL 2D isometric survival-question game. The player moves through endless generated districts inside a continuous map, opens sealed pathways by answering questions, planting trees, collecting garbage, healing animals, and survives by keeping the restoration timer above zero.
 
 Stack
 -----
@@ -10,7 +10,7 @@ Stack
 - Gradle
 - JavaFX 21.0.6, including FXML
 - FXGL 17.3 for the game loop, entities, input, and scene system
-- Spring Boot 4.1.0 as a non-web application context for services, configuration, scene factory wiring, and FXML controllers
+
 
 Run
 ---
@@ -134,6 +134,3 @@ Regenerate Demo PNG Assets
 
 By default this only fills missing textures in `src/main/resources/assets/textures/restoration`, so stronger hand-made or generated art is not overwritten. To intentionally replace every deterministic placeholder asset:
 
-```bash
-./gradlew generateDemoAssets -PoverwriteAssets
-```

@@ -58,6 +58,8 @@ public final class AudioManager {
     private static double musicVolume = 0.50; // 50% default
     private static double sfxVolume   = 0.75; // 75% default
     private static double footstepVolume = 0.35; // Footsteps slightly softer to avoid fatigue
+    private static boolean musicEnabled = true;
+    private static boolean sfxEnabled   = true;
     private static boolean isMuted    = false;
     private static boolean initialized = false;
 
@@ -130,7 +132,7 @@ public final class AudioManager {
                         Media media = new Media(resource.toExternalForm());
                         MediaPlayer player = new MediaPlayer(media);
                         player.setCycleCount(MediaPlayer.INDEFINITE);
-                        player.setVolume(isMuted ? 0.0 : musicVolume);
+                        player.setVolume((!musicEnabled || isMuted) ? 0.0 : musicVolume);
                         player.play();
 
                         currentMusicPlayer = player;
@@ -144,7 +146,7 @@ public final class AudioManager {
                     try {
                         AudioClip clip = new AudioClip(resource.toExternalForm());
                         clip.setCycleCount(AudioClip.INDEFINITE);
-                        clip.play(isMuted ? 0.0 : musicVolume);
+                        clip.play((!musicEnabled || isMuted) ? 0.0 : musicVolume);
 
                         currentMusicClip = clip;
                         currentMusicPath = resourcePath;
@@ -208,7 +210,7 @@ public final class AudioManager {
     }
 
     private static void playSfx(String path, double volume) {
-        if (isMuted) return;
+        if (!sfxEnabled || isMuted) return;
 
         AudioClip clip = sfxCache.get(path);
         if (clip != null) {
@@ -254,16 +256,44 @@ public final class AudioManager {
     // SETTINGS & LIFECYCLE
     // =========================================================================
 
+    public static void setMusicEnabled(boolean enabled) {
+        musicEnabled = enabled;
+        if (currentMusicPlayer != null || currentMusicClip != null) {
+            try {
+                Platform.runLater(() -> {
+                    if (currentMusicPlayer != null) {
+                        currentMusicPlayer.setVolume((!musicEnabled || isMuted) ? 0.0 : musicVolume);
+                    }
+                    if (currentMusicClip != null) {
+                        currentMusicClip.setVolume((!musicEnabled || isMuted) ? 0.0 : musicVolume);
+                    }
+                });
+            } catch (Throwable ignored) {}
+        }
+    }
+
+    public static boolean isMusicEnabled() {
+        return musicEnabled;
+    }
+
+    public static void setSfxEnabled(boolean enabled) {
+        sfxEnabled = enabled;
+    }
+
+    public static boolean isSfxEnabled() {
+        return sfxEnabled;
+    }
+
     public static void setMuted(boolean mute) {
         isMuted = mute;
         if (currentMusicPlayer != null || currentMusicClip != null) {
             try {
                 Platform.runLater(() -> {
                     if (currentMusicPlayer != null) {
-                        currentMusicPlayer.setVolume(isMuted ? 0.0 : musicVolume);
+                        currentMusicPlayer.setVolume((!musicEnabled || isMuted) ? 0.0 : musicVolume);
                     }
                     if (currentMusicClip != null) {
-                        currentMusicClip.setVolume(isMuted ? 0.0 : musicVolume);
+                        currentMusicClip.setVolume((!musicEnabled || isMuted) ? 0.0 : musicVolume);
                     }
                 });
             } catch (Throwable ignored) {}
@@ -276,7 +306,7 @@ public final class AudioManager {
 
     public static void setMusicVolume(double volume) {
         musicVolume = Math.max(0.0, Math.min(1.0, volume));
-        if (!isMuted && (currentMusicPlayer != null || currentMusicClip != null)) {
+        if (musicEnabled && !isMuted && (currentMusicPlayer != null || currentMusicClip != null)) {
             try {
                 Platform.runLater(() -> {
                     if (currentMusicPlayer != null) {
