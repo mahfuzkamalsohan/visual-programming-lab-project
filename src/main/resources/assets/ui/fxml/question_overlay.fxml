@@ -4,14 +4,21 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.layout.VBox?>
 
-<VBox stylesheets="@../css/pixel_style.css" styleClass="pixel-settings-panel" spacing="7.0" prefWidth="560.0" maxWidth="580.0" xmlns="http://javafx.com/fxml/1" xmlns:fx="http://javafx.com/fxml/1">
+<VBox stylesheets="@../css/pixel_style.css" styleClass="pixel-settings-panel" spacing="7.0"
+    prefWidth="560.0" maxWidth="580.0" xmlns="http://javafx.com/fxml/1"
+    xmlns:fx="http://javafx.com/fxml/1">
     <padding>
         <Insets top="12.0" right="16.0" bottom="12.0" left="16.0" />
     </padding>
     <children>
-        <Label text="[?] QUESTION" styleClass="pixel-subtitle" style="-fx-text-fill: #523c28; -fx-font-size: 11px; -fx-font-weight: bold;" />
-        <Label fx:id="questionPromptLabel" wrapText="true" maxWidth="550.0" styleClass="pixel-question-text" style="-fx-text-fill: #3b291a; -fx-font-size: 10px; -fx-line-spacing: 3px;" />
+        <Label text="[?] QUESTION" styleClass="pixel-subtitle"
+            style="-fx-text-fill: #523c28; -fx-font-size: 11px; -fx-font-weight: bold;" />
+        <Label fx:id="questionPromptLabel" wrapText="true" maxWidth="550.0"
+            styleClass="pixel-question-text"
+            style="-fx-text-fill: #3b291a; -fx-font-size: 10px; -fx-line-spacing: 3px;" />
         <VBox fx:id="choicesContainer" spacing="6.0" />
-        <Label fx:id="feedbackLabel" text="Click an option below to answer:" wrapText="true" maxWidth="550.0" styleClass="pixel-label-yellow" style="-fx-text-fill: #523c28; -fx-font-size: 9px;" />
+        <Label fx:id="feedbackLabel" text="Click an option above to answer:" wrapText="true"
+            maxWidth="550.0" styleClass="pixel-label-yellow"
+            style="-fx-text-fill: #523c28; -fx-font-size: 9px;" />
     </children>
 </VBox>
